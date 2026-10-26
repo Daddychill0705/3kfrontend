@@ -97,30 +97,42 @@ export default function Home() {
         </div>
 
         {/* Removed lg:h-auto and set a fixed min-height so absolute elements show up */}
-        <div className="relative min-h-[500px] w-full bg-[#FFD3AC]/20 rounded-3xl overflow-hidden shadow-inner border-4 border-white flex items-center justify-center">
+        <div className="relative min-h-[500px] w-full bg-[#FFD3AC]/20 rounded-3xl overflow-hidden shadow-inner border border-[#FFB5AB]/30 flex">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
           
-          <div className="relative w-full h-full p-8">
+          <div className="relative w-full h-full min-h-[500px] p-8">
             {branches.map((branch, idx) => {
-              // Create a scattered effect for the pins
-              const topPos = 20 + (idx * 20) % 60;
-              const leftPos = 20 + (idx * 30) % 50;
+              // Exact positions for up to 5 branches to match your design
+              const positions = [
+                { top: '35%', left: '25%' }, // Branch 1 (e.g. Dasma)
+                { top: '65%', left: '75%' }, // Branch 2 (e.g. GMA)
+                { top: '85%', left: '45%' }, // Branch 3 (e.g. Silang)
+                { top: '15%', left: '60%' }, 
+                { top: '50%', left: '15%' }
+              ];
+              
+              const pos = positions[idx % positions.length];
 
               return (
                 <div 
                   key={branch.id} 
-                  className={`absolute cursor-pointer transition-transform duration-300 hover:scale-110 hover:z-20 ${selectedBranch?.id === branch.id ? 'z-20 animate-bounce scale-110' : 'z-10'}`}
+                  className={`absolute cursor-pointer transition-all duration-300 hover:scale-110 hover:z-20 -translate-x-1/2 -translate-y-1/2 ${selectedBranch?.id === branch.id ? 'z-20 animate-bounce scale-110' : 'z-10'}`}
                   style={{ 
-                    top: `${topPos}%`, 
-                    left: `${leftPos}%` 
+                    top: pos.top, 
+                    left: pos.left 
                   }}
                   onClick={() => setSelectedBranch(branch)}
                 >
-                  <div className={`px-4 py-2 rounded-full shadow-lg border text-xs font-black mb-1 truncate max-w-[150px] text-center transition-colors
-                    ${selectedBranch?.id === branch.id ? 'bg-[#E39A7B] text-white border-[#E39A7B]' : 'bg-white text-gray-800 border-gray-200'}`}>
+                  <div className={`px-4 py-2 rounded-full shadow-lg border-2 text-xs font-black mb-2 truncate max-w-[150px] text-center transition-colors
+                    ${selectedBranch?.id === branch.id ? 'bg-[#E39A7B] text-white border-white' : 'bg-white text-gray-800 border-transparent hover:border-[#E39A7B]'}`}>
                     {branch.name}
                   </div>
-                  <div className="text-4xl text-center drop-shadow-md">📍</div>
+                  <div className="text-4xl text-center drop-shadow-md relative">
+                    📍
+                    {selectedBranch?.id === branch.id && (
+                       <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-black/20 blur-sm rounded-full -z-10"></span>
+                    )}
+                  </div>
                 </div>
               );
             })}
