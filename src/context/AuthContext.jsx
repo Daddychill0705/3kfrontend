@@ -8,8 +8,10 @@ export function AuthProvider({ children }) {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   const login = async (email, password) => {
-    const response = await fetch('http://localhost:5000/api/login', {
+    const response = await fetch(`${API_URL}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -28,7 +30,7 @@ export function AuthProvider({ children }) {
 
   const loginAsGuest = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/guest', { method: 'POST' });
+      const response = await fetch(`${API_URL}/api/guest`, { method: 'POST' });
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('token', data.token);

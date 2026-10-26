@@ -5,11 +5,13 @@ export default function Home() {
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchBranches = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/branches');
+        const response = await fetch(`${API_URL}/api/branches`);
         if (response.ok) {
           const data = await response.json();
           setBranches(data);
@@ -24,7 +26,7 @@ export default function Home() {
       }
     };
     fetchBranches();
-  }, []);
+  }, [API_URL]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Loading branches...</div>;
 
@@ -84,10 +86,10 @@ export default function Home() {
                 <a 
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedBranch.address || selectedBranch.name)}`} 
                   target="_blank" 
-                  rel="noreferrer" 
+                  rel="noreferrer"
                   className="flex-none bg-white border border-gray-200 text-gray-700 px-6 py-3.5 rounded-xl font-bold shadow-sm hover:bg-gray-50 transition-all flex items-center justify-center"
                 >
-                  ↗ Directions
+                  🗺️ Directions
                 </a>
               </div>
             </div>
@@ -96,6 +98,7 @@ export default function Home() {
 
         <div className="relative h-[500px] lg:h-auto bg-gray-100 rounded-3xl overflow-hidden shadow-inner border-4 border-white flex items-center justify-center">
           <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
+          
           <div className="relative w-full h-full p-8">
             {branches.map((branch, idx) => (
               <div 

@@ -8,6 +8,8 @@ export default function Cart() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const handleCheckout = async () => {
     if (!user) {
@@ -18,7 +20,7 @@ export default function Cart() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,7 +52,7 @@ export default function Cart() {
     return (
       <div className="bg-3k-bg min-h-[calc(100vh-80px)] py-16 px-4 md:px-8">
         <div className="max-w-[1000px] mx-auto text-center bg-white rounded-2xl p-12 md:p-20 shadow-lg border border-[#FFB5AB]/30">
-          <div className="text-6xl mb-6 opacity-80 drop-shadow-sm"> </div>
+          <div className="text-6xl mb-6 opacity-80 drop-shadow-sm">🛒</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
           <p className="text-base text-gray-600 mb-8 max-w-md mx-auto font-medium">
             Looks like you haven't added any items to your cart yet. Browse our menu to get started!
@@ -70,7 +72,7 @@ export default function Cart() {
           <div className="p-6 md:p-8 space-y-6">
             {cart.map((item) => (
               <div key={item.id} className="flex flex-col sm:flex-row items-center gap-6 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
-                <img src={item.img} alt={item.name} className="w-24 h-24 object-cover rounded-xl bg-[#FFD3AC]/30" />
+                <img src={item.image_url?.startsWith('http') ? item.image_url : (item.image_url?.startsWith('/') ? item.image_url : `${API_URL}${item.image_url}`)} alt={item.name} className="w-24 h-24 object-cover rounded-xl bg-[#FFD3AC]/30" />
                 <div className="flex-1 text-center sm:text-left">
                   <h3 className="text-xl font-bold text-gray-900">{item.name}</h3>
                   <p className="text-[#E39A7B] font-black mt-1">₱{parseInt(item.price)}</p>

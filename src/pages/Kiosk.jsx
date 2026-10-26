@@ -9,22 +9,24 @@ export default function Kiosk() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const categories = [
     { id: 'ALL', icon: '🍽️', label: 'All' },
-    { id: '3k Ala-Carte', icon: '🥘', label: 'Ala-Carte' },
-    { id: '3k Originals', icon: '🍜', label: 'Originals' },
-    { id: '3k Specials', icon: '🍲', label: 'Specials' },
-    { id: '3k Budget Meals', icon: '🍛', label: 'Budget' },
+    { id: '3k Ala-Carte', icon: '🥩', label: 'Ala-Carte' },
+    { id: '3k Originals', icon: '🍗', label: 'Originals' },
+    { id: '3k Specials', icon: '⭐', label: 'Specials' },
+    { id: '3k Budget Meals', icon: '🍱', label: 'Budget' },
     { id: 'Rice and Extras', icon: '🍚', label: 'Extras' },
-    { id: '3k Sets/Extras', icon: '🍗', label: 'Sets' }
+    { id: '3k Sets/Extras', icon: '🥘', label: 'Sets' }
   ];
 
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/menu');
+        const response = await fetch(`${API_URL}/api/menu`);
         if (response.ok) setMenuItems(await response.json());
       } catch (error) {
         console.error('Failed to load menu:', error);
@@ -33,7 +35,7 @@ export default function Kiosk() {
       }
     };
     fetchMenu();
-  }, []);
+  }, [API_URL]);
 
   const filteredItems = activeCategory === 'ALL' ? menuItems : menuItems.filter(item => item.category === activeCategory);
 
@@ -59,18 +61,18 @@ export default function Kiosk() {
   };
 
   const removeItem = (id) => setCart(prev => prev.filter(item => item.id !== id));
-  
+
   const cartTotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.qty), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     setCheckoutLoading(true);
-
     let token = localStorage.getItem('token');
+    
     if (!token) {
       try {
-        const res = await fetch('http://localhost:5000/api/guest', { method: 'POST' });
+        const res = await fetch(`${API_URL}/api/guest`, { method: 'POST' });
         const data = await res.json();
         token = data.token;
       } catch (e) {
@@ -88,7 +90,7 @@ export default function Kiosk() {
     submitData.append('paymentMethod', 'Cash on delivery'); 
 
     try {
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: submitData
@@ -133,7 +135,7 @@ export default function Kiosk() {
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
-                className={`px-4 py-4 md:px-6 md:py-5 rounded-2xl text-xs md:text-sm font-bold transition-all duration-300 cursor-pointer text-center md:text-left shadow-sm border flex flex-col md:flex-row items-center gap-2
+                className={`px-4 py-4 md:px-6 md:py-5 rounded-2xl text-xs md:text-sm font-bold transition-all duration-300 cursor-pointer text-center md:text-left shadow-sm border flex flex-col md:flex-row items-center gap-2 
                   ${activeCategory === category.id ? 'bg-[#E39A7B] text-white shadow-md md:scale-105 border-[#E39A7B]' : 'bg-white text-gray-700 border-[#FFB5AB]/30 hover:border-[#E39A7B] hover:text-[#E39A7B]'}`}
               >
                 <span className="text-xl md:text-2xl">{category.icon}</span>
@@ -150,13 +152,14 @@ export default function Kiosk() {
              </h2>
              <p className="text-sm font-bold text-gray-500 bg-white/60 px-4 py-1.5 rounded-full shadow-sm">{filteredItems.length} items</p>
           </div>
+
           <div className="flex-1 overflow-y-auto hide-scrollbar pb-32">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 pr-2">
               {filteredItems.map(item => (
                 <div className={`bg-white rounded-2xl overflow-hidden shadow-sm transition-all duration-300 group flex flex-col border border-transparent ${item.is_sold_out ? 'opacity-60 grayscale' : 'hover:-translate-y-1.5 hover:shadow-lg hover:border-[#FFB5AB]'}`} key={item.id}>
                   <div className="h-[160px] md:h-[200px] bg-[#FFD3AC]/30 flex items-center justify-center relative overflow-hidden">
                     <img 
-                      src={item.image_url.startsWith('/') ? item.image_url : `http://localhost:5000${item.image_url}`} 
+                      src={item.image_url?.startsWith('http') ? item.image_url : (item.image_url?.startsWith('/') ? item.image_url : `${API_URL}${item.image_url}`)} 
                       alt={item.name} 
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="text-6xl opacity-40">🍽️</div>'; }}
@@ -208,6 +211,7 @@ export default function Kiosk() {
                  <p className="text-sm font-medium text-gray-800 hover:text-[#E39A7B] transition-colors">{cartCount} items selected</p>
                </div>
             </div>
+
             <div className="flex items-center gap-4 md:gap-10">
                <div className="text-right">
                  <p className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Total Amount</p>
@@ -225,10 +229,11 @@ export default function Kiosk() {
 
       <div className={`fixed inset-0 z-[100] transition-all duration-300 ${isCartOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm cursor-pointer" onClick={() => setIsCartOpen(false)}></div>
+        
         <div className={`absolute top-0 right-0 h-full w-full sm:w-[450px] bg-[#fffaf7] shadow-2xl flex flex-col transition-transform duration-500 ease-in-out ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="p-6 bg-white border-b border-[#FFB5AB]/30 flex justify-between items-center shrink-0 shadow-sm">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">🧾</span>
+              <span className="text-3xl">🛒</span>
               <h2 className="text-2xl font-black text-gray-900 tracking-tight">Your Tray</h2>
             </div>
             <button onClick={() => setIsCartOpen(false)} className="w-10 h-10 bg-gray-100 text-gray-500 hover:bg-[#FFB5AB] hover:text-white rounded-full flex items-center justify-center text-xl font-bold transition-colors">✕</button>
@@ -245,7 +250,7 @@ export default function Kiosk() {
               cart.map((item) => (
                 <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-[#FFB5AB]/30 flex gap-4 items-center">
                   <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#FFD3AC]/30 shrink-0">
-                    <img src={item.image_url?.startsWith('/') ? item.image_url : `http://localhost:5000${item.image_url}`} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                    <img src={item.image_url?.startsWith('http') ? item.image_url : (item.image_url?.startsWith('/') ? item.image_url : `${API_URL}${item.image_url}`)} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                   </div>
                   <div className="flex-1">
                     <h4 className="font-bold text-gray-900 text-sm leading-tight mb-1 pr-4">{item.name}</h4>
@@ -272,7 +277,7 @@ export default function Kiosk() {
             <button 
               onClick={handleCheckout}
               disabled={cart.length === 0 || checkoutLoading}
-              className={`w-full py-4 rounded-2xl font-black text-lg shadow-md transition-all duration-300 uppercase tracking-wide
+              className={`w-full py-4 rounded-2xl font-black text-lg shadow-md transition-all duration-300 uppercase tracking-wide 
                 ${cart.length > 0 && !checkoutLoading ? 'bg-[#E39A7B] hover:bg-[#DBB06B] text-white hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
             >
               {checkoutLoading ? 'Processing...' : 'Send to Kitchen'}

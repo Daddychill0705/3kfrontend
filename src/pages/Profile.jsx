@@ -7,25 +7,30 @@ export default function Profile() {
   const { user } = useAuth();
   const { cart } = useCart();
   const [orders, setOrders] = useState([]);
+  
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchRecentOrders = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const response = await fetch('http://localhost:5000/api/orders', {
+
+        const response = await fetch(`${API_URL}/api/orders`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        
         if (response.ok) {
           const data = await response.json();
-          setOrders(data.slice(0, 3)); // Only show top 3 recent orders
+          setOrders(data.slice(0, 3)); 
         }
       } catch (error) {
         console.error('Error fetching orders:', error);
       }
     };
+
     if (user && user.role !== 'guest') fetchRecentOrders();
-  }, [user]);
+  }, [user, API_URL]);
 
   if (!user) {
     return (
@@ -39,11 +44,14 @@ export default function Profile() {
   return (
     <div className="bg-3k-bg min-h-screen py-12 px-4 md:px-8">
       <div className="max-w-[1200px] mx-auto space-y-8">
+        
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">My Profile</h1>
           <p className="text-gray-700 font-medium mt-2">Manage your details, view your cart, and track orders.</p>
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
           <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-[#FFB5AB]/30 lg:col-span-1 h-fit">
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
               <div className="w-16 h-16 bg-[#FFD3AC] text-[#E39A7B] rounded-full flex items-center justify-center text-2xl font-black">
@@ -75,6 +83,7 @@ export default function Profile() {
                 <h3 className="text-xl font-bold text-gray-900">Recent Orders</h3>
                 <Link to="/order" className="text-sm font-bold text-[#E39A7B] hover:text-[#DBB06B] hover:underline">View All</Link>
               </div>
+              
               <div className="space-y-4">
                 {orders.length === 0 ? (
                   <p className="text-gray-500 font-medium">No recent orders found.</p>
@@ -102,6 +111,7 @@ export default function Profile() {
                 <h3 className="text-xl font-bold text-gray-900">Current Cart</h3>
                 <Link to="/cart" className="text-sm font-bold text-[#E39A7B] hover:text-[#DBB06B] hover:underline">Go to Checkout</Link>
               </div>
+              
               <div className="divide-y divide-gray-100">
                 {cart.length === 0 ? (
                   <p className="text-gray-500 font-medium py-2">Your cart is currently empty.</p>
@@ -109,7 +119,7 @@ export default function Profile() {
                   cart.map(item => (
                     <div key={item.id} className="flex justify-between items-center py-4 first:pt-0 last:pb-0">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#FFD3AC] rounded-lg flex items-center justify-center font-bold text-xl">🥘</div>
+                        <div className="w-10 h-10 bg-[#FFD3AC] rounded-lg flex items-center justify-center font-bold text-xl">🍽️</div>
                         <div>
                           <p className="font-bold text-gray-900">{item.name}</p>
                           <p className="text-sm text-gray-500 font-medium">Qty: {item.qty}</p>
@@ -121,6 +131,7 @@ export default function Profile() {
                 )}
               </div>
             </div>
+
           </div>
         </div>
       </div>

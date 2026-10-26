@@ -12,11 +12,13 @@ export default function Menu() {
   const navigate = useNavigate();
 
   const categories = ['ALL', '3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'];
+  
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/menu');
+        const response = await fetch(`${API_URL}/api/menu`);
         if (response.ok) {
           const data = await response.json();
           setMenuItems(data);
@@ -28,7 +30,7 @@ export default function Menu() {
       }
     };
     fetchMenu();
-  }, []);
+  }, [API_URL]);
 
   const filteredItems = activeCategory === 'ALL' 
     ? menuItems 
@@ -84,7 +86,7 @@ export default function Menu() {
               
               <div className="h-[220px] bg-[#FFD3AC]/30 flex items-center justify-center relative overflow-hidden">
                 <img 
-                  src={item.image_url.startsWith('/') ? item.image_url : `http://localhost:5000${item.image_url}`} 
+                  src={item.image_url?.startsWith('http') ? item.image_url : (item.image_url?.startsWith('/') ? item.image_url : `${API_URL}${item.image_url}`)} 
                   alt={item.name} 
                   className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                   onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="text-6xl opacity-40">🍽️</div>'; }}
@@ -103,7 +105,7 @@ export default function Menu() {
                 <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">{item.name}</h3>
                 <div className="flex-grow"></div>
                 <div className="text-2xl font-black text-[#E39A7B] mb-5 mt-4">
-                   ₱{parseFloat(item.price).toFixed(2)}
+                  ₱{parseFloat(item.price).toFixed(2)}
                 </div>
                 
                 <div className="flex flex-col gap-2 mt-auto">

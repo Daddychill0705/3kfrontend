@@ -15,6 +15,8 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -29,8 +31,9 @@ export default function Register() {
     }
 
     setLoading(true);
+
     try {
-      const response = await fetch('http://localhost:5000/api/register', {
+      const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -38,7 +41,6 @@ export default function Register() {
           lastname: formData.lastname,
           email: formData.email,
           password: formData.password
-          // Note: Phone and Address can be added to your TiDB users table later
         })
       });
 
@@ -114,7 +116,6 @@ export default function Register() {
         </div>
       </div>
       
-      {/* Visual Side Panel Container */}
       <div className="bg-gradient-to-br from-[#FFD3AC] to-[#FFB5AB] flex-col justify-center items-center p-12 relative overflow-hidden hidden lg:flex lg:order-2">
         <div className="text-center z-10">
           <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Join Our Community</h2>

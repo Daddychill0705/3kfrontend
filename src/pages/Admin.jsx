@@ -6,28 +6,25 @@ export default function Admin() {
   const [activeModule, setActiveModule] = useState('Sales');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState('All branches');
-  
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [riders, setRiders] = useState([]);
   const [staff, setStaff] = useState([]);
-  
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', category: '3k Ala-Carte', price: '' });
   const [productImage, setProductImage] = useState(null);
-  
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [newBranch, setNewBranch] = useState({ name: '', code: '', address: '', phone: '' });
-
   const [showAddRider, setShowAddRider] = useState(false);
   const [newRider, setNewRider] = useState({ firstname: '', lastname: '', email: '', password: '' });
-
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [newStaff, setNewStaff] = useState({ firstname: '', lastname: '', email: '', password: '', role: 'cashier' });
-
+  
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -39,12 +36,13 @@ export default function Admin() {
       try {
         const token = localStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}` };
+        
         const [ordersRes, menuRes, branchRes, riderRes, staffRes] = await Promise.all([
-          fetch('http://localhost:5000/api/admin/orders', { headers }),
-          fetch('http://localhost:5000/api/menu'),
-          fetch('http://localhost:5000/api/branches'),
-          fetch('http://localhost:5000/api/admin/riders', { headers }),
-          fetch('http://localhost:5000/api/admin/users', { headers })
+          fetch(`${API_URL}/api/admin/orders`, { headers }),
+          fetch(`${API_URL}/api/menu`),
+          fetch(`${API_URL}/api/branches`),
+          fetch(`${API_URL}/api/admin/riders`, { headers }),
+          fetch(`${API_URL}/api/admin/users`, { headers })
         ]);
         
         if (ordersRes.ok) setOrders(await ordersRes.json());
@@ -56,13 +54,14 @@ export default function Admin() {
         console.error('Failed to fetch admin data', error);
       }
     };
+
     fetchData();
-  }, [user, navigate]);
+  }, [user, navigate, API_URL]);
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/status`, {
+      const response = await fetch(`${API_URL}/api/admin/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ status: newStatus })
@@ -78,7 +77,7 @@ export default function Admin() {
   const toggleSoldOut = async (id, currentStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/menu/${id}/stock`, {
+      const response = await fetch(`${API_URL}/api/admin/menu/${id}/stock`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ is_sold_out: !currentStatus })
@@ -95,7 +94,7 @@ export default function Admin() {
     if (!window.confirm('Delete this product permanently?')) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/menu/${id}`, {
+      const response = await fetch(`${API_URL}/api/admin/menu/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -109,7 +108,7 @@ export default function Admin() {
     if (!window.confirm('Delete this account permanently?')) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${id}`, {
+      const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -119,20 +118,15 @@ export default function Admin() {
     }
   };
 
-  // Find and replace the existing handleAddProduct function in src/pages/Admin.jsx:
-
   const handleAddProduct = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
       let uploadedImageUrl = '';
-
-      // Upload to Cloudinary if an image was selected
+      
       if (productImage) {
         const cloudinaryFormData = new FormData();
         cloudinaryFormData.append('file', productImage);
-        
-        // Use the env variables you created in the .env file
         cloudinaryFormData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
 
         const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, {
@@ -155,7 +149,7 @@ export default function Admin() {
         image_url: uploadedImageUrl 
       };
 
-      const response = await fetch('http://localhost:5000/api/admin/menu', {
+      const response = await fetch(`${API_URL}/api/admin/menu`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -163,12 +157,11 @@ export default function Admin() {
         },
         body: JSON.stringify(payload)
       });
-
       if (response.ok) {
         setShowAddProduct(false);
         setProductImage(null);
         setNewProduct({ name: '', category: '3k Ala-Carte', price: '' });
-        const menuRes = await fetch('http://localhost:5000/api/menu');
+        const menuRes = await fetch(`${API_URL}/api/menu`);
         if (menuRes.ok) setMenuItems(await menuRes.json());
       } else {
          alert("Failed to save menu item.");
@@ -182,14 +175,14 @@ export default function Admin() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/branches', {
+      const response = await fetch(`${API_URL}/api/admin/branches`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(newBranch)
       });
       if (response.ok) {
         setShowAddBranch(false);
-        const res = await fetch('http://localhost:5000/api/branches');
+        const res = await fetch(`${API_URL}/api/branches`);
         if (res.ok) setBranches(await res.json());
       }
     } catch (error) {
@@ -200,7 +193,7 @@ export default function Admin() {
   const handleAddRider = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/register', {
+      const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newRider, role: 'rider' })
@@ -208,7 +201,7 @@ export default function Admin() {
       if (response.ok) {
         setShowAddRider(false);
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/api/admin/riders', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/api/admin/riders`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setRiders(await res.json());
       }
     } catch (error) {
@@ -220,14 +213,14 @@ export default function Admin() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/users', {
+      const response = await fetch(`${API_URL}/api/admin/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(newStaff)
       });
       if (response.ok) {
         setShowAddStaff(false);
-        const res = await fetch('http://localhost:5000/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setStaff(await res.json());
       } else {
         alert('Failed to add account. Email may already exist.');
@@ -348,7 +341,7 @@ export default function Admin() {
                     <div className="h-full bg-red-600 w-[100%]"></div>
                   </div>
                   <div className="flex justify-between text-xs font-bold text-gray-500">
-                    <span>🔴 GCash • 2 orders • 100%</span>
+                    <span>🔵 GCash • 2 orders • 100%</span>
                     <span className="text-gray-900">₱810.00</span>
                   </div>
                 </div>
@@ -377,7 +370,7 @@ export default function Admin() {
                   <option>Any channel</option><option>Online</option><option>Kiosk</option>
                 </select>
               </div>
-
+              
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm min-w-[900px]">
                   <thead className="bg-[#FFD3AC]/20">
@@ -405,8 +398,8 @@ export default function Admin() {
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase
                             ${order.status === 'Completed' ? 'bg-green-100 text-green-700' : 
-                              order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 
-                              'bg-blue-100 text-blue-700'}`}>
+                               order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 
+                               'bg-blue-100 text-blue-700'}`}>
                             {order.status}
                           </span>
                         </td>
@@ -456,7 +449,7 @@ export default function Admin() {
                       {categoryItems.map(item => (
                         <div key={item.id} className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors">
                           <div className="flex items-center gap-4">
-                            <img src={item.image_url.startsWith('/') ? item.image_url : `http://localhost:5000${item.image_url}`} alt={item.name} className={`w-12 h-12 rounded-full object-cover ${item.is_sold_out ? 'grayscale opacity-50' : ''}`} />
+                            <img src={item.image_url?.startsWith('http') ? item.image_url : (item.image_url?.startsWith('/') ? item.image_url : `${API_URL}${item.image_url}`)} alt={item.name} className={`w-12 h-12 rounded-full object-cover ${item.is_sold_out ? 'grayscale opacity-50' : ''}`} />
                             <div>
                               <p className={`font-bold text-gray-900 ${item.is_sold_out ? 'line-through text-gray-400' : ''}`}>{item.name}</p>
                               <p className="text-sm text-gray-500 font-medium">₱{parseFloat(item.price).toFixed(2)}</p>
@@ -610,7 +603,6 @@ export default function Admin() {
               </div>
             </div>
           )}
-
         </div>
       </main>
     </div>
