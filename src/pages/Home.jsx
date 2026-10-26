@@ -31,14 +31,14 @@ export default function Home() {
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Loading branches...</div>;
 
   return (
-    <div className="bg-[#fffaf7] min-h-[calc(100vh-80px)] flex items-center">
-      <div className="max-w-[1400px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 px-6 md:px-12 py-12">
+    <div className="bg-[#fffaf7] min-h-[calc(100vh-80px)] flex items-center py-12">
+      <div className="max-w-[1400px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 px-6 md:px-12">
         
         <div className="flex flex-col justify-center">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
             📍 {branches.length} Branches across Cavite
           </p>
-          <h1 className="text-5xl md:text-6xl font-black text-gray-900 leading-[1.1] mb-6 tracking-tight">
+          <h1 className="text-5xl md:text-7xl font-black text-gray-900 leading-[1.1] mb-6 tracking-tight">
             Home-style<br/>favorites, <span className="text-[#E39A7B] italic">near you.</span>
           </h1>
           <p className="text-lg text-gray-600 font-medium mb-10 max-w-md leading-relaxed">
@@ -68,7 +68,7 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-black text-gray-900 mb-2">{selectedBranch.name}</h3>
               <p className="text-sm font-bold text-gray-500 mb-4 flex items-center gap-2">
-                🕒 {selectedBranch.opening_time} - {selectedBranch.closing_time}
+                🕒 {selectedBranch.opening_time || '8:00 AM'} - {selectedBranch.closing_time || '8:00 PM'}
               </p>
               
               {!selectedBranch.is_active && (
@@ -96,26 +96,34 @@ export default function Home() {
           )}
         </div>
 
-        <div className="relative h-[500px] lg:h-auto bg-gray-100 rounded-3xl overflow-hidden shadow-inner border-4 border-white flex items-center justify-center">
-          <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
+        {/* Removed lg:h-auto and set a fixed min-height so absolute elements show up */}
+        <div className="relative min-h-[500px] w-full bg-[#FFD3AC]/20 rounded-3xl overflow-hidden shadow-inner border-4 border-white flex items-center justify-center">
+          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
           
           <div className="relative w-full h-full p-8">
-            {branches.map((branch, idx) => (
-              <div 
-                key={branch.id} 
-                className={`absolute cursor-pointer transition-transform hover:scale-110 hover:z-10 ${selectedBranch?.id === branch.id ? 'z-10 animate-bounce' : 'z-0'}`}
-                style={{ 
-                  top: `${20 + (idx * 25)}%`, 
-                  left: `${20 + (idx % 2 === 0 ? 10 : 40)}%` 
-                }}
-                onClick={() => setSelectedBranch(branch)}
-              >
-                <div className="bg-white px-3 py-1.5 rounded-full shadow-lg border border-gray-200 text-xs font-bold text-gray-800 mb-1 truncate max-w-[120px] text-center">
-                  {branch.name}
+            {branches.map((branch, idx) => {
+              // Create a scattered effect for the pins
+              const topPos = 20 + (idx * 20) % 60;
+              const leftPos = 20 + (idx * 30) % 50;
+
+              return (
+                <div 
+                  key={branch.id} 
+                  className={`absolute cursor-pointer transition-transform duration-300 hover:scale-110 hover:z-20 ${selectedBranch?.id === branch.id ? 'z-20 animate-bounce scale-110' : 'z-10'}`}
+                  style={{ 
+                    top: `${topPos}%`, 
+                    left: `${leftPos}%` 
+                  }}
+                  onClick={() => setSelectedBranch(branch)}
+                >
+                  <div className={`px-4 py-2 rounded-full shadow-lg border text-xs font-black mb-1 truncate max-w-[150px] text-center transition-colors
+                    ${selectedBranch?.id === branch.id ? 'bg-[#E39A7B] text-white border-[#E39A7B]' : 'bg-white text-gray-800 border-gray-200'}`}>
+                    {branch.name}
+                  </div>
+                  <div className="text-4xl text-center drop-shadow-md">📍</div>
                 </div>
-                <div className="text-4xl text-center drop-shadow-md">📍</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
