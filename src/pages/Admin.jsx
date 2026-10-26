@@ -11,9 +11,16 @@ export default function Admin() {
   const [branches, setBranches] = useState([]);
   const [riders, setRiders] = useState([]);
   const [staff, setStaff] = useState([]);
+  
+  // Add Product States
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', category: '3k Ala-Carte', price: '' });
   const [productImage, setProductImage] = useState(null);
+
+  // Edit Product States
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editImage, setEditImage] = useState(null);
+
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [newBranch, setNewBranch] = useState({ name: '', code: '', address: '', phone: '' });
   const [showAddRider, setShowAddRider] = useState(false);
@@ -104,17 +111,57 @@ export default function Admin() {
     }
   };
 
-  const deleteStaff = async (id) => {
-    if (!window.confirm('Delete this account permanently?')) return;
+  const handleEditProduct = async (e) => {
+    e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      let uploadedImageUrl = '';
+      
+      // Upload new image to Cloudinary if provided
+      if (editImage) {
+        const cloudinaryFormData = new FormData();
+        cloudinaryFormData.append('file', editImage);
+        cloudinaryFormData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+
+        const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+          method: 'POST',
+          body: cloudinaryFormData
+        });
+        
+        if (cloudRes.ok) {
+          const cloudData = await cloudRes.json();
+          uploadedImageUrl = cloudData.secure_url;
+        } else {
+          return alert('Failed to upload new image to Cloudinary.');
+        }
+      }
+      
+      const payload = {
+        name: editingProduct.name,
+        category: editingProduct.category,
+        price: editingProduct.price,
+        image_url: uploadedImageUrl 
+      };
+
+      const response = await fetch(`${API_URL}/api/admin/menu/${editingProduct.id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify(payload)
       });
-      if (response.ok) setStaff(staff.filter(s => s.id !== id));
+
+      if (response.ok) {
+        setEditingProduct(null);
+        setEditImage(null);
+        const menuRes = await fetch(`${API_URL}/api/menu`);
+        if (menuRes.ok) setMenuItems(await menuRes.json());
+      } else {
+         alert("Failed to update menu item.");
+      }
     } catch (error) {
-      console.error('Failed to delete account', error);
+      alert('Error updating product');
     }
   };
 
@@ -168,6 +215,20 @@ export default function Admin() {
       }
     } catch (error) {
       alert('Error adding product');
+    }
+  };
+
+  const deleteStaff = async (id) => {
+    if (!window.confirm('Delete this account permanently?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) setStaff(staff.filter(s => s.id !== id));
+    } catch (error) {
+      console.error('Failed to delete account', error);
     }
   };
 
@@ -425,6 +486,7 @@ export default function Admin() {
                 <button onClick={() => setShowAddProduct(true)} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ Product</button>
               </div>
 
+              {/* Add Product Modal */}
               {showAddProduct && (
                 <form onSubmit={handleAddProduct} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div><label className="block text-sm font-bold mb-2">Product Name</label><input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" /></div>
@@ -437,6 +499,36 @@ export default function Admin() {
                   <div><label className="block text-sm font-bold mb-2">Image</label><input type="file" accept="image/*" onChange={e => setProductImage(e.target.files[0])} className="text-sm w-full pt-2" /></div>
                   <div className="sm:col-span-2 flex justify-end gap-4"><button type="button" onClick={() => setShowAddProduct(false)} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button><button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save</button></div>
                 </form>
+              )}
+              
+              {/* Edit Product Modal */}
+              {editingProduct && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                  <form onSubmit={handleEditProduct} className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200 w-full max-w-md space-y-4 relative">
+                    <button type="button" onClick={() => { setEditingProduct(null); setEditImage(null); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
+                    <h2 className="text-xl font-black text-gray-900 mb-4">Edit Product</h2>
+                    
+                    <div><label className="block text-sm font-bold mb-2">Product Name</label>
+                      <input type="text" required value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" />
+                    </div>
+                    <div><label className="block text-sm font-bold mb-2">Category</label>
+                      <select value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400">
+                        {['3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'].map(c => <option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div><label className="block text-sm font-bold mb-2">Price (₱)</label>
+                      <input type="number" required value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" />
+                    </div>
+                    <div><label className="block text-sm font-bold mb-2">Change Image (Leave empty to keep current)</label>
+                      <input type="file" accept="image/*" onChange={e => setEditImage(e.target.files[0])} className="text-sm w-full pt-2" />
+                    </div>
+                    
+                    <div className="flex justify-end gap-4 mt-6">
+                      <button type="button" onClick={() => { setEditingProduct(null); setEditImage(null); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
+                      <button type="submit" className="px-6 py-2 bg-[#E39A7B] text-white font-bold rounded-lg shadow-sm hover:bg-[#DBB06B]">Update</button>
+                    </div>
+                  </form>
+                </div>
               )}
 
               {['3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'].map(category => {
@@ -455,12 +547,13 @@ export default function Admin() {
                               <p className="text-sm text-gray-500 font-medium">₱{parseFloat(item.price).toFixed(2)}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-green-600 mr-2 bg-green-50 px-2 py-1 rounded">On the menu</span>
-                            <button onClick={() => toggleSoldOut(item.id, item.is_sold_out)} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-colors ${item.is_sold_out ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>
-                              {item.is_sold_out ? 'Mark Available' : 'Mark Sold Out'}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-green-600 mr-2 bg-green-50 px-2 py-1 rounded hidden md:block">On the menu</span>
+                            <button onClick={() => toggleSoldOut(item.id, item.is_sold_out)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${item.is_sold_out ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>
+                              {item.is_sold_out ? 'Available' : 'Sold Out'}
                             </button>
-                            <button onClick={() => deleteProduct(item.id)} className="text-red-400 bg-red-50 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-100">Delete</button>
+                            <button onClick={() => setEditingProduct(item)} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50">Edit</button>
+                            <button onClick={() => deleteProduct(item.id)} className="text-red-500 bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-100">Delete</button>
                           </div>
                         </div>
                       ))}
