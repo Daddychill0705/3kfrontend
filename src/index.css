@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --color-3k-red: #E39A7B;
+  --color-3k-red-hover: #DBB06B;
+  --color-3k-bg: #fffaf7; /* Match exact background */
+  --color-3k-accent: #FFB5AB;
+}
+
+@layer base {
+  body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    background-color: var(--color-3k-bg); 
+  }
+}
+
+/* Custom Scrollbar for sidebars and menus */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Fade in animation for tab switches */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
