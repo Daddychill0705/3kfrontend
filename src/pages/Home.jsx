@@ -97,36 +97,22 @@ export default function Home() {
         </div>
 
         {/* Removed lg:h-auto and set a fixed min-height so absolute elements show up */}
-        <div className="relative min-h-[500px] w-full bg-[#FFD3AC]/20 rounded-3xl overflow-hidden shadow-inner border-4 border-white flex items-center justify-center">
-          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
-          
-          <div className="relative w-full h-full p-8">
-            {branches.map((branch, idx) => {
-              // Create a scattered effect for the pins
-              const topPos = 20 + (idx * 20) % 60;
-              const leftPos = 20 + (idx * 30) % 50;
-
-              return (
-                <div 
-                  key={branch.id} 
-                  className={`absolute cursor-pointer transition-transform duration-300 hover:scale-110 hover:z-20 ${selectedBranch?.id === branch.id ? 'z-20 animate-bounce scale-110' : 'z-10'}`}
-                  style={{ 
-                    top: `${topPos}%`, 
-                    left: `${leftPos}%` 
-                  }}
-                  onClick={() => setSelectedBranch(branch)}
-                >
-                  <div className={`px-4 py-2 rounded-full shadow-lg border text-xs font-black mb-1 truncate max-w-[150px] text-center transition-colors
-                    ${selectedBranch?.id === branch.id ? 'bg-[#E39A7B] text-white border-[#E39A7B]' : 'bg-white text-gray-800 border-gray-200'}`}>
-                    {branch.name}
-                  </div>
-                  <div className="text-4xl text-center drop-shadow-md">📍</div>
-                </div>
-              );
-            })}
-          </div>
+        <div className="relative h-[400px] md:h-[500px] w-full bg-white rounded-3xl overflow-hidden shadow-sm border border-[#FFB5AB]/40 flex items-center justify-center">
+          {selectedBranch ? (
+            <iframe 
+              src={`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15474.321!2d120.98!3d14.30!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z!5e0!3m2!1sen!2sph!4v1700000000000!5m2!1sen!2sph&q=${encodeURIComponent(selectedBranch.address || selectedBranch.name + " 3k kitchen cavite")}`}
+              className="w-full h-full border-0 absolute inset-0"
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            ></iframe>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">
+               <span className="text-4xl mb-3">📍</span>
+               <p className="font-bold">Select a branch to view map</p>
+            </div>
+          )}
         </div>
-
       </div>
     </div>
   );
