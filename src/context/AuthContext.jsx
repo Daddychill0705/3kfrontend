@@ -41,6 +41,12 @@ export function AuthProvider({ children }) {
       console.error("Guest login failed", error);
     }
   };
+  
+  const updateUserData = (newData) => {
+    const updatedUser = { ...user, ...newData };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
 
   const logout = () => {
     setUser(null);
@@ -49,7 +55,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, loginAsGuest, logout }}>
+    <AuthContext.Provider value={{ user, login, loginAsGuest, logout, updateUserData }}>
       {children}
     </AuthContext.Provider>
   );
