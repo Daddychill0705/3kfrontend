@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
+import logoImg from '../assets/logo.jpg';
 
 export default function Cashier() {
   const [activeBranch, setActiveBranch] = useState('');
@@ -10,6 +11,10 @@ export default function Cashier() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [activeTab, setActiveTab] = useState('Active');
   const [socket, setSocket] = useState(null);
+
+  // Lock Screen States
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState('');
 
   // Chat States
   const [chatLogs, setChatLogs] = useState([]);
@@ -34,8 +39,8 @@ export default function Cashier() {
           const data = await branchRes.json();
           const activeBranches = data.filter(b => b.is_active);
           setBranches(activeBranches);
-          if (user.role === 'cashier') {
-            setActiveBranch(user.branch || (activeBranches.length > 0 ? activeBranches[0].name : ''));
+          if (user.role === 'cashier' && user.branch) {
+            setActiveBranch(user.branch);
           } else if (activeBranches.length > 0) {
             setActiveBranch(activeBranches[0].name);
           }
@@ -48,7 +53,7 @@ export default function Cashier() {
   }, [user, navigate, API_URL]);
 
   useEffect(() => {
-    if (!activeBranch) return; 
+    if (!activeBranch || !isUnlocked) return; // Wait until branch is set AND unlocked
     const newSocket = io(API_URL);
     setSocket(newSocket);
     
@@ -60,6 +65,7 @@ export default function Cashier() {
         });
         if (response.ok) {
           const allOrders = await response.json();
+          // Filter dynamically by the currently active branch
           setOrders(allOrders.filter(o => o.branch === activeBranch));
         }
       } catch (error) { console.error('Failed to fetch orders', error); }
@@ -69,7 +75,6 @@ export default function Cashier() {
     newSocket.on('dashboard_refresh', fetchOrders);
     
     newSocket.on('receive_message', (data) => {
-      // ONLY append the message if the chat modal is open FOR THIS SPECIFIC ORDER
       setCurrentChatOrderId(currentId => {
           if (currentId === data.orderId) {
               setChatLogs(prev => [...prev, data]);
@@ -79,7 +84,15 @@ export default function Cashier() {
     });
     
     return () => newSocket.close();
-  }, [activeBranch, API_URL]);
+  }, [activeBranch, isUnlocked, API_URL]); // Dependencies ensure orders refresh if activeBranch changes
+
+  const handleUnlock = (e) => {
+    e.preventDefault();
+    if (unlockPassword.trim() === '') {
+      return alert('Please enter the employee password.');
+    }
+    setIsUnlocked(true);
+  };
 
   const updateStatus = async (id, status) => {
     const token = localStorage.getItem('token');
@@ -132,6 +145,47 @@ export default function Cashier() {
     return true;
   });
 
+  // LOCK SCREEN VIEW
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen bg-[#fffaf7] flex flex-col items-center justify-center p-4 font-sans">
+        <div className="mb-8 flex flex-col items-center">
+          <img src={logoImg} alt="3K Kitchen" className="w-20 h-20 rounded-full mb-3 shadow-md border-2 border-white" />
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">3K Kitchen</h1>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Cavite</p>
+        </div>
+        <form onSubmit={handleUnlock} className="bg-white p-8 rounded-2xl shadow-xl border border-[#FFB5AB]/30 w-full max-w-sm space-y-6">
+           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+             <span className="bg-gray-100 text-gray-600 p-3 rounded-xl text-xl">🔒</span>
+             <div>
+               <h2 className="text-lg font-black text-gray-900">Cashier</h2>
+               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Employee password required</p>
+             </div>
+           </div>
+
+           <div>
+             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Branch</label>
+             <select 
+                value={activeBranch} 
+                onChange={(e) => setActiveBranch(e.target.value)} 
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-bold text-gray-800 cursor-pointer"
+             >
+               {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+             </select>
+           </div>
+           
+           <div>
+             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Employee password</label>
+             <input type="password" value={unlockPassword} onChange={(e) => setUnlockPassword(e.target.value)} required placeholder="••••••••" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium text-gray-800" />
+           </div>
+           
+           <button type="submit" className="w-full bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-[#DBB06B] transition-colors">Open register</button>
+         </form>
+      </div>
+    );
+  }
+
+  // MAIN CASHIER DASHBOARD
   return (
     <div className="flex h-screen bg-[#fffaf7] font-sans">
       <div className="w-[380px] bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 shrink-0">
@@ -140,7 +194,7 @@ export default function Cashier() {
              <span className="text-2xl opacity-80">🍔</span>
              <div>
                <h1 className="text-lg font-black text-gray-900 leading-tight">Cashier</h1>
-               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen - {activeBranch || 'Loading...'}</p>
+               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen - {activeBranch}</p>
              </div>
            </div>
          </div>
@@ -181,8 +235,8 @@ export default function Cashier() {
                <Link to="/admin" className="text-sm font-bold text-gray-500 hover:text-gray-900 border border-gray-200 px-3 py-1.5 rounded-lg bg-gray-50">← Back to Admin</Link>
              )}
              
+             {/* Branch selector moved inside so it only controls view if already unlocked */}
              <select value={activeBranch} onChange={(e) => setActiveBranch(e.target.value)} className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none cursor-pointer">
-               <option value="">Select branch...</option>
                {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
              </select>
           </div>
@@ -190,7 +244,10 @@ export default function Cashier() {
           <Link to="/kiosk" className="text-sm font-black text-[#E39A7B] hover:text-[#DBB06B] border border-[#E39A7B] px-3 py-1.5 rounded-lg bg-[#FFD3AC]/10">🍔 Kiosk UI</Link>
           <button onClick={openChat} className="text-sm font-bold text-gray-600 hover:text-gray-900">💬 Messages</button>
           <div className="h-4 w-px bg-gray-300"></div>
-          <button onClick={() => { logout(); navigate('/login'); }} className="text-sm font-bold text-red-500 hover:underline flex items-center gap-1 cursor-pointer">🚪 Sign out</button>
+          
+          <button onClick={() => { setIsUnlocked(false); setSelectedOrder(null); }} className="text-sm font-bold text-red-500 hover:underline flex items-center gap-1 cursor-pointer">
+             🔒 Lock
+          </button>
         </header>
 
         <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
