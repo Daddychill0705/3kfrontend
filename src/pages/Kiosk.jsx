@@ -81,7 +81,9 @@ export default function Kiosk() {
     submitData.append('items', JSON.stringify(cart));
     submitData.append('totalAmount', cartTotal);
     submitData.append('orderType', 'Dine-in'); 
-    submitData.append('branch', 'GMA Terminal'); 
+    
+    // NEW FIX: Assign order directly to logged-in Cashier's branch so they see it instantly
+    submitData.append('branch', user?.branch || 'GMA Terminal'); 
     submitData.append('paymentMethod', 'Cash on delivery'); 
 
     try {
