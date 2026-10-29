@@ -5,7 +5,6 @@ import { useCart } from '../context/CartContext';
 export default function Checkout() {
   const { cart, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
-  
   const [branches, setBranches] = useState([]);
   const [formData, setFormData] = useState({
     branchId: '',
@@ -21,10 +20,14 @@ export default function Checkout() {
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Define the dynamic API_URL
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   useEffect(() => {
     const fetchBranches = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/branches');
+        // Use the dynamic API_URL here
+        const response = await fetch(`${API_URL}/api/branches`);
         if (response.ok) {
           const data = await response.json();
           const activeBranches = data.filter(b => b.is_active);
@@ -38,7 +41,7 @@ export default function Checkout() {
       }
     };
     fetchBranches();
-  }, []);
+  }, [API_URL]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -57,14 +60,13 @@ export default function Checkout() {
     setLoading(true);
     const token = localStorage.getItem('token');
     const selectedBranch = branches.find(b => b.id === Number(formData.branchId));
-
     let uploadedReceiptUrl = null;
 
     // Upload receipt to Cloudinary
     if (receipt) {
       const cloudinaryFormData = new FormData();
       cloudinaryFormData.append('file', receipt);
-      cloudinaryFormData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET); 
+      cloudinaryFormData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
 
       try {
         const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, {
@@ -94,7 +96,8 @@ export default function Checkout() {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/orders', {
+      // Use the dynamic API_URL here
+      const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -225,6 +228,7 @@ export default function Checkout() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-24">
             <h2 className="text-lg font-black text-gray-900 mb-4 pb-4 border-b border-gray-100">Your order</h2>
+            
             <div className="space-y-4 mb-6 max-h-[350px] overflow-y-auto pr-2">
               {cart.map(item => (
                 <div key={item.id} className="flex justify-between items-start text-sm">
