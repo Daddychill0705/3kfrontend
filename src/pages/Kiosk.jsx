@@ -77,20 +77,28 @@ export default function Kiosk() {
       }
     }
 
-    const submitData = new FormData();
-    submitData.append('items', JSON.stringify(cart));
-    submitData.append('totalAmount', cartTotal);
-    submitData.append('orderType', 'Dine-in'); 
-    
-    // NEW FIX: Assign order directly to logged-in Cashier's branch so they see it instantly
-    submitData.append('branch', user?.branch || 'GMA Terminal'); 
-    submitData.append('paymentMethod', 'Cash on delivery'); 
+    // Connects kiosk to the exact branch the cashier dashboard is monitoring
+    const targetBranch = localStorage.getItem('cashier_active_branch') || user?.branch || 'GMA Terminal';
+
+    const payload = {
+      items: JSON.stringify(cart),
+      totalAmount: cartTotal,
+      orderType: 'Dine-in',
+      branch: targetBranch,
+      paymentMethod: 'Cash on delivery',
+      address: 'Dine-in Kiosk',
+      phone: '',
+      notes: ''
+    };
 
     try {
       const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: submitData
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) throw new Error('Checkout failed');

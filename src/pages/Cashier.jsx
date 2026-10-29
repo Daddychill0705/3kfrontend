@@ -8,8 +8,10 @@ export default function Cashier() {
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-  // Automatically initialize activeBranch based on the user's assigned branch
-  const [activeBranch, setActiveBranch] = useState(user?.branch || '');
+  // Automatically initialize activeBranch from storage or user profile
+  const [activeBranch, setActiveBranch] = useState(() => {
+    return localStorage.getItem('cashier_active_branch') || user?.branch || '';
+  });
   const [branches, setBranches] = useState([]);
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -36,10 +38,16 @@ export default function Cashier() {
           const activeBranches = data.filter(b => b.is_active);
           setBranches(activeBranches);
           
+          let target = localStorage.getItem('cashier_active_branch');
           if (user.role === 'cashier' && user.branch) {
-            setActiveBranch(user.branch);
-          } else if (!activeBranch && activeBranches.length > 0) {
-            setActiveBranch(activeBranches[0].name);
+            target = user.branch; // Lock Cashiers strictly to their assigned branch
+          } else if (!target && activeBranches.length > 0) {
+            target = activeBranches[0].name; // Default fallback for Admins
+          }
+          
+          if (target) {
+            setActiveBranch(target);
+            localStorage.setItem('cashier_active_branch', target);
           }
         }
       } catch (error) {
@@ -103,7 +111,7 @@ export default function Cashier() {
     if (!selectedOrder) return alert("Select an order first.");
     setIsChatOpen(true);
     setCurrentChatOrderId(selectedOrder.id);
-    setChatLogs([]); // Clear previous chat context
+    setChatLogs([]); 
     if (socket) socket.emit('join_order', selectedOrder.id);
     
     try {
@@ -184,7 +192,15 @@ export default function Cashier() {
              )}
              
              {user?.role === 'admin' ? (
-               <select value={activeBranch} onChange={(e) => setActiveBranch(e.target.value)} className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none cursor-pointer">
+               <select 
+                 value={activeBranch} 
+                 onChange={(e) => {
+                   setActiveBranch(e.target.value);
+                   localStorage.setItem('cashier_active_branch', e.target.value);
+                 }} 
+                 className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none cursor-pointer"
+               >
+                 <option value="">Select branch...</option>
                  {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                </select>
              ) : (
