@@ -25,9 +25,7 @@ import Driver from './pages/Driver';
 const MainLayout = () => (
   <>
     <Header />
-    <main>
-      <Outlet />
-    </main>
+    <main><Outlet /></main>
     <Footer />
   </>
 );
@@ -35,10 +33,14 @@ const MainLayout = () => (
 const NoFooterLayout = () => (
   <>
     <Header />
-    <main>
-      <Outlet />
-    </main>
+    <main><Outlet /></main>
   </>
+);
+
+const BlankLayout = () => (
+  <main className="min-h-screen bg-3k-bg">
+    <Outlet />
+  </main>
 );
 
 function App() {
@@ -47,24 +49,40 @@ function App() {
       <CartProvider>
         <Router>
           <Routes>
-            {/* Public Routes without layout restrictions */}
             <Route path="/" element={<Welcome />} />
-            <Route path="/kiosk" element={<Kiosk />} />
+
+            {/* Standalone Interfaces (No standard header/footer) */}
+            <Route element={<BlankLayout />}>
+              <Route path="/kiosk" element={<Kiosk />} />
+              <Route path="/admin" element={
+                <AuthWrapper allowedRoles={['admin']}>
+                  <Admin />
+                </AuthWrapper>
+              } />
+              <Route path="/cashier" element={
+                <AuthWrapper allowedRoles={['admin', 'cashier']}>
+                  <Cashier />
+                </AuthWrapper>
+              } />
+              <Route path="/driver" element={
+                <AuthWrapper allowedRoles={['admin', 'rider']}>
+                  <Driver />
+                </AuthWrapper>
+              } />
+            </Route>
             
-            {/* Standard Layout Routes */}
+            {/* Standard User Experience with Header and Footer */}
             <Route element={<MainLayout />}>
               <Route path="/home" element={<Home />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
-              
               <Route path="/profile" element={
                 <AuthWrapper allowedRoles={['customer', 'admin', 'cashier', 'rider', 'guest']}>
                   <Profile />
                 </AuthWrapper>
               } />
-              
               <Route path="/checkout" element={
                 <AuthWrapper allowedRoles={['customer', 'admin', 'guest']}>
                   <Checkout />
@@ -72,40 +90,18 @@ function App() {
               } />
             </Route>
             
-            {/* Edge-to-Edge Layout Routes (No Footer) */}
+            {/* User Experience with Header, No Footer */}
             <Route element={<NoFooterLayout />}>
               <Route path="/menu" element={<Menu />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
-              
-              {/* Authenticated Customer Routes */}
               <Route path="/order" element={
                 <AuthWrapper allowedRoles={['customer', 'admin', 'guest']}>
                   <Order />
                 </AuthWrapper>
               } />
-              
-              {/* Protected Staff Routes */}
-              <Route path="/admin" element={
-                <AuthWrapper allowedRoles={['admin']}>
-                  <Admin />
-                </AuthWrapper>
-              } />
-              
-              <Route path="/cashier" element={
-                <AuthWrapper allowedRoles={['admin', 'cashier']}>
-                  <Cashier />
-                </AuthWrapper>
-              } />
-              
-              <Route path="/driver" element={
-                <AuthWrapper allowedRoles={['admin', 'rider']}>
-                  <Driver />
-                </AuthWrapper>
-              } />
             </Route>
 
-            {/* Catch-all redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>

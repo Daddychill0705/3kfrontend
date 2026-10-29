@@ -16,16 +16,11 @@ export default function Login() {
     try {
       const loggedInUser = await login(email, password);
       
-      // Role-based redirection
-      if (loggedInUser.role === 'admin') {
-        navigate('/admin');
-      } else if (loggedInUser.role === 'cashier') {
-        navigate('/cashier');
-      } else if (loggedInUser.role === 'rider') {
-        navigate('/driver');
-      } else {
-        navigate('/home');
-      }
+      // Role-based redirection directly to dashboards
+      if (loggedInUser.role === 'admin') navigate('/admin');
+      else if (loggedInUser.role === 'cashier') navigate('/cashier');
+      else if (loggedInUser.role === 'rider') navigate('/driver');
+      else navigate('/home');
     } catch (err) {
       setError(err.message || 'Invalid email or password');
     }

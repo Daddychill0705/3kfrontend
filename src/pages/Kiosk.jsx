@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
-import { useAuth } from '../context/AuthContext'; // <-- Added import
+import { useAuth } from '../context/AuthContext';
 
 export default function Kiosk() {
   const [activeCategory, setActiveCategory] = useState('ALL');
@@ -11,8 +11,7 @@ export default function Kiosk() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth(); // <-- Getting user context
-  
+  const { user } = useAuth();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const categories = [
@@ -30,11 +29,8 @@ export default function Kiosk() {
       try {
         const response = await fetch(`${API_URL}/api/menu`);
         if (response.ok) setMenuItems(await response.json());
-      } catch (error) {
-        console.error('Failed to load menu:', error);
-      } finally {
-        setLoading(false);
-      }
+      } catch (error) { console.error('Failed to load menu:', error); } 
+      finally { setLoading(false); }
     };
     fetchMenu();
   }, [API_URL]);
@@ -45,9 +41,7 @@ export default function Kiosk() {
     if (item.is_sold_out) return;
     setCart(prev => {
       const existingItem = prev.find(i => i.id === item.id);
-      if (existingItem) {
-        return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
-      }
+      if (existingItem) return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
       return [...prev, { ...item, qty: 1 }];
     });
   };
@@ -63,7 +57,6 @@ export default function Kiosk() {
   };
 
   const removeItem = (id) => setCart(prev => prev.filter(item => item.id !== id));
-  
   const cartTotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.qty), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
@@ -103,14 +96,10 @@ export default function Kiosk() {
       setCart([]);
       setIsCartOpen(false);
       alert('Order placed successfully! Please proceed to the counter to pay.');
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setCheckoutLoading(false);
-    }
+    } catch (error) { alert(error.message); } 
+    finally { setCheckoutLoading(false); }
   };
 
-  // <-- Added Cancel Handler Logic
   const handleCancel = () => {
     if (user && (user.role === 'cashier' || user.role === 'admin')) {
       navigate('/cashier');
@@ -128,12 +117,9 @@ export default function Kiosk() {
           <img src={logoImg} alt="3K Kitchen" className="w-12 h-12 md:w-16 md:h-16 rounded-full shadow-md border-2 border-white" />
           <h1 className="text-xl md:text-2xl font-black text-[#E39A7B] tracking-widest uppercase hidden sm:block">3K Kiosk</h1>
         </div>
-
         <div className="hidden md:flex flex-1 max-w-xl mx-8 bg-gradient-to-r from-white to-[#FFD3AC]/50 border border-[#FFB5AB]/40 rounded-full h-12 items-center justify-center shadow-sm">
            <p className="text-[#E39A7B] font-bold text-sm tracking-widest uppercase">✨ Welcome to 3K Kitchen ✨</p>
         </div>
-
-        {/* <-- Updated button to use handleCancel instead of Link to /home */}
         <button onClick={handleCancel} className="bg-white text-red-500 border-2 border-red-200 px-4 md:px-6 py-2 md:py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm hover:bg-red-50 hover:border-red-300 transition-colors uppercase tracking-wider">
           Cancel Order
         </button>
@@ -199,11 +185,6 @@ export default function Kiosk() {
                   </div>
                 </div>
               ))}
-              {filteredItems.length === 0 && (
-                <div className="col-span-full text-center py-20 bg-white/50 rounded-3xl">
-                  <h3 className="text-xl text-[#E39A7B] font-bold">No items found in this category.</h3>
-                </div>
-              )}
             </div>
           </div>
         </div>

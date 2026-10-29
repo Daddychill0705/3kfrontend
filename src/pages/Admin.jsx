@@ -13,12 +13,10 @@ export default function Admin() {
   const [riders, setRiders] = useState([]);
   const [staff, setStaff] = useState([]);
 
-  // Add Product States
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', category: '3k Ala-Carte', price: '' });
   const [productImage, setProductImage] = useState(null);
 
-  // Edit Product States
   const [editingProduct, setEditingProduct] = useState(null);
   const [editImage, setEditImage] = useState(null);
 
@@ -29,9 +27,9 @@ export default function Admin() {
   const [newRider, setNewRider] = useState({ firstname: '', lastname: '', email: '', password: '' });
 
   const [showAddStaff, setShowAddStaff] = useState(false);
-  const [newStaff, setNewStaff] = useState({ firstname: '', lastname: '', email: '', password: '', role: 'cashier' });
+  const [newStaff, setNewStaff] = useState({ firstname: '', lastname: '', email: '', password: '', role: 'cashier', branch: '' });
 
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -79,9 +77,7 @@ export default function Admin() {
       if (response.ok) {
         setOrders(orders.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
       }
-    } catch (error) {
-      console.error('Failed to update status', error);
-    }
+    } catch (error) { console.error('Failed to update status', error); }
   };
 
   const toggleSoldOut = async (id, currentStatus) => {
@@ -92,12 +88,8 @@ export default function Admin() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ is_sold_out: !currentStatus })
       });
-      if (response.ok) {
-        setMenuItems(menuItems.map(item => item.id === id ? { ...item, is_sold_out: !currentStatus } : item));
-      }
-    } catch (error) {
-      console.error('Failed to toggle stock', error);
-    }
+      if (response.ok) setMenuItems(menuItems.map(item => item.id === id ? { ...item, is_sold_out: !currentStatus } : item));
+    } catch (error) { console.error('Failed to toggle stock', error); }
   };
 
   const deleteProduct = async (id) => {
@@ -109,9 +101,7 @@ export default function Admin() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setMenuItems(menuItems.filter(item => item.id !== id));
-    } catch (error) {
-      console.error('Failed to delete product', error);
-    }
+    } catch (error) { console.error('Failed to delete product', error); }
   };
 
   const handleEditProduct = async (e) => {
@@ -125,8 +115,7 @@ export default function Admin() {
         cloudinaryFormData.append('file', editImage);
         cloudinaryFormData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
         const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, {
-          method: 'POST',
-          body: cloudinaryFormData
+          method: 'POST', body: cloudinaryFormData
         });
         
         if (cloudRes.ok) {
@@ -138,32 +127,22 @@ export default function Admin() {
       }
       
       const payload = {
-        name: editingProduct.name,
-        category: editingProduct.category,
-        price: editingProduct.price,
-        image_url: uploadedImageUrl 
+        name: editingProduct.name, category: editingProduct.category,
+        price: editingProduct.price, image_url: uploadedImageUrl 
       };
 
       const response = await fetch(`${API_URL}/api/admin/menu/${editingProduct.id}`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
 
       if (response.ok) {
-        setEditingProduct(null);
-        setEditImage(null);
+        setEditingProduct(null); setEditImage(null);
         const menuRes = await fetch(`${API_URL}/api/menu`);
         if (menuRes.ok) setMenuItems(await menuRes.json());
-      } else {
-         alert("Failed to update menu item.");
-      }
-    } catch (error) {
-      alert('Error updating product');
-    }
+      } else alert("Failed to update menu item.");
+    } catch (error) { alert('Error updating product'); }
   };
 
   const handleAddProduct = async (e) => {
@@ -177,46 +156,33 @@ export default function Admin() {
         cloudinaryFormData.append('file', productImage);
         cloudinaryFormData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
         const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, {
-          method: 'POST',
-          body: cloudinaryFormData
+          method: 'POST', body: cloudinaryFormData
         });
         
         if (cloudRes.ok) {
           const cloudData = await cloudRes.json();
           uploadedImageUrl = cloudData.secure_url;
-        } else {
-          return alert('Failed to upload image to Cloudinary.');
-        }
+        } else return alert('Failed to upload image to Cloudinary.');
       }
       
       const payload = {
-        name: newProduct.name,
-        category: newProduct.category,
-        price: newProduct.price,
-        image_url: uploadedImageUrl 
+        name: newProduct.name, category: newProduct.category,
+        price: newProduct.price, image_url: uploadedImageUrl 
       };
 
       const response = await fetch(`${API_URL}/api/admin/menu`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
 
       if (response.ok) {
-        setShowAddProduct(false);
-        setProductImage(null);
+        setShowAddProduct(false); setProductImage(null);
         setNewProduct({ name: '', category: '3k Ala-Carte', price: '' });
         const menuRes = await fetch(`${API_URL}/api/menu`);
         if (menuRes.ok) setMenuItems(await menuRes.json());
-      } else {
-         alert("Failed to save menu item.");
-      }
-    } catch (error) {
-      alert('Error adding product');
-    }
+      } else alert("Failed to save menu item.");
+    } catch (error) { alert('Error adding product'); }
   };
 
   const deleteStaff = async (id) => {
@@ -224,13 +190,10 @@ export default function Admin() {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setStaff(staff.filter(s => s.id !== id));
-    } catch (error) {
-      console.error('Failed to delete account', error);
-    }
+    } catch (error) { console.error('Failed to delete account', error); }
   };
 
   const handleAddBranch = async (e) => {
@@ -238,8 +201,7 @@ export default function Admin() {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/admin/branches`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(newBranch)
       });
       if (response.ok) {
@@ -247,17 +209,14 @@ export default function Admin() {
         const res = await fetch(`${API_URL}/api/branches`);
         if (res.ok) setBranches(await res.json());
       }
-    } catch (error) {
-      alert('Failed to add branch');
-    }
+    } catch (error) { alert('Failed to add branch'); }
   };
 
   const handleAddRider = async (e) => {
     e.preventDefault();
     try {
       const response = await fetch(`${API_URL}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newRider, role: 'rider' })
       });
       if (response.ok) {
@@ -266,9 +225,7 @@ export default function Admin() {
         const res = await fetch(`${API_URL}/api/admin/riders`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setRiders(await res.json());
       }
-    } catch (error) {
-      alert('Failed to add rider');
-    }
+    } catch (error) { alert('Failed to add rider'); }
   };
 
   const handleAddStaff = async (e) => {
@@ -284,12 +241,8 @@ export default function Admin() {
         setShowAddStaff(false);
         const res = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setStaff(await res.json());
-      } else {
-        alert('Failed to add account. Email may already exist.');
-      }
-    } catch (error) {
-      alert('Failed to add account');
-    }
+      } else alert('Failed to add account. Email may already exist.');
+    } catch (error) { alert('Failed to add account'); }
   };
 
   const filteredOrders = selectedBranch === 'All branches' ? orders : orders.filter(o => o.branch === selectedBranch);
@@ -306,7 +259,7 @@ export default function Admin() {
   ];
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-[#fffaf7] font-sans">
+    <div className="flex h-screen bg-[#fffaf7] font-sans">
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/40 z-20 md:hidden transition-opacity" onClick={() => setIsSidebarOpen(false)} />
       )}
@@ -331,15 +284,14 @@ export default function Admin() {
               </li>
             ))}
             
-            {/* <-- ADDED DIRECT LINKS FOR ADMIN TO ACCESS OTHER PORTALS --> */}
             <li className="mt-4 border-t border-gray-100 pt-4">
               <Link to="/cashier" className="w-full block text-left px-6 py-3 text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
-                Open Cashier System
+                🖥️ Open Cashier System
               </Link>
             </li>
             <li>
               <Link to="/driver" className="w-full block text-left px-6 py-3 text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
-                Open Driver System
+                🏍️ Open Driver System
               </Link>
             </li>
           </ul>
@@ -362,7 +314,7 @@ export default function Admin() {
               {branches.map(b => <option key={b.id}>{b.name}</option>)}
             </select>
             <span className="text-sm font-bold text-gray-600 hidden md:block">{user.email}</span>
-            <Link to="/login" className="text-sm font-bold text-red-500 hover:underline">Sign out</Link>
+            <button onClick={() => { logout(); navigate('/login'); }} className="text-sm font-bold text-red-500 hover:underline cursor-pointer">Sign out</button>
           </div>
         </header>
 
@@ -499,7 +451,6 @@ export default function Admin() {
                 <button onClick={() => setShowAddProduct(true)} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ Product</button>
               </div>
 
-              {/* Add Product Modal */}
               {showAddProduct && (
                 <form onSubmit={handleAddProduct} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div><label className="block text-sm font-bold mb-2">Product Name</label><input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" /></div>
@@ -514,7 +465,6 @@ export default function Admin() {
                 </form>
               )}
               
-              {/* Edit Product Modal */}
               {editingProduct && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                   <form onSubmit={handleEditProduct} className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200 w-full max-w-md space-y-4 relative">
@@ -631,6 +581,18 @@ export default function Admin() {
                       <option value="admin">Super Admin</option>
                     </select>
                   </div>
+                  
+                  {/* BRANCH ASSIGNMENT (Only if cashier) */}
+                  {newStaff.role === 'cashier' && (
+                    <div>
+                      <label className="block text-sm font-bold mb-2">Assign Branch</label>
+                      <select value={newStaff.branch} onChange={e => setNewStaff({...newStaff, branch: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer" required>
+                        <option value="">Select a branch...</option>
+                        {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+
                   <div className="sm:col-span-2 flex justify-end gap-4 mt-2">
                     <button type="button" onClick={() => setShowAddStaff(false)} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
                     <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Account</button>
@@ -647,7 +609,10 @@ export default function Admin() {
                           {member.firstname.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900">{member.firstname} {member.lastname}</p>
+                          <p className="font-bold text-gray-900">
+                            {member.firstname} {member.lastname} 
+                            {member.branch && <span className="text-xs text-gray-500 font-medium ml-2">({member.branch})</span>}
+                          </p>
                           <p className="text-sm text-gray-500 font-medium">{member.email}</p>
                         </div>
                       </div>

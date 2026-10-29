@@ -2,27 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
-import logoImg from '../assets/logo.jpg';
 
 export default function Cashier() {
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [unlockBranch, setUnlockBranch] = useState('');
-  const [unlockPassword, setUnlockPassword] = useState('');
+  const [activeBranch, setActiveBranch] = useState('');
   const [branches, setBranches] = useState([]);
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [activeTab, setActiveTab] = useState('Active');
   const [socket, setSocket] = useState(null);
-  
+
   // Chat States
   const [chatLogs, setChatLogs] = useState([]);
   const [chatMessage, setChatMessage] = useState('');
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  
-  // Use environment variable for API URL (fallback to localhost for local dev)
+
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -35,8 +31,13 @@ export default function Cashier() {
         const branchRes = await fetch(`${API_URL}/api/branches`);
         if (branchRes.ok) {
           const data = await branchRes.json();
-          setBranches(data.filter(b => b.is_active));
-          if (data.length > 0) setUnlockBranch(data[0].name);
+          const activeBranches = data.filter(b => b.is_active);
+          setBranches(activeBranches);
+          if (user.role === 'cashier') {
+            setActiveBranch(user.branch || (activeBranches.length > 0 ? activeBranches[0].name : ''));
+          } else if (activeBranches.length > 0) {
+            setActiveBranch(activeBranches[0].name);
+          }
         }
       } catch (error) {
         console.error('Failed to load branches', error);
@@ -46,7 +47,7 @@ export default function Cashier() {
   }, [user, navigate, API_URL]);
 
   useEffect(() => {
-    if (!isUnlocked) return;
+    if (!activeBranch) return; // wait until we know which branch to query
     const newSocket = io(API_URL);
     setSocket(newSocket);
     
@@ -58,11 +59,9 @@ export default function Cashier() {
         });
         if (response.ok) {
           const allOrders = await response.json();
-          setOrders(allOrders.filter(o => o.branch === unlockBranch));
+          setOrders(allOrders.filter(o => o.branch === activeBranch));
         }
-      } catch (error) {
-        console.error('Failed to fetch orders', error);
-      }
+      } catch (error) { console.error('Failed to fetch orders', error); }
     };
     
     fetchOrders();
@@ -73,17 +72,8 @@ export default function Cashier() {
         setChatLogs(prev => [...prev, data]);
       }
     });
-
     return () => newSocket.close();
-  }, [isUnlocked, unlockBranch, selectedOrder, API_URL]);
-
-  const handleUnlock = (e) => {
-    e.preventDefault();
-    if (unlockPassword.trim() === '') {
-      return alert('Please enter the employee password.');
-    }
-    setIsUnlocked(true);
-  };
+  }, [activeBranch, selectedOrder, API_URL]);
 
   const updateStatus = async (id, status) => {
     const token = localStorage.getItem('token');
@@ -98,9 +88,7 @@ export default function Cashier() {
         setOrders(orders.map(o => o.id === id ? { ...o, status } : o));
         setSelectedOrder(prev => prev && prev.id === id ? { ...prev, status } : prev);
       }
-    } catch (error) {
-      console.error('Error updating status', error);
-    }
+    } catch (error) { console.error('Error updating status', error); }
   };
 
   const openChat = async () => {
@@ -114,57 +102,20 @@ export default function Cashier() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) setChatLogs(await res.json());
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const sendChatMessage = (e) => {
     e.preventDefault();
     if (chatMessage.trim() && socket && selectedOrder) {
-      const msgData = { 
-        orderId: selectedOrder.id, 
-        sender: `Cashier (${unlockBranch})`, 
-        text: chatMessage, 
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-      };
+      const msgData = {
+         orderId: selectedOrder.id, sender: `Cashier (${activeBranch})`,
+         text: chatMessage, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+       };
       socket.emit('send_message', msgData);
       setChatMessage('');
     }
   };
-
-  if (!isUnlocked) {
-    return (
-      <div className="min-h-screen bg-[#fffaf7] flex flex-col items-center justify-center p-4 font-sans">
-        {/* Same lock screen HTML as before */}
-        <div className="mb-8 flex flex-col items-center">
-          <img src={logoImg} alt="3K Kitchen" className="w-16 h-16 rounded-full mb-2 shadow-sm border border-gray-200" />
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">3K Kitchen</h1>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cavite</p>
-        </div>
-        <form onSubmit={handleUnlock} className="bg-white p-8 rounded-2xl shadow-xl border border-[#FFB5AB]/30 w-full max-w-sm space-y-6">
-           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-             <span className="bg-gray-100 text-gray-600 p-2 rounded-lg">🔒</span>
-             <div>
-               <h2 className="text-lg font-black text-gray-900">Cashier</h2>
-               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Employee password required</p>
-             </div>
-           </div>
-           <div>
-             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Branch</label>
-             <select value={unlockBranch} onChange={(e) => setUnlockBranch(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-bold text-gray-800">
-               {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
-             </select>
-           </div>
-           <div>
-             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Employee password</label>
-             <input type="password" value={unlockPassword} onChange={(e) => setUnlockPassword(e.target.value)} required placeholder="••••••••" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium text-gray-800" />
-           </div>
-           <button type="submit" className="w-full bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-[#DBB06B] transition-colors">Open register</button>
-         </form>
-      </div>
-    );
-  }
 
   const filteredOrders = orders.filter(o => {
     if (activeTab === 'Active') return !['Completed', 'Cancelled'].includes(o.status);
@@ -174,14 +125,14 @@ export default function Cashier() {
   });
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-[#fffaf7] font-sans">
+    <div className="flex h-screen bg-[#fffaf7] font-sans">
       <div className="w-[380px] bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 shrink-0">
          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
            <div className="flex items-center gap-3">
-             <span className="text-2xl opacity-80">🏪</span>
+             <span className="text-2xl opacity-80">🍔</span>
              <div>
                <h1 className="text-lg font-black text-gray-900 leading-tight">Cashier</h1>
-               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen - {unlockBranch}</p>
+               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen - {activeBranch || 'Loading...'}</p>
              </div>
            </div>
          </div>
@@ -214,13 +165,24 @@ export default function Cashier() {
            )}
          </div>
       </div>
-
       <div className="flex-1 bg-[#fffaf7] flex flex-col">
         <header className="flex justify-end items-center p-4 border-b border-gray-200 bg-white shadow-sm shrink-0 gap-4">
-          <span className="text-sm font-bold text-gray-600">📍 {unlockBranch}</span>
+          
+          {user?.role === 'admin' ? (
+            <div className="flex items-center gap-3 mr-auto">
+               <Link to="/admin" className="text-sm font-bold text-gray-500 hover:text-gray-900 border border-gray-200 px-3 py-1.5 rounded-lg bg-gray-50">← Back to Admin</Link>
+               <select value={activeBranch} onChange={(e) => setActiveBranch(e.target.value)} className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none cursor-pointer">
+                 {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+               </select>
+            </div>
+          ) : (
+             <span className="text-sm font-bold text-gray-600 mr-auto">📍 {activeBranch}</span>
+          )}
+
+          <Link to="/kiosk" className="text-sm font-black text-[#E39A7B] hover:text-[#DBB06B] border border-[#E39A7B] px-3 py-1.5 rounded-lg bg-[#FFD3AC]/10">🍔 Kiosk UI</Link>
           <button onClick={openChat} className="text-sm font-bold text-gray-600 hover:text-gray-900">💬 Messages</button>
           <div className="h-4 w-px bg-gray-300"></div>
-          <button onClick={() => setIsUnlocked(false)} className="text-sm font-bold text-red-500 hover:underline flex items-center gap-1">🚪 Sign out</button>
+          <button onClick={() => { logout(); navigate('/login'); }} className="text-sm font-bold text-red-500 hover:underline flex items-center gap-1 cursor-pointer">🚪 Sign out</button>
         </header>
 
         <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
@@ -241,7 +203,6 @@ export default function Cashier() {
                    <span className="inline-block bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border border-blue-200">{selectedOrder.status}</span>
                  </div>
                </div>
-
                <div className="p-6 md:p-8 space-y-8">
                  <div className="border-t border-gray-100 pt-6">
                    <div className="space-y-4">
@@ -258,7 +219,6 @@ export default function Cashier() {
                    <span className="text-2xl font-black text-[#E39A7B]">₱{parseFloat(selectedOrder.total_amount).toFixed(2)}</span>
                  </div>
                </div>
-
                <div className="p-6 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center gap-3">
                  {selectedOrder.status === 'Pending' && selectedOrder.payment_method !== 'GCash' && (
                    <button onClick={() => updateStatus(selectedOrder.id, 'Confirmed')} className="bg-[#E39A7B] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#DBB06B]">Confirm</button>
@@ -279,7 +239,6 @@ export default function Cashier() {
         </div>
       </div>
 
-      {/* Cashier Chat Modal */}
       {isChatOpen && selectedOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[500px] overflow-hidden relative">

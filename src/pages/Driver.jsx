@@ -11,18 +11,19 @@ export default function Driver() {
   const [message, setMessage] = useState('');
   const [chatLog, setChatLog] = useState([]);
   const [socket, setSocket] = useState(null);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
-    if (!user || user.role !== 'rider') {
+    if (!user || (user.role !== 'rider' && user.role !== 'admin')) {
       navigate('/login');
       return;
     }
     const newSocket = io(API_URL);
     setSocket(newSocket);
+    
     const fetchOrders = async () => {
       const token = localStorage.getItem('token');
       try {
@@ -30,9 +31,7 @@ export default function Driver() {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) setOrders(await response.json());
-      } catch (error) {
-        console.error('Failed to fetch orders', error);
-      }
+      } catch (error) { console.error('Failed to fetch orders', error); }
     };
     
     fetchOrders();
@@ -56,9 +55,7 @@ export default function Driver() {
         if (socket) socket.emit('status_change', { orderId: id, status });
         setOrders(orders.map(o => o.id === id ? { ...o, status } : o));
       }
-    } catch (error) {
-      console.error('Error updating status', error);
-    }
+    } catch (error) { console.error('Error updating status', error); }
   };
 
   const openChat = async (orderId) => {
@@ -72,9 +69,7 @@ export default function Driver() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) setChatLog(await res.json());
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const sendMessage = (e) => {
@@ -84,8 +79,8 @@ export default function Driver() {
          orderId: chatOrder,
          sender: user.name,
          text: message,
-         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-       };
+         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
       socket.emit('send_message', msgData);
       setMessage('');
     }
@@ -94,25 +89,31 @@ export default function Driver() {
   const availableDeliveries = orders.filter(o => o.status === 'Ready' && o.order_type === 'Delivery');
   const activeDeliveries = orders.filter(o => o.status === 'Out for Delivery' && o.order_type === 'Delivery');
   const historyDeliveries = orders.filter(o => o.status === 'Completed' && o.order_type === 'Delivery');
+
   const displayList = activeTab === 'Available' ? availableDeliveries : activeTab === 'My deliveries' ? activeDeliveries : historyDeliveries;
 
   return (
-    <div className="bg-[#fffaf7] min-h-[calc(100vh-80px)] pb-16 font-sans">
+    <div className="bg-[#fffaf7] min-h-screen pb-16 font-sans">
       <div className="bg-white border-b border-gray-200 flex items-center justify-between p-4 sticky top-0 z-20">
         <div>
           <h1 className="text-xl font-black text-gray-900">Driver</h1>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen</p>
         </div>
         <div className="flex items-center gap-4">
+          {user?.role === 'admin' && (
+             <Link to="/admin" className="text-sm font-bold text-gray-500 hover:text-gray-900 border border-gray-200 px-3 py-1.5 rounded-lg mr-2 bg-gray-50">← Back to Admin</Link>
+          )}
           <span className="text-sm font-bold text-gray-600 hidden sm:block">{user.email}</span>
-          <Link to="/home" className="text-sm font-bold text-gray-500 hover:text-gray-800">Sign out</Link>
+          <button onClick={() => { logout(); navigate('/login'); }} className="text-sm font-bold text-red-500 hover:underline cursor-pointer">Sign out</button>
         </div>
       </div>
+
       <div className="flex justify-center gap-2 py-6">
         <button onClick={() => setActiveTab('Available')} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'Available' ? 'bg-white shadow-sm border border-gray-200 text-gray-900' : 'text-gray-500 hover:bg-gray-100'}`}>Available ({availableDeliveries.length})</button>
         <button onClick={() => setActiveTab('My deliveries')} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'My deliveries' ? 'bg-white shadow-sm border border-gray-200 text-gray-900' : 'text-gray-500 hover:bg-gray-100'}`}>My deliveries</button>
         <button onClick={() => setActiveTab('History')} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'History' ? 'bg-white shadow-sm border border-gray-200 text-gray-900' : 'text-gray-500 hover:bg-gray-100'}`}>History</button>
       </div>
+
       <div className="max-w-[800px] mx-auto px-4 space-y-6">
         {displayList.length === 0 ? (
           <div className="bg-[#fffaf7] p-16 text-center mt-8">
@@ -153,6 +154,7 @@ export default function Driver() {
                   <p className="text-sm font-bold text-gray-800">{order.items}</p>
                 </div>
               </div>
+
               <div className="flex gap-3">
                 {order.status === 'Ready' && (
                   <button onClick={() => { updateStatus(order.id, 'Out for Delivery'); setActiveTab('My deliveries'); }} className="w-full bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#DBB06B] transition-colors">Claim this delivery</button>
@@ -169,7 +171,7 @@ export default function Driver() {
           ))
         )}
       </div>
-      {/* Delivery Confirmation Modal */}
+
       {deliveryModalOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
@@ -177,22 +179,22 @@ export default function Driver() {
             <h3 className="text-xl font-black text-gray-900 mb-2">Deliver O-{String(deliveryModalOrder.id).padStart(4, '0')}</h3>
             <p className="text-gray-600 font-medium mb-6 text-sm">
               {deliveryModalOrder.payment_method === 'GCash' 
-                ? 'This order is already paid. Confirm that it was handed over.' 
-                : `This order is unpaid. Collect ₱${parseFloat(deliveryModalOrder.total_amount).toFixed(2)} from the customer before handing it over.`}
+                 ? 'This order is already paid. Confirm that it was handed over.' 
+                 : `This order is unpaid. Collect ₱${parseFloat(deliveryModalOrder.total_amount).toFixed(2)} from the customer before handing it over.`}
             </p>
             <button 
-              onClick={() => {
+               onClick={() => {
                 updateStatus(deliveryModalOrder.id, 'Completed');
                 setDeliveryModalOrder(null);
               }} 
-              className="w-full bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#DBB06B]"
+               className="w-full bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#DBB06B]"
             >
               Confirm delivered
             </button>
           </div>
         </div>
       )}
-      {/* Chat Modal */}
+
       {chatOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[500px] overflow-hidden relative">
