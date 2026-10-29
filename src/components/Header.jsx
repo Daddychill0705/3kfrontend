@@ -44,13 +44,10 @@ export default function Header() {
             <span className="text-base">🍔</span> ENTER KIOSK UI
           </button>
         </Link>
+        
         <Link to="/home" className={`text-base font-medium ${isActive('/home')}`}>Home</Link>
         <Link to="/menu" className={`text-base font-medium ${isActive('/menu')}`}>Menu</Link>
-        <Link to="/admin">
-          <button className="bg-red-100 text-red-600 border border-red-200 px-4 py-1.5 rounded-md font-bold text-xs uppercase tracking-wide hover:bg-red-200 transition-colors">
-            Admin Panel
-          </button>
-        </Link>
+        
         {user ? (
           <>
             <Link to="/cart" className={`text-base font-medium ${isActive('/cart')}`}>Cart ({cartCount})</Link>

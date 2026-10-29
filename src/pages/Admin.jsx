@@ -6,12 +6,13 @@ export default function Admin() {
   const [activeModule, setActiveModule] = useState('Sales');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState('All branches');
+  
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [riders, setRiders] = useState([]);
   const [staff, setStaff] = useState([]);
-  
+
   // Add Product States
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', category: '3k Ala-Carte', price: '' });
@@ -23,11 +24,13 @@ export default function Admin() {
 
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [newBranch, setNewBranch] = useState({ name: '', code: '', address: '', phone: '' });
+
   const [showAddRider, setShowAddRider] = useState(false);
   const [newRider, setNewRider] = useState({ firstname: '', lastname: '', email: '', password: '' });
+
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [newStaff, setNewStaff] = useState({ firstname: '', lastname: '', email: '', password: '', role: 'cashier' });
-  
+
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -117,12 +120,10 @@ export default function Admin() {
       const token = localStorage.getItem('token');
       let uploadedImageUrl = '';
       
-      // Upload new image to Cloudinary if provided
       if (editImage) {
         const cloudinaryFormData = new FormData();
         cloudinaryFormData.append('file', editImage);
         cloudinaryFormData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
-
         const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, {
           method: 'POST',
           body: cloudinaryFormData
@@ -175,7 +176,6 @@ export default function Admin() {
         const cloudinaryFormData = new FormData();
         cloudinaryFormData.append('file', productImage);
         cloudinaryFormData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
-
         const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, {
           method: 'POST',
           body: cloudinaryFormData
@@ -204,6 +204,7 @@ export default function Admin() {
         },
         body: JSON.stringify(payload)
       });
+
       if (response.ok) {
         setShowAddProduct(false);
         setProductImage(null);
@@ -329,6 +330,18 @@ export default function Admin() {
                 </button>
               </li>
             ))}
+            
+            {/* <-- ADDED DIRECT LINKS FOR ADMIN TO ACCESS OTHER PORTALS --> */}
+            <li className="mt-4 border-t border-gray-100 pt-4">
+              <Link to="/cashier" className="w-full block text-left px-6 py-3 text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
+                Open Cashier System
+              </Link>
+            </li>
+            <li>
+              <Link to="/driver" className="w-full block text-left px-6 py-3 text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
+                Open Driver System
+              </Link>
+            </li>
           </ul>
         </div>
       </aside>
@@ -402,7 +415,7 @@ export default function Admin() {
                     <div className="h-full bg-red-600 w-[100%]"></div>
                   </div>
                   <div className="flex justify-between text-xs font-bold text-gray-500">
-                    <span>🔵 GCash • 2 orders • 100%</span>
+                    <span>💵 GCash • 2 orders • 100%</span>
                     <span className="text-gray-900">₱810.00</span>
                   </div>
                 </div>
@@ -457,10 +470,10 @@ export default function Admin() {
                           <p className="font-bold text-gray-700">{order.order_type}</p>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase 
                             ${order.status === 'Completed' ? 'bg-green-100 text-green-700' : 
-                               order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 
-                               'bg-blue-100 text-blue-700'}`}>
+                                order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 
+                                'bg-blue-100 text-blue-700'}`}>
                             {order.status}
                           </span>
                         </td>

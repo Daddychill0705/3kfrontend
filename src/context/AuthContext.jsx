@@ -26,6 +26,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
     setUser(data.user);
+    
+    return data.user; // <-- Added this to return user data for redirection
   };
 
   const loginAsGuest = async () => {
@@ -41,7 +43,7 @@ export function AuthProvider({ children }) {
       console.error("Guest login failed", error);
     }
   };
-  
+
   const updateUserData = (newData) => {
     const updatedUser = { ...user, ...newData };
     setUser(updatedUser);

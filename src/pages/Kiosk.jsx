@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
+import { useAuth } from '../context/AuthContext'; // <-- Added import
 
 export default function Kiosk() {
   const [activeCategory, setActiveCategory] = useState('ALL');
@@ -9,18 +10,19 @@ export default function Kiosk() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  
   const navigate = useNavigate();
+  const { user } = useAuth(); // <-- Getting user context
+  
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const categories = [
     { id: 'ALL', icon: '🍽️', label: 'All' },
-    { id: '3k Ala-Carte', icon: '🥩', label: 'Ala-Carte' },
-    { id: '3k Originals', icon: '🍗', label: 'Originals' },
-    { id: '3k Specials', icon: '⭐', label: 'Specials' },
+    { id: '3k Ala-Carte', icon: '🍗', label: 'Ala-Carte' },
+    { id: '3k Originals', icon: '🥘', label: 'Originals' },
+    { id: '3k Specials', icon: '🥩', label: 'Specials' },
     { id: '3k Budget Meals', icon: '🍱', label: 'Budget' },
     { id: 'Rice and Extras', icon: '🍚', label: 'Extras' },
-    { id: '3k Sets/Extras', icon: '🥘', label: 'Sets' }
+    { id: '3k Sets/Extras', icon: '🥟', label: 'Sets' }
   ];
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export default function Kiosk() {
   };
 
   const removeItem = (id) => setCart(prev => prev.filter(item => item.id !== id));
-
+  
   const cartTotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.qty), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
@@ -108,6 +110,15 @@ export default function Kiosk() {
     }
   };
 
+  // <-- Added Cancel Handler Logic
+  const handleCancel = () => {
+    if (user && (user.role === 'cashier' || user.role === 'admin')) {
+      navigate('/cashier');
+    } else {
+      navigate('/home');
+    }
+  };
+
   if (loading) return <div className="h-screen flex items-center justify-center font-bold text-gray-500">Loading Kiosk System...</div>;
 
   return (
@@ -117,14 +128,15 @@ export default function Kiosk() {
           <img src={logoImg} alt="3K Kitchen" className="w-12 h-12 md:w-16 md:h-16 rounded-full shadow-md border-2 border-white" />
           <h1 className="text-xl md:text-2xl font-black text-[#E39A7B] tracking-widest uppercase hidden sm:block">3K Kiosk</h1>
         </div>
+
         <div className="hidden md:flex flex-1 max-w-xl mx-8 bg-gradient-to-r from-white to-[#FFD3AC]/50 border border-[#FFB5AB]/40 rounded-full h-12 items-center justify-center shadow-sm">
            <p className="text-[#E39A7B] font-bold text-sm tracking-widest uppercase">✨ Welcome to 3K Kitchen ✨</p>
         </div>
-        <Link to="/home">
-          <button className="bg-white text-red-500 border-2 border-red-200 px-4 md:px-6 py-2 md:py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm hover:bg-red-50 hover:border-red-300 transition-colors uppercase tracking-wider">
-            Cancel Order
-          </button>
-        </Link>
+
+        {/* <-- Updated button to use handleCancel instead of Link to /home */}
+        <button onClick={handleCancel} className="bg-white text-red-500 border-2 border-red-200 px-4 md:px-6 py-2 md:py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm hover:bg-red-50 hover:border-red-300 transition-colors uppercase tracking-wider">
+          Cancel Order
+        </button>
       </div>
 
       <div className="flex-1 flex flex-row overflow-hidden p-4 md:p-6 lg:p-8 gap-6 max-w-[1600px] mx-auto w-full relative z-10">
@@ -278,7 +290,7 @@ export default function Kiosk() {
               onClick={handleCheckout}
               disabled={cart.length === 0 || checkoutLoading}
               className={`w-full py-4 rounded-2xl font-black text-lg shadow-md transition-all duration-300 uppercase tracking-wide 
-                ${cart.length > 0 && !checkoutLoading ? 'bg-[#E39A7B] hover:bg-[#DBB06B] text-white hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                 ${cart.length > 0 && !checkoutLoading ? 'bg-[#E39A7B] hover:bg-[#DBB06B] text-white hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
             >
               {checkoutLoading ? 'Processing...' : 'Send to Kitchen'}
             </button>
