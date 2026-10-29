@@ -38,7 +38,13 @@ export default function Driver() {
     newSocket.on('dashboard_refresh', fetchOrders);
     
     newSocket.on('receive_message', (data) => {
-      setChatLog(prev => [...prev, data]);
+      // ONLY append the message if the chat modal is open FOR THIS SPECIFIC ORDER
+      setChatOrder(currentOrderId => {
+        if (currentOrderId === data.orderId) {
+          setChatLog(prev => [...prev, data]);
+        }
+        return currentOrderId;
+      });
     });
     return () => newSocket.close();
   }, [user, navigate, API_URL]);
@@ -60,7 +66,7 @@ export default function Driver() {
 
   const openChat = async (orderId) => {
     setChatOrder(orderId);
-    setChatLog([]);
+    setChatLog([]); // Clear previous chat context immediately
     if (socket) socket.emit('join_order', orderId);
     
     try {

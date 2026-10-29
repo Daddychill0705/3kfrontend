@@ -15,6 +15,7 @@ export default function Cashier() {
   const [chatLogs, setChatLogs] = useState([]);
   const [chatMessage, setChatMessage] = useState('');
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [currentChatOrderId, setCurrentChatOrderId] = useState(null);
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -47,7 +48,7 @@ export default function Cashier() {
   }, [user, navigate, API_URL]);
 
   useEffect(() => {
-    if (!activeBranch) return; // wait until we know which branch to query
+    if (!activeBranch) return; 
     const newSocket = io(API_URL);
     setSocket(newSocket);
     
@@ -68,12 +69,17 @@ export default function Cashier() {
     newSocket.on('dashboard_refresh', fetchOrders);
     
     newSocket.on('receive_message', (data) => {
-      if (selectedOrder && data.orderId === selectedOrder.id) {
-        setChatLogs(prev => [...prev, data]);
-      }
+      // ONLY append the message if the chat modal is open FOR THIS SPECIFIC ORDER
+      setCurrentChatOrderId(currentId => {
+          if (currentId === data.orderId) {
+              setChatLogs(prev => [...prev, data]);
+          }
+          return currentId;
+      });
     });
+    
     return () => newSocket.close();
-  }, [activeBranch, selectedOrder, API_URL]);
+  }, [activeBranch, API_URL]);
 
   const updateStatus = async (id, status) => {
     const token = localStorage.getItem('token');
@@ -94,6 +100,8 @@ export default function Cashier() {
   const openChat = async () => {
     if (!selectedOrder) return alert("Select an order first.");
     setIsChatOpen(true);
+    setCurrentChatOrderId(selectedOrder.id);
+    setChatLogs([]); // Clear previous chat context
     if (socket) socket.emit('join_order', selectedOrder.id);
     
     try {
@@ -173,7 +181,6 @@ export default function Cashier() {
                <Link to="/admin" className="text-sm font-bold text-gray-500 hover:text-gray-900 border border-gray-200 px-3 py-1.5 rounded-lg bg-gray-50">← Back to Admin</Link>
              )}
              
-             {/* NEW FIX: Exposed dropdown for both Admin & Cashier */}
              <select value={activeBranch} onChange={(e) => setActiveBranch(e.target.value)} className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none cursor-pointer">
                <option value="">Select branch...</option>
                {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
@@ -245,7 +252,7 @@ export default function Cashier() {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[500px] overflow-hidden relative">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="font-black text-gray-900 text-lg">Dispatch Chat - O-{String(selectedOrder.id).padStart(4, '0')}</h3>
-              <button onClick={() => setIsChatOpen(false)} className="text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
+              <button onClick={() => { setIsChatOpen(false); setCurrentChatOrderId(null); }} className="text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
             </div>
             
             <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#fffaf7]">
