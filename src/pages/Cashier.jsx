@@ -168,16 +168,17 @@ export default function Cashier() {
       <div className="flex-1 bg-[#fffaf7] flex flex-col">
         <header className="flex justify-end items-center p-4 border-b border-gray-200 bg-white shadow-sm shrink-0 gap-4">
           
-          {user?.role === 'admin' ? (
-            <div className="flex items-center gap-3 mr-auto">
+          <div className="flex items-center gap-3 mr-auto">
+             {user?.role === 'admin' && (
                <Link to="/admin" className="text-sm font-bold text-gray-500 hover:text-gray-900 border border-gray-200 px-3 py-1.5 rounded-lg bg-gray-50">← Back to Admin</Link>
-               <select value={activeBranch} onChange={(e) => setActiveBranch(e.target.value)} className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none cursor-pointer">
-                 {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
-               </select>
-            </div>
-          ) : (
-             <span className="text-sm font-bold text-gray-600 mr-auto">📍 {activeBranch}</span>
-          )}
+             )}
+             
+             {/* NEW FIX: Exposed dropdown for both Admin & Cashier */}
+             <select value={activeBranch} onChange={(e) => setActiveBranch(e.target.value)} className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none cursor-pointer">
+               <option value="">Select branch...</option>
+               {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+             </select>
+          </div>
 
           <Link to="/kiosk" className="text-sm font-black text-[#E39A7B] hover:text-[#DBB06B] border border-[#E39A7B] px-3 py-1.5 rounded-lg bg-[#FFD3AC]/10">🍔 Kiosk UI</Link>
           <button onClick={openChat} className="text-sm font-bold text-gray-600 hover:text-gray-900">💬 Messages</button>

@@ -13,21 +13,28 @@ export default function Admin() {
   const [riders, setRiders] = useState([]);
   const [staff, setStaff] = useState([]);
 
+  // Product States
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', category: '3k Ala-Carte', price: '' });
   const [productImage, setProductImage] = useState(null);
-
   const [editingProduct, setEditingProduct] = useState(null);
   const [editImage, setEditImage] = useState(null);
 
+  // Branch States
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [newBranch, setNewBranch] = useState({ name: '', code: '', address: '', phone: '' });
 
+  // Rider States
   const [showAddRider, setShowAddRider] = useState(false);
   const [newRider, setNewRider] = useState({ firstname: '', lastname: '', email: '', password: '' });
+  const [editingRider, setEditingRider] = useState(null);
+  const [editRiderPass, setEditRiderPass] = useState('');
 
+  // Staff States
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [newStaff, setNewStaff] = useState({ firstname: '', lastname: '', email: '', password: '', role: 'cashier', branch: '' });
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [editStaffPass, setEditStaffPass] = useState('');
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -185,17 +192,6 @@ export default function Admin() {
     } catch (error) { alert('Error adding product'); }
   };
 
-  const deleteStaff = async (id) => {
-    if (!window.confirm('Delete this account permanently?')) return;
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
-        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) setStaff(staff.filter(s => s.id !== id));
-    } catch (error) { console.error('Failed to delete account', error); }
-  };
-
   const handleAddBranch = async (e) => {
     e.preventDefault();
     try {
@@ -228,6 +224,24 @@ export default function Admin() {
     } catch (error) { alert('Failed to add rider'); }
   };
 
+  const handleEditRider = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const payload = { ...editingRider, password: editRiderPass, role: 'rider' };
+      const response = await fetch(`${API_URL}/api/admin/users/${editingRider.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      if (response.ok) {
+        setEditingRider(null); setEditRiderPass('');
+        const res = await fetch(`${API_URL}/api/admin/riders`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) setRiders(await res.json());
+      } else alert('Failed to update rider.');
+    } catch (error) { alert('Failed to update rider'); }
+  };
+
   const handleAddStaff = async (e) => {
     e.preventDefault();
     try {
@@ -243,6 +257,38 @@ export default function Admin() {
         if (res.ok) setStaff(await res.json());
       } else alert('Failed to add account. Email may already exist.');
     } catch (error) { alert('Failed to add account'); }
+  };
+
+  const handleEditStaff = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const payload = { ...editingStaff, password: editStaffPass };
+      const response = await fetch(`${API_URL}/api/admin/users/${editingStaff.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      if (response.ok) {
+        setEditingStaff(null); setEditStaffPass('');
+        const res = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) setStaff(await res.json());
+      } else alert('Failed to update account.');
+    } catch (error) { alert('Failed to update account'); }
+  };
+
+  const deleteStaff = async (id) => {
+    if (!window.confirm('Delete this account permanently?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
+        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setStaff(staff.filter(s => s.id !== id));
+        setRiders(riders.filter(s => s.id !== id));
+      }
+    } catch (error) { console.error('Failed to delete account', error); }
   };
 
   const filteredOrders = selectedBranch === 'All branches' ? orders : orders.filter(o => o.branch === selectedBranch);
@@ -568,6 +614,7 @@ export default function Admin() {
                 <button onClick={() => setShowAddStaff(true)} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ New Account</button>
               </div>
 
+              {/* Add Staff Modal */}
               {showAddStaff && (
                 <form onSubmit={handleAddStaff} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={newStaff.firstname} onChange={e => setNewStaff({...newStaff, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
@@ -582,7 +629,6 @@ export default function Admin() {
                     </select>
                   </div>
                   
-                  {/* BRANCH ASSIGNMENT (Only if cashier) */}
                   {newStaff.role === 'cashier' && (
                     <div>
                       <label className="block text-sm font-bold mb-2">Assign Branch</label>
@@ -598,6 +644,46 @@ export default function Admin() {
                     <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Account</button>
                   </div>
                 </form>
+              )}
+
+              {/* Edit Staff Modal */}
+              {editingStaff && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                  <form onSubmit={handleEditStaff} className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-6 relative">
+                    <button type="button" onClick={() => { setEditingStaff(null); setEditStaffPass(''); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
+                    <h2 className="text-xl font-black text-gray-900 mb-2 sm:col-span-2">Edit Staff Account</h2>
+                    
+                    <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={editingStaff.firstname} onChange={e => setEditingStaff({...editingStaff, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={editingStaff.lastname} onChange={e => setEditingStaff({...editingStaff, lastname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={editingStaff.email} onChange={e => setEditingStaff({...editingStaff, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2">Password</label>
+                      <input type="password" value={editStaffPass} onChange={e => setEditStaffPass(e.target.value)} placeholder="Leave blank to keep current" className="w-full px-4 py-2 border rounded-lg outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2">Role</label>
+                      <select value={editingStaff.role} onChange={e => setEditingStaff({...editingStaff, role: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer">
+                        <option value="cashier">Cashier</option>
+                        <option value="admin">Super Admin</option>
+                      </select>
+                    </div>
+                    
+                    {editingStaff.role === 'cashier' && (
+                      <div>
+                        <label className="block text-sm font-bold mb-2">Assign Branch</label>
+                        <select value={editingStaff.branch || ''} onChange={e => setEditingStaff({...editingStaff, branch: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer" required>
+                          <option value="">Select a branch...</option>
+                          {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    
+                    <div className="sm:col-span-2 flex justify-end gap-4 mt-4">
+                      <button type="button" onClick={() => { setEditingStaff(null); setEditStaffPass(''); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
+                      <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Changes</button>
+                    </div>
+                  </form>
+                </div>
               )}
 
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -616,12 +702,15 @@ export default function Admin() {
                           <p className="text-sm text-gray-500 font-medium">{member.email}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${member.role === 'admin' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-orange-50 text-orange-700 border border-orange-200'}`}>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${member.role === 'admin' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-orange-50 text-orange-700 border border-orange-200'} mr-4`}>
                           {member.role}
                         </span>
+                        
+                        {/* Edit and Delete Buttons */}
+                        <button onClick={() => setEditingStaff(member)} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50">Edit</button>
                         {user.email !== member.email && (
-                          <button onClick={() => deleteStaff(member.id)} className="text-red-400 bg-red-50 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-100">Delete</button>
+                          <button onClick={() => deleteStaff(member.id)} className="text-red-400 bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-100">Delete</button>
                         )}
                       </div>
                     </div>
@@ -640,6 +729,7 @@ export default function Admin() {
                 <button onClick={() => setShowAddRider(true)} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ New Rider</button>
               </div>
 
+              {/* Add Rider Modal */}
               {showAddRider && (
                 <form onSubmit={handleAddRider} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={newRider.firstname} onChange={e => setNewRider({...newRider, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
@@ -651,6 +741,29 @@ export default function Admin() {
                     <button type="submit" className="px-6 py-2 bg-red-600 text-white rounded-lg font-bold shadow-sm">Register Rider</button>
                   </div>
                 </form>
+              )}
+
+              {/* Edit Rider Modal */}
+              {editingRider && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                  <form onSubmit={handleEditRider} className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-6 relative">
+                    <button type="button" onClick={() => { setEditingRider(null); setEditRiderPass(''); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
+                    <h2 className="text-xl font-black text-gray-900 mb-2 sm:col-span-2">Edit Rider Account</h2>
+                    
+                    <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={editingRider.firstname} onChange={e => setEditingRider({...editingRider, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={editingRider.lastname} onChange={e => setEditingRider({...editingRider, lastname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={editingRider.email} onChange={e => setEditingRider({...editingRider, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2">Password</label>
+                      <input type="password" value={editRiderPass} onChange={e => setEditRiderPass(e.target.value)} placeholder="Leave blank to keep current" className="w-full px-4 py-2 border rounded-lg outline-none" />
+                    </div>
+                    
+                    <div className="sm:col-span-2 flex justify-end gap-4 mt-4">
+                      <button type="button" onClick={() => { setEditingRider(null); setEditRiderPass(''); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
+                      <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Changes</button>
+                    </div>
+                  </form>
+                </div>
               )}
 
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -666,7 +779,13 @@ export default function Admin() {
                           <p className="text-sm text-gray-500 font-medium">{rider.email}</p>
                         </div>
                       </div>
-                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-[10px] font-bold uppercase tracking-wider">Active</span>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-[10px] font-bold uppercase tracking-wider mr-4">Active</span>
+                        
+                        <button onClick={() => setEditingRider(rider)} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50">Edit</button>
+                        <button onClick={() => deleteStaff(rider.id)} className="text-red-400 bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-100">Delete</button>
+                      </div>
                     </div>
                   ))}
                   {riders.length === 0 && <p className="text-center text-gray-500 py-6 font-bold">No riders registered.</p>}
