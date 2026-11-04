@@ -12,6 +12,7 @@ export default function Admin() {
   const [branches, setBranches] = useState([]);
   const [riders, setRiders] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
 
   // Product States
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -52,12 +53,13 @@ export default function Admin() {
         const token = localStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}` };
         
-        const [ordersRes, menuRes, branchRes, riderRes, staffRes] = await Promise.all([
+        const [ordersRes, menuRes, branchRes, riderRes, staffRes, logRes] = await Promise.all([
           fetch(`${API_URL}/api/admin/orders`, { headers }),
           fetch(`${API_URL}/api/menu`),
           fetch(`${API_URL}/api/branches`),
           fetch(`${API_URL}/api/admin/riders`, { headers }),
-          fetch(`${API_URL}/api/admin/users`, { headers })
+          fetch(`${API_URL}/api/admin/users`, { headers }),
+          fetch(`${API_URL}/api/admin/activity-logs`, { headers })
         ]);
         
         if (ordersRes.ok) setOrders(await ordersRes.json());
@@ -65,6 +67,7 @@ export default function Admin() {
         if (branchRes.ok) setBranches(await branchRes.json());
         if (riderRes.ok) setRiders(await riderRes.json());
         if (staffRes.ok) setStaff(await staffRes.json());
+        if (logRes.ok) setActivityLogs(await logRes.json());
       } catch (error) {
         console.error('Failed to fetch admin data', error);
       }
@@ -292,12 +295,17 @@ export default function Admin() {
   };
 
   const filteredOrders = selectedBranch === 'All branches' ? orders : orders.filter(o => o.branch === selectedBranch);
+  const activeOrdersList = filteredOrders.filter(o => !['Completed', 'Cancelled'].includes(o.status));
   const completedOrders = filteredOrders.filter(o => o.status === 'Completed');
-  const totalRevenue = completedOrders.reduce((sum, order) => sum + parseFloat(order.total), 0);
+  const historyOrdersList = filteredOrders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
+  const totalRevenue = completedOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || order.total || 0), 0);
 
   const modules = [
     { id: 'Sales', name: 'Sales' },
-    { id: 'Orders', name: 'Orders' },
+    { id: 'Orders', name: 'Active Orders' },
+    { id: 'Order History', name: 'Order History' },
+    { id: 'Payment Logs', name: 'Payment Logs' },
+    { id: 'Activity Logs', name: 'Activity Logs' },
     { id: 'Menu', name: 'Menu' },
     { id: 'Branches', name: 'Branches' },
     { id: 'Accounts', name: 'Accounts & Access' },
@@ -428,12 +436,12 @@ export default function Admin() {
             </div>
           )}
 
-          {/* ORDERS MODULE */}
+          {/* ACTIVE ORDERS MODULE */}
           {activeModule === 'Orders' && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in flex flex-col">
               <div className="p-4 border-b border-gray-100 flex gap-4 bg-gray-50">
                 <select className="px-3 py-2 rounded border border-gray-300 text-sm font-bold outline-none flex-1">
-                  <option>Any status</option><option>Pending</option><option>Completed</option>
+                  <option>Any status</option><option>Pending</option><option>Preparing</option>
                 </select>
                 <select className="px-3 py-2 rounded border border-gray-300 text-sm font-bold outline-none flex-1">
                   <option>Any payment</option><option>GCash</option><option>Cash on delivery</option>
@@ -455,7 +463,7 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {filteredOrders.map((order, i) => (
+                    {activeOrdersList.map((order, i) => (
                       <tr key={i} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <p className="font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</p>
@@ -469,23 +477,155 @@ export default function Admin() {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase 
-                            ${order.status === 'Completed' ? 'bg-green-100 text-green-700' : 
-                                order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 
-                                'bg-blue-100 text-blue-700'}`}>
+                                bg-blue-100 text-blue-700`}>
                             {order.status}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="font-black text-gray-900">₱{parseFloat(order.total).toFixed(2)}</p>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${order.payment_method === 'GCash' && order.status !== 'Pending' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
-                            {order.payment_method === 'GCash' && order.status !== 'Pending' ? 'Paid' : 'Unpaid'}
+                          <p className="font-black text-gray-900">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</p>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${order.payment_method === 'GCash' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
+                            {order.payment_method === 'GCash' ? 'Paid' : 'Unpaid'}
                           </span>
                         </td>
                       </tr>
                     ))}
+                    {activeOrdersList.length === 0 && (
+                        <tr><td colSpan="5" className="text-center py-8 text-gray-400 font-bold">No active orders right now.</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* ORDER HISTORY MODULE */}
+          {activeModule === 'Order History' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in flex flex-col">
+              <div className="p-4 border-b border-gray-100 flex gap-4 bg-gray-50">
+                  <h2 className="font-bold text-gray-700">Completed & Cancelled Orders</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm min-w-[900px]">
+                  <thead className="bg-[#FFD3AC]/20">
+                    <tr>
+                      <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Order</th>
+                      <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Customer</th>
+                      <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Type</th>
+                      <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Status</th>
+                      <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Payment</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {historyOrdersList.map((order, i) => (
+                      <tr key={i} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <p className="font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</p>
+                          <p className="text-[10px] text-gray-500 font-bold">{order.branch}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-900">{order.customerName}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-700">{order.order_type}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase 
+                            ${order.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-black text-gray-900">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</p>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${order.payment_method === 'GCash' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
+                            {order.payment_method === 'GCash' ? 'Paid' : 'Unpaid'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {historyOrdersList.length === 0 && (
+                        <tr><td colSpan="5" className="text-center py-8 text-gray-400 font-bold">No historical orders found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* PAYMENT LOGS MODULE */}
+          {activeModule === 'Payment Logs' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in flex flex-col">
+              <div className="p-4 border-b border-gray-100 flex gap-4 bg-gray-50">
+                  <h2 className="font-bold text-gray-700">Payment Transactions (Completed Orders)</h2>
+              </div>
+              <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm min-w-[900px]">
+                      <thead className="bg-[#FFD3AC]/20">
+                          <tr>
+                              <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Order ID</th>
+                              <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Customer</th>
+                              <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Method</th>
+                              <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Amount</th>
+                              <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Receipt</th>
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                          {completedOrders.map(order => (
+                              <tr key={order.id} className="hover:bg-gray-50">
+                                  <td className="px-6 py-4 font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</td>
+                                  <td className="px-6 py-4 font-bold text-gray-900">{order.customerName}</td>
+                                  <td className="px-6 py-4 font-bold text-gray-700">{order.payment_method}</td>
+                                  <td className="px-6 py-4 font-black text-[#E39A7B]">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</td>
+                                  <td className="px-6 py-4">
+                                      {order.gcash_receipt_url ? (
+                                          <a href={order.gcash_receipt_url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline font-bold text-xs">View Receipt</a>
+                                      ) : (
+                                          <span className="text-gray-400 text-xs font-bold">N/A</span>
+                                      )}
+                                  </td>
+                              </tr>
+                          ))}
+                          {completedOrders.length === 0 && (
+                              <tr><td colSpan="5" className="text-center py-8 text-gray-400 font-bold">No completed payments found.</td></tr>
+                          )}
+                      </tbody>
+                  </table>
+              </div>
+            </div>
+          )}
+
+          {/* ACTIVITY LOGS MODULE */}
+          {activeModule === 'Activity Logs' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in flex flex-col">
+                <div className="p-4 border-b border-gray-100 flex gap-4 bg-gray-50">
+                    <h2 className="font-bold text-gray-700">System Activity Logs</h2>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm min-w-[900px]">
+                        <thead className="bg-gray-100">
+                            <tr>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Date & Time</th>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">User</th>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Role</th>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {activityLogs.map((log, i) => (
+                                <tr key={i} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 text-xs font-bold text-gray-500">{new Date(log.created_at).toLocaleString()}</td>
+                                    <td className="px-6 py-4 font-bold text-gray-900">{log.user_name}</td>
+                                    <td className="px-6 py-4">
+                                        <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase tracking-wider">{log.role}</span>
+                                    </td>
+                                    <td className="px-6 py-4 font-medium text-gray-800">{log.action}</td>
+                                </tr>
+                            ))}
+                            {activityLogs.length === 0 && (
+                                <tr><td colSpan="4" className="text-center py-8 text-gray-400 font-bold">No activity logged yet.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
           )}
 
