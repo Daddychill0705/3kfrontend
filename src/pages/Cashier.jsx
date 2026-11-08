@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
@@ -29,6 +29,12 @@ export default function Cashier() {
   const [chatMessage, setChatMessage] = useState('');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [currentChatOrderId, setCurrentChatOrderId] = useState(null);
+  
+  // Payment & Receipt States
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [cashTendered, setCashTendered] = useState('');
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const printRef = useRef();
 
   // 1. Fetch available branches
   useEffect(() => {
@@ -113,6 +119,75 @@ export default function Cashier() {
       }
     } catch (error) { console.error('Error updating status', error); }
   };
+  
+  const updatePaymentStatus = async (id, paymentMethod) => {
+    const token = localStorage.getItem('token');
+    // Using a new backend endpoint to update just the payment method for Kiosk orders
+    try {
+        const res = await fetch(`${API_URL}/api/admin/orders/${id}/payment`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ paymentMethod })
+        });
+        if (res.ok) {
+          setOrders(orders.map(o => o.id === id ? { ...o, payment_method: paymentMethod } : o));
+          setSelectedOrder(prev => prev && prev.id === id ? { ...prev, payment_method: paymentMethod } : prev);
+        }
+    } catch (error) { console.error('Error updating payment', error); }
+  };
+
+  const handlePaymentSubmit = async (e) => {
+      e.preventDefault();
+      if (!selectedOrder) return;
+      
+      const total = parseFloat(selectedOrder.total_amount);
+      const tendered = parseFloat(cashTendered);
+      
+      if (tendered < total) {
+          alert('Cash tendered must be equal to or greater than the total amount.');
+          return;
+      }
+      
+      // Update the order's payment method from 'Cash on delivery' (Unpaid) to 'Cash' (Paid)
+      await updatePaymentStatus(selectedOrder.id, 'Cash');
+      
+      // If it's a new kiosk order (Pending), automatically move it to Confirmed after payment
+      if (selectedOrder.status === 'Pending') {
+          await updateStatus(selectedOrder.id, 'Confirmed');
+      }
+      
+      setIsPaymentModalOpen(false);
+      setIsReceiptModalOpen(true);
+      setCashTendered('');
+  };
+
+  const handlePrintReceipt = () => {
+    const printContent = printRef.current;
+    const windowPrint = window.open('', '', 'width=800,height=600');
+    windowPrint.document.write(`
+      <html>
+        <head>
+          <title>Print Receipt</title>
+          <style>
+            body { font-family: 'Courier New', Courier, monospace; margin: 0; padding: 20px; }
+            .receipt { width: 100%; max-width: 350px; margin: 0 auto; text-align: center; }
+            .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
+            .flex-between { display: flex; justify-content: space-between; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
+            .bold { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          ${printContent.innerHTML}
+        </body>
+      </html>
+    `);
+    windowPrint.document.close();
+    windowPrint.focus();
+    windowPrint.print();
+    windowPrint.close();
+  };
 
   const openChat = async () => {
     if (!selectedOrder) return alert("Select an order first.");
@@ -157,6 +232,14 @@ export default function Cashier() {
     } else {
       alert('Employee password must be at least 6 characters.');
     }
+  };
+
+  // VAT Calculation Helpers
+  const calculateVAT = (total) => {
+      const totalNum = parseFloat(total) || 0;
+      const vatableSales = totalNum / 1.12;
+      const vatAmount = totalNum - vatableSales;
+      return { vatableSales, vatAmount, totalNum };
   };
 
   // 1. LOCK SCREEN
@@ -236,8 +319,9 @@ export default function Cashier() {
                  <p className="text-xs text-gray-600 font-bold truncate">{order.customerName}</p>
                  <div className="flex gap-2 mt-1">
                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>{order.status}</span>
-                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${order.payment_method === 'GCash' && order.status !== 'Pending' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-yellow-50 text-yellow-700 border border-yellow-200'}`}>
-                     {order.payment_method === 'GCash' && order.status !== 'Pending' ? 'Paid' : 'Unpaid'}
+                   {/* Explicitly check if payment is confirmed as 'Cash' or 'GCash' */}
+                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${['GCash', 'Cash'].includes(order.payment_method) ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-yellow-50 text-yellow-700 border border-yellow-200'}`}>
+                     {['GCash', 'Cash'].includes(order.payment_method) ? 'Paid' : 'Unpaid'}
                    </span>
                  </div>
                </div>
@@ -315,7 +399,16 @@ export default function Cashier() {
                  </div>
                </div>
                <div className="p-6 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center gap-3">
-                 {selectedOrder.status === 'Pending' && selectedOrder.payment_method !== 'GCash' && (
+                 
+                 {/* Explicit Kiosk / Counter Payment Handling */}
+                 {selectedOrder.payment_method === 'Cash on delivery' && ['Take-out', 'Dine-in', 'Pick-up'].includes(selectedOrder.order_type) && (
+                     <button onClick={() => setIsPaymentModalOpen(true)} className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-green-700">
+                         Take Payment
+                     </button>
+                 )}
+
+                 {/* Standard Workflow Buttons */}
+                 {selectedOrder.status === 'Pending' && selectedOrder.payment_method === 'GCash' && (
                    <button onClick={() => updateStatus(selectedOrder.id, 'Confirmed')} className="bg-[#E39A7B] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#DBB06B]">Confirm</button>
                  )}
                  {selectedOrder.status === 'Confirmed' && (
@@ -324,12 +417,14 @@ export default function Cashier() {
                  {selectedOrder.status === 'Preparing' && (
                    <button onClick={() => updateStatus(selectedOrder.id, 'Ready')} className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-green-700">Mark as Ready</button>
                  )}
-                 {selectedOrder.status === 'Ready' && selectedOrder.order_type === 'Pick-up' && (
-                   <button onClick={() => updateStatus(selectedOrder.id, 'Completed')} className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-green-700">Complete Order</button>
+                 {selectedOrder.status === 'Ready' && ['Pick-up', 'Take-out', 'Dine-in'].includes(selectedOrder.order_type) && (
+                   <button onClick={() => updateStatus(selectedOrder.id, 'Completed')} className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-black">Complete Order</button>
                  )}
                  
                  <button onClick={openChat} className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors ml-auto mr-3">💬 Message Rider</button>
                  
+                 <button onClick={() => { setIsReceiptModalOpen(true); }} className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors mr-3">🧾 Receipt</button>
+
                  <button onClick={() => updateStatus(selectedOrder.id, 'Cancelled')} className="bg-white border border-red-200 text-red-500 px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-50 transition-colors">Void</button>
                </div>
             </div>
@@ -337,6 +432,130 @@ export default function Cashier() {
         </div>
       </div>
 
+      {/* Payment Calculator Modal */}
+      {isPaymentModalOpen && selectedOrder && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden relative">
+              <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                  <h3 className="font-black text-gray-900 text-lg">Process Payment</h3>
+                  <button onClick={() => setIsPaymentModalOpen(false)} className="text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
+              </div>
+              <form onSubmit={handlePaymentSubmit} className="p-6 space-y-6">
+                  <div className="flex justify-between items-center">
+                      <span className="font-bold text-gray-600">Total Due</span>
+                      <span className="text-2xl font-black text-[#E39A7B]">₱{parseFloat(selectedOrder.total_amount).toFixed(2)}</span>
+                  </div>
+                  <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Cash Tendered</label>
+                      <input 
+                          type="number" 
+                          required
+                          min={selectedOrder.total_amount}
+                          step="0.01"
+                          value={cashTendered} 
+                          onChange={(e) => setCashTendered(e.target.value)} 
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E39A7B] text-xl font-black text-gray-900" 
+                      />
+                  </div>
+                  {cashTendered && parseFloat(cashTendered) >= parseFloat(selectedOrder.total_amount) && (
+                      <div className="p-4 bg-green-50 rounded-xl border border-green-200 flex justify-between items-center">
+                          <span className="font-bold text-green-700 text-sm">Change</span>
+                          <span className="text-xl font-black text-green-700">₱{(parseFloat(cashTendered) - parseFloat(selectedOrder.total_amount)).toFixed(2)}</span>
+                      </div>
+                  )}
+                  <button type="submit" className="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-green-700">Complete Payment</button>
+              </form>
+            </div>
+          </div>
+      )}
+
+      {/* Official Receipt Modal */}
+      {isReceiptModalOpen && selectedOrder && (() => {
+        const { vatableSales, vatAmount, totalNum } = calculateVAT(selectedOrder.total_amount);
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col relative overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 className="font-black text-gray-900 text-lg">Official Receipt</h3>
+                    <button onClick={() => setIsReceiptModalOpen(false)} className="text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
+                </div>
+                
+                <div className="flex-1 p-6 overflow-y-auto bg-white flex justify-center">
+                    {/* Receipt Content to Print */}
+                    <div ref={printRef} className="receipt" style={{ width: '100%', maxWidth: '300px', fontFamily: 'monospace', color: '#000' }}>
+                        <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                            <h2 style={{ margin: '0', fontSize: '18px', fontWeight: 'bold' }}>3K KITCHEN</h2>
+                            <p style={{ margin: '2px 0', fontSize: '12px' }}>{selectedOrder.branch || 'Branch'}</p>
+                            <p style={{ margin: '2px 0', fontSize: '12px' }}>VAT Reg TIN: 000-000-000-000</p>
+                        </div>
+                        
+                        <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+                        
+                        <div style={{ fontSize: '12px', marginBottom: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Order #:</span>
+                                <span>O-{String(selectedOrder.id).padStart(4, '0')}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Date:</span>
+                                <span>{selectedOrder.date.split(',')[0]}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Type:</span>
+                                <span>{selectedOrder.order_type}</span>
+                            </div>
+                        </div>
+
+                        <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+
+                        <div style={{ fontSize: '12px', marginBottom: '10px' }}>
+                            {selectedOrder.itemsData?.map((item, idx) => (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                    <span style={{ textAlign: 'left', flex: 1 }}>{item.qty}x {item.name}</span>
+                                    <span style={{ textAlign: 'right' }}>{parseFloat(item.price * item.qty).toFixed(2)}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+
+                        <div style={{ fontSize: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px', margin: '10px 0' }}>
+                                <span>TOTAL AMOUNT:</span>
+                                <span>PHP {totalNum.toFixed(2)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Vatable Sales:</span>
+                                <span>{vatableSales.toFixed(2)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>VAT (12%):</span>
+                                <span>{vatAmount.toFixed(2)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+                                <span>Payment Type:</span>
+                                <span>{selectedOrder.payment_method}</span>
+                            </div>
+                        </div>
+                        
+                        <div style={{ borderBottom: '1px dashed #000', margin: '15px 0' }}></div>
+                        
+                        <div style={{ textAlign: 'center', fontSize: '12px', marginTop: '15px' }}>
+                            <p style={{ margin: '2px 0' }}>THIS SERVES AS AN OFFICIAL RECEIPT</p>
+                            <p style={{ margin: '2px 0', fontWeight: 'bold' }}>Thank you for dining with us!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4 bg-white border-t border-gray-100 flex gap-2">
+                    <button onClick={handlePrintReceipt} className="w-full bg-gray-900 text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-black">Print Receipt</button>
+                </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Driver Dispatch Chat Modal */}
       {isChatOpen && selectedOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[500px] overflow-hidden relative">
