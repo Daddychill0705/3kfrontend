@@ -8,6 +8,7 @@ export default function Kiosk() {
   const [kioskBranch, setKioskBranch] = useState(localStorage.getItem('kiosk_active_branch') || '');
   const [orderType, setOrderType] = useState(''); // 'Dine-in' or 'Take-out'
   const [branches, setBranches] = useState([]);
+  const [customerName, setCustomerName] = useState('');
   
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -79,6 +80,13 @@ export default function Kiosk() {
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+    
+    // Require the Kiosk user to enter their name so the Cashier isn't confused
+    if (!customerName.trim()) {
+      alert("Please enter your name for the order receipt.");
+      return;
+    }
+
     setCheckoutLoading(true);
     let token = localStorage.getItem('token');
     
@@ -100,7 +108,8 @@ export default function Kiosk() {
       orderType: orderType, // Uses customer selection (Dine-in or Take-out)
       branch: kioskBranch,
       paymentMethod: 'Cash on delivery',
-      address: 'Counter Order',
+      // We pass the customer's name inside the delivery address field uniquely formatted
+      address: `Kiosk Customer: ${customerName}`, 
       phone: '',
       notes: ''
     };
@@ -120,6 +129,7 @@ export default function Kiosk() {
       setCart([]);
       setIsCartOpen(false);
       setOrderType(''); // Reset flow to the initial Dine in / Take out screen
+      setCustomerName(''); // Reset name field
       alert('Order placed successfully! Please proceed to the counter to pay.');
     } catch (error) { alert(error.message); } 
     finally { setCheckoutLoading(false); }
@@ -128,6 +138,7 @@ export default function Kiosk() {
   const handleCancel = () => {
     setCart([]);
     setOrderType('');
+    setCustomerName('');
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center font-bold text-gray-500">Loading Kiosk System...</div>;
@@ -346,10 +357,27 @@ export default function Kiosk() {
           </div>
           
           <div className="p-6 bg-white border-t border-[#FFB5AB]/40 shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+            
+            {/* NAME FIELD ADDED HERE FOR KIOSK ORDERS */}
+            {cart.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Your Name (for order calling)</label>
+                  <input 
+                     type="text" 
+                     required 
+                     value={customerName} 
+                     onChange={(e) => setCustomerName(e.target.value)} 
+                     placeholder="Enter your name" 
+                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E39A7B] text-sm font-medium" 
+                  />
+                </div>
+            )}
+
             <div className="flex justify-between items-center mb-6">
               <span className="text-gray-500 font-bold uppercase tracking-widest text-sm">Grand Total</span>
               <span className="text-3xl font-black text-[#E39A7B]">₱{cartTotal.toFixed(2)}</span>
             </div>
+            
             <button 
               onClick={handleCheckout}
               disabled={cart.length === 0 || checkoutLoading}

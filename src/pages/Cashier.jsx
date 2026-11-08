@@ -256,6 +256,14 @@ export default function Cashier() {
       return { vatableSales, vatAmount, totalNum };
   };
 
+  // Extract customer name specifically for Kiosk Orders
+  const getCustomerName = (order) => {
+      const isKiosk = ['Dine-in', 'Take-out'].includes(order.order_type);
+      return (isKiosk && order.delivery_address?.startsWith('Kiosk Customer: ')) 
+          ? order.delivery_address.replace('Kiosk Customer: ', '') 
+          : order.customerName;
+  };
+
   // 1. LOCK SCREEN
   if (!isUnlocked) {
     return (
@@ -342,8 +350,7 @@ export default function Cashier() {
              <div className="text-center py-10 text-gray-400 font-bold text-sm">Nothing here<br/><span className="text-xs font-medium">New orders appear instantly.</span></div>
            ) : (
              filteredOrders.map(order => {
-               // Determine order channel label visually
-               const isKiosk = ['Dine-in', 'Take-out'].includes(order.order_type);
+               const displayName = getCustomerName(order);
                
                return (
                <div key={order.id} onClick={() => setSelectedOrder(order)} className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col gap-2 ${selectedOrder?.id === order.id ? 'bg-[#FFD3AC]/10 border-[#E39A7B] shadow-sm' : 'bg-white border-gray-200 hover:border-[#FFB5AB]'}`}>
@@ -354,17 +361,17 @@ export default function Cashier() {
                    <span className="font-black text-gray-900">₱{parseFloat(order.total_amount).toFixed(2)}</span>
                  </div>
                  
-                 <div className="flex items-center gap-2">
-                   <p className="text-xs text-gray-600 font-bold truncate flex-1">{order.customerName}</p>
-                   <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${isKiosk ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                     {order.order_type}
-                   </span>
-                 </div>
+                 <p className="text-xs text-gray-600 font-bold truncate flex-1">{displayName}</p>
 
                  <div className="flex gap-2 mt-1">
+                   {/* Order Type Badge */}
+                   <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${['Dine-in', 'Take-out'].includes(order.order_type) ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                     {order.order_type}
+                   </span>
+                   {/* Status Badge */}
                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>{order.status}</span>
-                   {/* Explicitly check if payment is confirmed as 'Cash' or 'GCash' */}
-                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${['GCash', 'Cash'].includes(order.payment_method) ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-yellow-50 text-yellow-700 border border-yellow-200'}`}>
+                   {/* Payment Badge */}
+                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${['GCash', 'Cash'].includes(order.payment_method) ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                      {['GCash', 'Cash'].includes(order.payment_method) ? 'Paid' : 'Unpaid'}
                    </span>
                  </div>
@@ -419,7 +426,7 @@ export default function Cashier() {
                <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
                  <div>
                    <h2 className="text-4xl font-black text-gray-900 mb-2">O-{String(selectedOrder.id).padStart(4, '0')}</h2>
-                   <p className="text-base font-bold text-gray-800">{selectedOrder.customerName}</p>
+                   <p className="text-base font-bold text-gray-800">{getCustomerName(selectedOrder)}</p>
                    <p className="text-xs font-bold text-gray-500 mt-1">{selectedOrder.order_type} • {selectedOrder.payment_method}</p>
                  </div>
                  <div className="text-right flex flex-col items-end gap-2">
@@ -547,6 +554,10 @@ export default function Cashier() {
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span>Type:</span>
                                 <span>{selectedOrder.order_type}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Customer:</span>
+                                <span>{getCustomerName(selectedOrder)}</span>
                             </div>
                         </div>
 
