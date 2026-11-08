@@ -24,7 +24,8 @@ export default function Cashier() {
   
   // Filter States
   const [activeTab, setActiveTab] = useState('Active');
-  const [channelFilter, setChannelFilter] = useState('All'); // 'All', 'Kiosk', 'Online'
+  const [orderTypeFilter, setOrderTypeFilter] = useState('All'); // 'All', 'Dine-in', 'Take-out', 'Online'
+
   const [socket, setSocket] = useState(null);
 
   // Chat States
@@ -230,7 +231,7 @@ export default function Cashier() {
     }
   };
 
-  // Dual Filtering: Status & Channel
+  // Dual Filtering: Status & Order Type
   const filteredOrders = orders.filter(o => {
     // 1. Status Filter
     let statusMatch = true;
@@ -238,12 +239,13 @@ export default function Cashier() {
     if (activeTab === 'Done') statusMatch = o.status === 'Completed';
     if (activeTab === 'Cancelled') statusMatch = o.status === 'Cancelled';
 
-    // 2. Channel Filter
-    let channelMatch = true;
-    if (channelFilter === 'Kiosk') channelMatch = ['Dine-in', 'Take-out'].includes(o.order_type);
-    if (channelFilter === 'Online') channelMatch = ['Delivery', 'Pick-up'].includes(o.order_type);
+    // 2. Order Type Filter
+    let typeMatch = true;
+    if (orderTypeFilter === 'Dine-in') typeMatch = o.order_type === 'Dine-in';
+    if (orderTypeFilter === 'Take-out') typeMatch = o.order_type === 'Take-out';
+    if (orderTypeFilter === 'Online') typeMatch = ['Delivery', 'Pick-up'].includes(o.order_type);
 
-    return statusMatch && channelMatch;
+    return statusMatch && typeMatch;
   });
 
   // VAT Calculation Helpers
@@ -303,7 +305,7 @@ export default function Cashier() {
     <div className="flex h-screen bg-[#fffaf7] font-sans">
       <div className="w-[420px] bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 shrink-0">
          
-         <div className="p-5 border-b border-gray-100 flex flex-col gap-4 bg-gray-50/50">
+         <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
            <div className="flex items-center gap-3">
              <span className="text-2xl opacity-80">🍔</span>
              <div>
@@ -311,36 +313,28 @@ export default function Cashier() {
                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen - {activeBranch || 'Loading...'}</p>
              </div>
            </div>
-           
-           {/* Order Channel Filter placed exactly as requested */}
-           <div className="flex bg-white rounded-lg border border-gray-200 p-1 shadow-sm w-full">
-              <button 
-                onClick={() => setChannelFilter('All')} 
-                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${channelFilter === 'All' ? 'bg-[#E39A7B] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
-              >
-                All Channels
-              </button>
-              <button 
-                onClick={() => setChannelFilter('Kiosk')} 
-                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${channelFilter === 'Kiosk' ? 'bg-purple-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
-              >
-                Kiosk Orders
-              </button>
-              <button 
-                onClick={() => setChannelFilter('Online')} 
-                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${channelFilter === 'Online' ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
-              >
-                Online Orders
-              </button>
-           </div>
          </div>
          
+         {/* STATUS TABS */}
          <div className="p-4 flex gap-3 border-b border-gray-100 overflow-x-auto hide-scrollbar">
            {['Active', 'Done', 'Cancelled', 'All'].map(tab => (
              <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab ? 'bg-gray-800 text-white shadow-sm border border-gray-800' : 'text-gray-500 border border-gray-200 hover:text-gray-800 hover:bg-gray-50'}`}>
                {tab}
              </button>
            ))}
+         </div>
+
+         {/* EXPLICIT ORDER TYPE BUTTONS (Dine-in, Take-out, Online) */}
+         <div className="p-3 flex gap-2 border-b border-gray-100 overflow-x-auto hide-scrollbar bg-white">
+            {['All', 'Dine-in', 'Take-out', 'Online'].map(type => (
+              <button 
+                key={type} 
+                onClick={() => setOrderTypeFilter(type)} 
+                className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${orderTypeFilter === type ? 'bg-[#E39A7B] text-white border-[#E39A7B] shadow-sm' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+              >
+                {type === 'All' ? 'All Types' : type}
+              </button>
+            ))}
          </div>
          
          <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -363,7 +357,7 @@ export default function Cashier() {
                  <div className="flex items-center gap-2">
                    <p className="text-xs text-gray-600 font-bold truncate flex-1">{order.customerName}</p>
                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${isKiosk ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                     {isKiosk ? 'KIOSK' : 'ONLINE'}
+                     {order.order_type}
                    </span>
                  </div>
 
