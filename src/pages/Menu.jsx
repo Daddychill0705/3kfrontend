@@ -7,12 +7,15 @@ export default function Menu() {
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Notification State
+  const [notification, setNotification] = useState(null);
+
   const { user } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
   const categories = ['ALL', '3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'];
-  
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -32,30 +35,53 @@ export default function Menu() {
     fetchMenu();
   }, [API_URL]);
 
-  const filteredItems = activeCategory === 'ALL' 
-    ? menuItems 
-    : menuItems.filter(item => item.category === activeCategory);
+  const filteredItems = activeCategory === 'ALL'
+     ? menuItems
+     : menuItems.filter(item => item.category === activeCategory);
+
+  const showNotification = (message) => {
+    setNotification(message);
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   const handleAddToCart = (item) => {
     if (item.is_sold_out) return;
+    
+    // Check if user is logged in
+    if (!user) {
+      showNotification("You must be logged in or create an account first to add items to your cart.");
+      return;
+    }
+
     addToCart({ ...item, qty: 1 });
-    alert(`${item.name} added to cart!`);
+    showNotification(`${item.name} added to cart!`);
   };
 
   const handleBuyNow = (item) => {
     if (item.is_sold_out) return;
-    addToCart({ ...item, qty: 1 });
+    
+    // Check if user is logged in
     if (!user) {
-      navigate('/login');
-    } else {
-      navigate('/checkout');
+      showNotification("You must be logged in or create an account first to place an order.");
+      setTimeout(() => navigate('/login'), 2000); // Redirect after showing the message
+      return;
     }
+
+    addToCart({ ...item, qty: 1 });
+    navigate('/checkout');
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Loading Menu...</div>;
 
   return (
-    <div className="bg-3k-bg min-h-screen pb-16">
+    <div className="bg-3k-bg min-h-screen pb-16 relative">
+      {/* Floating Notification */}
+      {notification && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-xl font-bold text-sm z-50 animate-fade-in flex items-center gap-2">
+          <span>🔔</span> {notification}
+        </div>
+      )}
+
       <div className="max-w-[1400px] mx-auto py-16 px-4 md:px-8">
         <div className="text-center mb-10">
           <h1 className="text-3xl md:text-[2.5rem] font-bold text-gray-900 mb-4">Our Menu</h1>
@@ -71,8 +97,8 @@ export default function Menu() {
               onClick={() => setActiveCategory(category)}
               className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 cursor-pointer shadow-sm
                 ${activeCategory === category 
-                  ? 'bg-[#E39A7B] text-white shadow-md scale-105 border border-[#E39A7B]' 
-                  : 'bg-white text-gray-700 border border-gray-200 hover:border-[#E39A7B] hover:text-[#E39A7B]'
+                   ? 'bg-[#E39A7B] text-white shadow-md scale-105 border border-[#E39A7B]' 
+                   : 'bg-white text-gray-700 border border-gray-200 hover:border-[#E39A7B] hover:text-[#E39A7B]'
                 }`}
             >
               {category}
