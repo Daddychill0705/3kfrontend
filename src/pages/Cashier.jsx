@@ -126,7 +126,6 @@ export default function Cashier() {
       });
       if (res.ok) {
         if (socket) socket.emit('status_change', { orderId: id, status });
-        // FIXED: Using functional update to prevent React state race conditions
         setOrders(prevOrders => prevOrders.map(o => o.id === id ? { ...o, status } : o));
         setSelectedOrder(prev => prev && prev.id === id ? { ...prev, status } : prev);
       }
@@ -142,7 +141,6 @@ export default function Cashier() {
           body: JSON.stringify({ paymentMethod })
         });
         if (res.ok) {
-          // FIXED: Using functional update to prevent React state race conditions
           setOrders(prevOrders => prevOrders.map(o => o.id === id ? { ...o, payment_method: paymentMethod } : o));
           setSelectedOrder(prev => prev && prev.id === id ? { ...prev, payment_method: paymentMethod } : prev);
         }
@@ -161,19 +159,39 @@ export default function Cashier() {
           return;
       }
       
-      // Close modal instantly for a snappy UI
+      // OPTIMISTIC UI UPDATE: Instantly change local state so the UI updates without delay or race conditions
+      const newPaymentMethod = 'Cash';
+      const newStatus = selectedOrder.status === 'Pending' ? 'Confirmed' : selectedOrder.status;
+
+      const updatedOrder = { ...selectedOrder, payment_method: newPaymentMethod, status: newStatus };
+      
+      setOrders(prevOrders => prevOrders.map(o => o.id === selectedOrder.id ? updatedOrder : o));
+      setSelectedOrder(updatedOrder);
+
       setIsPaymentModalOpen(false);
       setIsReceiptModalOpen(true);
+      setCashTendered('');
+
+      // Background API calls to sync with the database
+      const token = localStorage.getItem('token');
       
-      // Execute DB updates
-      await updatePaymentStatus(selectedOrder.id, 'Cash');
-      
-      // If it's a new kiosk order (Pending), automatically move it to Confirmed after payment
+      await fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/payment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ paymentMethod: newPaymentMethod })
+      });
+
       if (selectedOrder.status === 'Pending') {
-          await updateStatus(selectedOrder.id, 'Confirmed');
+          await fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ status: newStatus })
+          });
       }
       
-      setCashTendered('');
+      // Force all devices (including the customer tracking screen) to refresh globally
+      if (socket) socket.emit('status_change', { orderId: selectedOrder.id, status: newStatus });
+      if (socket) socket.emit('dashboard_refresh'); 
   };
 
   const handlePrintReceipt = () => {
@@ -382,7 +400,7 @@ export default function Cashier() {
                    </span>
                    {/* Status Badge */}
                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>{order.status}</span>
-                   {/* Payment Badge */}
+                   {/* Payment Badge - Correctly tied to isPaid variable */}
                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${isPaid ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                      {isPaid ? 'Paid' : 'Unpaid'}
                    </span>
@@ -445,6 +463,7 @@ export default function Cashier() {
                    <div className="flex gap-2">
                      <span className="inline-block bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border border-blue-200">{selectedOrder.status}</span>
                      
+                     {/* ADDED PAYMENT STATUS BADGE HERE FOR VISIBILITY */}
                      <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border ${['GCash', 'Cash'].includes(selectedOrder.payment_method) ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                        {['GCash', 'Cash'].includes(selectedOrder.payment_method) ? 'Paid' : 'Unpaid'}
                      </span>
