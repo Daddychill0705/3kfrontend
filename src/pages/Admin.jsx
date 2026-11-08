@@ -6,14 +6,14 @@ export default function Admin() {
   const [activeModule, setActiveModule] = useState('Sales');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState('All branches');
-  
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [riders, setRiders] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
-
+  
   // Product States
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', category: '3k Ala-Carte', price: '' });
@@ -37,9 +37,11 @@ export default function Admin() {
   const [editingStaff, setEditingStaff] = useState(null);
   const [editStaffPass, setEditStaffPass] = useState('');
 
+  // Customer Profile State
+  const [viewCustomer, setViewCustomer] = useState(null);
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -47,19 +49,19 @@ export default function Admin() {
       navigate('/login');
       return;
     }
-
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}` };
         
-        const [ordersRes, menuRes, branchRes, riderRes, staffRes, logRes] = await Promise.all([
+        const [ordersRes, menuRes, branchRes, riderRes, staffRes, logRes, customersRes] = await Promise.all([
           fetch(`${API_URL}/api/admin/orders`, { headers }),
           fetch(`${API_URL}/api/menu`),
           fetch(`${API_URL}/api/branches`),
           fetch(`${API_URL}/api/admin/riders`, { headers }),
           fetch(`${API_URL}/api/admin/users`, { headers }),
-          fetch(`${API_URL}/api/admin/activity-logs`, { headers })
+          fetch(`${API_URL}/api/admin/activity-logs`, { headers }),
+          fetch(`${API_URL}/api/admin/customers`, { headers })
         ]);
         
         if (ordersRes.ok) setOrders(await ordersRes.json());
@@ -68,11 +70,11 @@ export default function Admin() {
         if (riderRes.ok) setRiders(await riderRes.json());
         if (staffRes.ok) setStaff(await staffRes.json());
         if (logRes.ok) setActivityLogs(await logRes.json());
+        if (customersRes.ok) setCustomers(await customersRes.json());
       } catch (error) {
         console.error('Failed to fetch admin data', error);
       }
     };
-
     fetchData();
   }, [user, navigate, API_URL]);
 
@@ -140,13 +142,11 @@ export default function Admin() {
         name: editingProduct.name, category: editingProduct.category,
         price: editingProduct.price, image_url: uploadedImageUrl 
       };
-
       const response = await fetch(`${API_URL}/api/admin/menu/${editingProduct.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
-
       if (response.ok) {
         setEditingProduct(null); setEditImage(null);
         const menuRes = await fetch(`${API_URL}/api/menu`);
@@ -179,13 +179,11 @@ export default function Admin() {
         name: newProduct.name, category: newProduct.category,
         price: newProduct.price, image_url: uploadedImageUrl 
       };
-
       const response = await fetch(`${API_URL}/api/admin/menu`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
-
       if (response.ok) {
         setShowAddProduct(false); setProductImage(null);
         setNewProduct({ name: '', category: '3k Ala-Carte', price: '' });
@@ -298,6 +296,7 @@ export default function Admin() {
   const activeOrdersList = filteredOrders.filter(o => !['Completed', 'Cancelled'].includes(o.status));
   const completedOrders = filteredOrders.filter(o => o.status === 'Completed');
   const historyOrdersList = filteredOrders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
+
   const totalRevenue = completedOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || order.total || 0), 0);
 
   const modules = [
@@ -306,6 +305,7 @@ export default function Admin() {
     { id: 'Order History', name: 'Order History' },
     { id: 'Payment Logs', name: 'Payment Logs' },
     { id: 'Activity Logs', name: 'Activity Logs' },
+    { id: 'Customers', name: 'Customers' },
     { id: 'Menu', name: 'Menu' },
     { id: 'Branches', name: 'Branches' },
     { id: 'Accounts', name: 'Accounts & Access' },
@@ -340,12 +340,12 @@ export default function Admin() {
             
             <li className="mt-4 border-t border-gray-100 pt-4">
               <Link to="/cashier" className="w-full block text-left px-6 py-3 text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
-                🖥️ Open Cashier System
+                  ↪ Open Cashier System
               </Link>
             </li>
             <li>
               <Link to="/driver" className="w-full block text-left px-6 py-3 text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
-                🏍️ Open Driver System
+                  ↪ Open Driver System
               </Link>
             </li>
           </ul>
@@ -382,7 +382,6 @@ export default function Admin() {
                 <button className="px-4 py-1.5 rounded-full text-sm font-bold text-gray-500 hover:bg-gray-100">7 days</button>
                 <button className="px-4 py-1.5 rounded-full text-sm font-bold text-gray-500 hover:bg-gray-100">30 days</button>
               </div>
-
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Sales</h3>
@@ -401,7 +400,6 @@ export default function Admin() {
                   <p className="text-2xl font-black text-gray-900">{completedOrders.reduce((sum, order) => sum + (order.itemsData?.reduce((s, i) => s + i.qty, 0) || 0), 0)}</p>
                 </div>
               </div>
-
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 h-64 flex flex-col justify-between">
                 <h3 className="text-sm font-bold text-gray-600 mb-4">Sales per day</h3>
                 <div className="flex-1 flex items-end justify-around gap-2 px-4 pb-2 border-b border-gray-100">
@@ -413,7 +411,6 @@ export default function Admin() {
                   <span>Oct 7</span><span>Oct 8</span><span>Oct 9</span><span>Oct 10</span><span>Oct 11</span><span>Oct 12</span><span>Oct 13</span>
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                   <h3 className="text-sm font-bold text-gray-900 mb-6">Cash vs GCash</h3>
@@ -421,7 +418,7 @@ export default function Admin() {
                     <div className="h-full bg-red-600 w-[100%]"></div>
                   </div>
                   <div className="flex justify-between text-xs font-bold text-gray-500">
-                    <span>💵 GCash • 2 orders • 100%</span>
+                    <span>🔴 GCash • 2 orders • 100%</span>
                     <span className="text-gray-900">₱810.00</span>
                   </div>
                 </div>
@@ -477,7 +474,7 @@ export default function Admin() {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase 
-                                bg-blue-100 text-blue-700`}>
+                                 bg-blue-100 text-blue-700`}>
                             {order.status}
                           </span>
                         </td>
@@ -530,7 +527,7 @@ export default function Admin() {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase 
-                            ${order.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                             ${order.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             {order.status}
                           </span>
                         </td>
@@ -629,6 +626,50 @@ export default function Admin() {
             </div>
           )}
 
+          {/* CUSTOMERS MODULE */}
+          {activeModule === 'Customers' && (
+            <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
+              <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <div>
+                  <h2 className="text-lg font-black text-gray-900">Registered Customers</h2>
+                  <p className="text-sm font-bold text-gray-500">Total Customer Accounts: {customers.length}</p>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm min-w-[900px]">
+                        <thead className="bg-[#FFD3AC]/20">
+                            <tr>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Name</th>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Email</th>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Phone</th>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Joined</th>
+                                <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {customers.map((c, i) => (
+                                <tr key={i} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 font-bold text-gray-900">{c.firstname} {c.lastname}</td>
+                                    <td className="px-6 py-4 font-medium text-gray-700">{c.email}</td>
+                                    <td className="px-6 py-4 font-medium text-gray-700">{c.phone || 'N/A'}</td>
+                                    <td className="px-6 py-4 font-bold text-gray-500 text-xs">{new Date(c.created_at).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4">
+                                        <button onClick={() => setViewCustomer(c)} className="bg-white border border-gray-300 text-[#E39A7B] px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50 transition-colors">View Profile & Logs</button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {customers.length === 0 && (
+                                <tr><td colSpan="5" className="text-center py-8 text-gray-400 font-bold">No registered customers found.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* MENU MODULE */}
           {activeModule === 'Menu' && (
             <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
@@ -720,7 +761,6 @@ export default function Admin() {
                 <p className="text-sm font-bold text-gray-600">Every active branch appears on the landing page map and can take orders.</p>
                 <button onClick={() => setShowAddBranch(true)} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ New branch</button>
               </div>
-
               {showAddBranch && (
                 <form onSubmit={handleAddBranch} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div><label className="block text-sm font-bold mb-2">Branch Name</label><input type="text" required value={newBranch.name} onChange={e => setNewBranch({...newBranch, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
@@ -728,7 +768,6 @@ export default function Admin() {
                   <div className="sm:col-span-2 flex justify-end gap-4"><button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Branch</button></div>
                 </form>
               )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {branches.map(branch => (
                   <div key={branch.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex justify-between items-start">
@@ -778,7 +817,6 @@ export default function Admin() {
                       </select>
                     </div>
                   )}
-
                   <div className="sm:col-span-2 flex justify-end gap-4 mt-2">
                     <button type="button" onClick={() => setShowAddStaff(false)} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
                     <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Account</button>
@@ -933,8 +971,50 @@ export default function Admin() {
               </div>
             </div>
           )}
+
         </div>
       </main>
+      
+      {/* CUSTOMER PROFILE MODAL */}
+      {viewCustomer && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col h-[600px] overflow-hidden relative">
+            <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+              <h3 className="font-black text-gray-900 text-xl">Customer Profile</h3>
+              <button onClick={() => setViewCustomer(null)} className="text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
+            </div>
+            <div className="p-6 flex-1 overflow-y-auto space-y-6 bg-[#fffaf7]">
+               <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Account Details</h4>
+                 <div className="grid grid-cols-2 gap-4">
+                     <p className="text-sm font-medium text-gray-700"><strong className="text-gray-900 block mb-1">Name</strong> {viewCustomer.firstname} {viewCustomer.lastname}</p>
+                     <p className="text-sm font-medium text-gray-700"><strong className="text-gray-900 block mb-1">Email</strong> {viewCustomer.email}</p>
+                     <p className="text-sm font-medium text-gray-700"><strong className="text-gray-900 block mb-1">Phone</strong> {viewCustomer.phone || 'N/A'}</p>
+                     <p className="text-sm font-medium text-gray-700"><strong className="text-gray-900 block mb-1">Member Since</strong> {new Date(viewCustomer.created_at).toLocaleDateString()}</p>
+                 </div>
+               </div>
+               
+               <div>
+                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Activity Logs & Orders</h4>
+                 <div className="space-y-2">
+                   {activityLogs.filter(log => log.user_name === `${viewCustomer.firstname} ${viewCustomer.lastname}`).length > 0 ? (
+                     activityLogs.filter(log => log.user_name === `${viewCustomer.firstname} ${viewCustomer.lastname}`).map(log => (
+                       <div key={log.id} className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col gap-1">
+                         <span className="text-[10px] text-gray-400 font-bold">{new Date(log.created_at).toLocaleString()}</span>
+                         <span className="font-medium text-gray-800 text-sm">{log.action}</span>
+                       </div>
+                     ))
+                   ) : (
+                     <div className="p-8 bg-white rounded-xl border border-gray-100 text-center">
+                         <p className="text-sm text-gray-500 font-bold">No activity logs found for this user.</p>
+                     </div>
+                   )}
+                 </div>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
