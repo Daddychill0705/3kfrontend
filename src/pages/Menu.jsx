@@ -44,11 +44,14 @@ export default function Menu() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // Identify if the user is completely logged out OR using the guest account
+  const isGuest = !user || user?.email === 'guest@3kkitchen.local';
+
   const handleAddToCart = (item) => {
     if (item.is_sold_out) return;
     
-    // Check if user is logged in
-    if (!user) {
+    // Check if user is a guest or logged out
+    if (isGuest) {
       showNotification("You must be logged in or create an account first to add items to your cart.");
       return;
     }
@@ -60,8 +63,8 @@ export default function Menu() {
   const handleBuyNow = (item) => {
     if (item.is_sold_out) return;
     
-    // Check if user is logged in
-    if (!user) {
+    // Check if user is a guest or logged out
+    if (isGuest) {
       showNotification("You must be logged in or create an account first to place an order.");
       setTimeout(() => navigate('/login'), 2000); // Redirect after showing the message
       return;
