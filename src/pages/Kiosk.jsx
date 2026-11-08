@@ -4,6 +4,13 @@ import logoImg from '../assets/logo.jpg';
 import { useAuth } from '../context/AuthContext';
 
 export default function Kiosk() {
+  // Authentication & Flow States
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState('');
+  const [kioskBranch, setKioskBranch] = useState(localStorage.getItem('kiosk_active_branch') || '');
+  const [orderType, setOrderType] = useState(''); // 'Dine-in' or 'Take-out'
+  const [branches, setBranches] = useState([]);
+
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState([]);
@@ -25,14 +32,25 @@ export default function Kiosk() {
   ];
 
   useEffect(() => {
-    const fetchMenu = async () => {
+    const fetchInitialData = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/menu`);
-        if (response.ok) setMenuItems(await response.json());
-      } catch (error) { console.error('Failed to load menu:', error); } 
-      finally { setLoading(false); }
+        const [menuRes, branchRes] = await Promise.all([
+          fetch(`${API_URL}/api/menu`),
+          fetch(`${API_URL}/api/branches`)
+        ]);
+        
+        if (menuRes.ok) setMenuItems(await menuRes.json());
+        if (branchRes.ok) {
+          const branchData = await branchRes.json();
+          setBranches(branchData.filter(b => b.is_active));
+        }
+      } catch (error) { 
+        console.error('Failed to load initial kiosk data:', error); 
+      } finally { 
+        setLoading(false); 
+      }
     };
-    fetchMenu();
+    fetchInitialData();
   }, [API_URL]);
 
   const filteredItems = activeCategory === 'ALL' ? menuItems : menuItems.filter(item => item.category === activeCategory);
@@ -77,16 +95,13 @@ export default function Kiosk() {
       }
     }
 
-    // Connects kiosk to the exact branch the cashier dashboard is monitoring
-    const targetBranch = localStorage.getItem('cashier_active_branch') || user?.branch || 'GMA Terminal';
-
     const payload = {
       items: JSON.stringify(cart),
       totalAmount: cartTotal,
-      orderType: 'Dine-in',
-      branch: targetBranch,
+      orderType: orderType, // Uses customer selection (Dine-in or Take-out)
+      branch: kioskBranch,
       paymentMethod: 'Cash on delivery',
-      address: 'Dine-in Kiosk',
+      address: 'Counter Order',
       phone: '',
       notes: ''
     };
@@ -105,21 +120,96 @@ export default function Kiosk() {
       
       setCart([]);
       setIsCartOpen(false);
+      setOrderType(''); // Reset flow for the next customer
       alert('Order placed successfully! Please proceed to the counter to pay.');
     } catch (error) { alert(error.message); } 
     finally { setCheckoutLoading(false); }
   };
 
   const handleCancel = () => {
-    if (user && (user.role === 'cashier' || user.role === 'admin')) {
-      navigate('/cashier');
+    setCart([]);
+    setOrderType('');
+  };
+
+  const handleUnlock = (e) => {
+    e.preventDefault();
+    if (unlockPassword.length >= 6) {
+      setIsUnlocked(true);
+      localStorage.setItem('kiosk_active_branch', kioskBranch);
     } else {
-      navigate('/home');
+      alert('Employee password must be at least 6 characters.');
     }
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center font-bold text-gray-500">Loading Kiosk System...</div>;
 
+  // 1. LOCK SCREEN
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen bg-[#fffaf7] flex flex-col items-center justify-center p-4 font-sans">
+        <div className="mb-8 flex flex-col items-center">
+          <img src={logoImg} alt="3K Kitchen" className="w-20 h-20 rounded-full mb-3 shadow-md border-2 border-white" />
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">3K Kitchen</h1>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Cavite</p>
+        </div>
+        <form onSubmit={handleUnlock} className="bg-white p-8 rounded-2xl shadow-xl border border-[#FFB5AB]/30 w-full max-w-sm space-y-6">
+           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+             <span className="bg-gray-100 text-gray-600 p-3 rounded-xl text-xl">🔒</span>
+             <div>
+               <h2 className="text-lg font-black text-gray-900">Kiosk locked</h2>
+               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Employee password required</p>
+             </div>
+           </div>
+           <div>
+             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Branch</label>
+             <select required value={kioskBranch} onChange={(e) => setKioskBranch(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-bold text-gray-800 cursor-pointer">
+               <option value="">Choose a branch...</option>
+               {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+             </select>
+           </div>
+           <div>
+             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Employee password</label>
+             <input type="password" value={unlockPassword} onChange={(e) => setUnlockPassword(e.target.value)} required placeholder="••••••••" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium text-gray-800" />
+           </div>
+           <button type="submit" className="w-full bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-[#DBB06B] transition-colors">Unlock kiosk</button>
+           
+           <button type="button" onClick={() => navigate('/home')} className="w-full text-xs font-bold text-gray-400 hover:text-gray-700 mt-2">← Back to website</button>
+         </form>
+      </div>
+    );
+  }
+
+  // 2. ORDER TYPE SELECTION SCREEN
+  if (isUnlocked && !orderType) {
+    return (
+      <div className="min-h-screen bg-[#fffaf7] flex flex-col items-center justify-center p-4 font-sans relative">
+        <button onClick={() => { setIsUnlocked(false); setUnlockPassword(''); }} className="absolute top-8 right-8 text-gray-400 hover:text-gray-900 font-bold bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">🔒 Lock Kiosk</button>
+        
+        <img src={logoImg} alt="3K Kitchen" className="w-24 h-24 rounded-full mb-8 shadow-md border-2 border-white animate-[bounce_3s_ease-in-out_infinite]" />
+        <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-12 tracking-tight">Dine in or take out?</h1>
+        
+        <div className="flex flex-col sm:flex-row gap-6">
+          <button onClick={() => setOrderType('Dine-in')} className="bg-white p-10 rounded-3xl shadow-lg border border-[#FFB5AB]/30 hover:border-[#E39A7B] hover:shadow-xl hover:-translate-y-2 transition-all flex flex-col items-center gap-4 w-56">
+            <div className="w-20 h-20 bg-[#FFD3AC]/40 rounded-full flex items-center justify-center text-4xl border-2 border-[#E39A7B]">🏪</div>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900">Dine in</h2>
+              <p className="text-xs font-bold text-gray-500 mt-1">Eat here at the terminal</p>
+            </div>
+          </button>
+          
+          <button onClick={() => setOrderType('Take-out')} className="bg-white p-10 rounded-3xl shadow-lg border border-[#FFB5AB]/30 hover:border-[#E39A7B] hover:shadow-xl hover:-translate-y-2 transition-all flex flex-col items-center gap-4 w-56">
+            <div className="w-20 h-20 bg-[#FFD3AC]/40 rounded-full flex items-center justify-center text-4xl border-2 border-[#E39A7B]">🛍️</div>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900">Take out</h2>
+              <p className="text-xs font-bold text-gray-500 mt-1">Pack it to go</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. MAIN MENU SCREEN
   return (
     <div className="h-screen w-full bg-3k-bg flex flex-col font-sans overflow-hidden relative">
       <div className="flex justify-between items-center p-4 md:px-8 shrink-0 bg-white/50 backdrop-blur-md shadow-sm border-b border-[#FFB5AB]/30 z-20">
@@ -127,12 +217,19 @@ export default function Kiosk() {
           <img src={logoImg} alt="3K Kitchen" className="w-12 h-12 md:w-16 md:h-16 rounded-full shadow-md border-2 border-white" />
           <h1 className="text-xl md:text-2xl font-black text-[#E39A7B] tracking-widest uppercase hidden sm:block">3K Kiosk</h1>
         </div>
+        
         <div className="hidden md:flex flex-1 max-w-xl mx-8 bg-gradient-to-r from-white to-[#FFD3AC]/50 border border-[#FFB5AB]/40 rounded-full h-12 items-center justify-center shadow-sm">
            <p className="text-[#E39A7B] font-bold text-sm tracking-widest uppercase">✨ Welcome to 3K Kitchen ✨</p>
         </div>
-        <button onClick={handleCancel} className="bg-white text-red-500 border-2 border-red-200 px-4 md:px-6 py-2 md:py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm hover:bg-red-50 hover:border-red-300 transition-colors uppercase tracking-wider">
-          Cancel Order
-        </button>
+        
+        <div className="flex gap-3">
+          <button onClick={() => setOrderType('')} className="bg-white text-gray-700 border border-gray-200 px-4 md:px-6 py-2 md:py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm hover:bg-gray-50 transition-colors uppercase tracking-wider">
+            Change: {orderType}
+          </button>
+          <button onClick={handleCancel} className="bg-white text-red-500 border-2 border-red-200 px-4 md:px-6 py-2 md:py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm hover:bg-red-50 hover:border-red-300 transition-colors uppercase tracking-wider">
+            Cancel Order
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-row overflow-hidden p-4 md:p-6 lg:p-8 gap-6 max-w-[1600px] mx-auto w-full relative z-10">

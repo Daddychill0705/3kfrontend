@@ -2,16 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
+import logoImg from '../assets/logo.jpg';
 
 export default function Cashier() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+  // Authentication & Flow States
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState('');
+  
   // Automatically initialize activeBranch from storage or user profile
   const [activeBranch, setActiveBranch] = useState(() => {
     return localStorage.getItem('cashier_active_branch') || user?.branch || '';
   });
+  
   const [branches, setBranches] = useState([]);
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -57,9 +63,10 @@ export default function Cashier() {
     fetchInitialData();
   }, [user, navigate, API_URL]);
 
-  // 2. Fetch orders dynamically when the activeBranch is known
+  // 2. Fetch orders dynamically when the activeBranch is known AND unlocked
   useEffect(() => {
-    if (!activeBranch) return; 
+    if (!activeBranch || !isUnlocked) return; 
+    
     const newSocket = io(API_URL);
     setSocket(newSocket);
     
@@ -89,7 +96,7 @@ export default function Cashier() {
     });
     
     return () => newSocket.close();
-  }, [activeBranch, API_URL]);
+  }, [activeBranch, isUnlocked, API_URL]);
 
   const updateStatus = async (id, status) => {
     const token = localStorage.getItem('token');
@@ -142,6 +149,61 @@ export default function Cashier() {
     return true;
   });
 
+  const handleUnlock = (e) => {
+    e.preventDefault();
+    if (unlockPassword.length >= 6) {
+      setIsUnlocked(true);
+      localStorage.setItem('cashier_active_branch', activeBranch);
+    } else {
+      alert('Employee password must be at least 6 characters.');
+    }
+  };
+
+  // 1. LOCK SCREEN
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen bg-[#fffaf7] flex flex-col items-center justify-center p-4 font-sans">
+        <div className="mb-8 flex flex-col items-center">
+          <img src={logoImg} alt="3K Kitchen" className="w-20 h-20 rounded-full mb-3 shadow-md border-2 border-white" />
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">3K Kitchen</h1>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Cavite</p>
+        </div>
+        <form onSubmit={handleUnlock} className="bg-white p-8 rounded-2xl shadow-xl border border-[#FFB5AB]/30 w-full max-w-sm space-y-6">
+           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+             <span className="bg-gray-100 text-gray-600 p-3 rounded-xl text-xl">🔒</span>
+             <div>
+               <h2 className="text-lg font-black text-gray-900">Cashier</h2>
+               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Employee password required</p>
+             </div>
+           </div>
+
+           <div>
+             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Branch</label>
+             <select 
+                value={activeBranch} 
+                onChange={(e) => setActiveBranch(e.target.value)} 
+                required
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-bold text-gray-800 cursor-pointer"
+             >
+               <option value="">Choose this register's branch</option>
+               {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+             </select>
+           </div>
+           
+           <div>
+             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Employee password</label>
+             <input type="password" value={unlockPassword} onChange={(e) => setUnlockPassword(e.target.value)} required placeholder="••••••••" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium text-gray-800" />
+           </div>
+           
+           <button type="submit" className="w-full bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-[#DBB06B] transition-colors">Open register</button>
+           
+           <button type="button" onClick={() => navigate('/home')} className="w-full text-xs font-bold text-gray-400 hover:text-gray-700 mt-2">← Back to website</button>
+         </form>
+      </div>
+    );
+  }
+
+  // 2. MAIN DASHBOARD SCREEN
   return (
     <div className="flex h-screen bg-[#fffaf7] font-sans">
       <div className="w-[380px] bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 shrink-0">
@@ -212,7 +274,10 @@ export default function Cashier() {
 
           <Link to="/kiosk" className="text-sm font-black text-[#E39A7B] hover:text-[#DBB06B] border border-[#E39A7B] px-3 py-1.5 rounded-lg bg-[#FFD3AC]/10">🍔 Kiosk UI</Link>
           <div className="h-4 w-px bg-gray-300"></div>
-          <button onClick={() => { logout(); navigate('/login'); }} className="text-sm font-bold text-red-500 hover:underline flex items-center gap-1 cursor-pointer">🚪 Sign out</button>
+          
+          <button onClick={() => { setIsUnlocked(false); setSelectedOrder(null); setUnlockPassword(''); }} className="text-sm font-bold text-red-500 hover:underline flex items-center gap-1 cursor-pointer">
+            🔒 Lock
+          </button>
         </header>
 
         <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
