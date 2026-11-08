@@ -84,6 +84,7 @@ export default function Cashier() {
         });
         if (response.ok) {
           const allOrders = await response.json();
+          // FILTER: Only show orders matching this cashier's branch
           setOrders(allOrders.filter(o => o.branch === activeBranch));
         }
       } catch (error) { console.error('Failed to fetch orders', error); }
@@ -122,7 +123,6 @@ export default function Cashier() {
   
   const updatePaymentStatus = async (id, paymentMethod) => {
     const token = localStorage.getItem('token');
-    // Using a new backend endpoint to update just the payment method for Kiosk orders
     try {
         const res = await fetch(`${API_URL}/api/admin/orders/${id}/payment`, {
           method: 'PUT',
@@ -148,7 +148,7 @@ export default function Cashier() {
           return;
       }
       
-      // Update the order's payment method from 'Cash on delivery' (Unpaid) to 'Cash' (Paid)
+      // Update the order's payment method from Unpaid to Paid
       await updatePaymentStatus(selectedOrder.id, 'Cash');
       
       // If it's a new kiosk order (Pending), automatically move it to Confirmed after payment
