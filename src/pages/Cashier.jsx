@@ -119,7 +119,7 @@ export default function Cashier() {
       });
       if (res.ok) {
         if (socket) socket.emit('status_change', { orderId: id, status });
-        setOrders(orders.map(o => o.id === id ? { ...o, status } : o));
+        setOrders(prevOrders => prevOrders.map(o => o.id === id ? { ...o, status } : o));
         setSelectedOrder(prev => prev && prev.id === id ? { ...prev, status } : prev);
       }
     } catch (error) { console.error('Error updating status', error); }
@@ -134,7 +134,7 @@ export default function Cashier() {
           body: JSON.stringify({ paymentMethod })
         });
         if (res.ok) {
-          setOrders(orders.map(o => o.id === id ? { ...o, payment_method: paymentMethod } : o));
+          setOrders(prevOrders => prevOrders.map(o => o.id === id ? { ...o, payment_method: paymentMethod } : o));
           setSelectedOrder(prev => prev && prev.id === id ? { ...prev, payment_method: paymentMethod } : prev);
         }
     } catch (error) { console.error('Error updating payment', error); }
@@ -152,7 +152,7 @@ export default function Cashier() {
           return;
       }
       
-      // Update the order's payment method from Unpaid to Paid
+      // Await the payment status update directly to instantly turn it to "Paid"
       await updatePaymentStatus(selectedOrder.id, 'Cash');
       
       // If it's a new kiosk order (Pending), automatically move it to Confirmed after payment
@@ -351,6 +351,7 @@ export default function Cashier() {
            ) : (
              filteredOrders.map(order => {
                const displayName = getCustomerName(order);
+               // Re-evaluate isPaid on render for every item based on updated state
                const isPaid = ['GCash', 'Cash'].includes(order.payment_method);
                
                return (
@@ -452,8 +453,8 @@ export default function Cashier() {
                </div>
                <div className="p-6 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center gap-3">
                  
-                 {/* Explicit Kiosk / Counter Payment Handling */}
-                 {selectedOrder.payment_method === 'Cash on delivery' && ['Take-out', 'Dine-in', 'Pick-up'].includes(selectedOrder.order_type) && (
+                 {/* Explicit Kiosk / Counter Payment Handling - Only show if Unpaid */}
+                 {!['GCash', 'Cash'].includes(selectedOrder.payment_method) && ['Take-out', 'Dine-in', 'Pick-up'].includes(selectedOrder.order_type) && (
                      <button onClick={() => setIsPaymentModalOpen(true)} className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-green-700">
                          Take Payment
                      </button>
