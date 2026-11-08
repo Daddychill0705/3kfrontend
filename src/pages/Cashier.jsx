@@ -25,7 +25,6 @@ export default function Cashier() {
   // Filter States
   const [activeTab, setActiveTab] = useState('Active');
   const [channelFilter, setChannelFilter] = useState('All'); // 'All', 'Kiosk', 'Online'
-
   const [socket, setSocket] = useState(null);
 
   // Chat States
@@ -304,7 +303,7 @@ export default function Cashier() {
     <div className="flex h-screen bg-[#fffaf7] font-sans">
       <div className="w-[420px] bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 shrink-0">
          
-         <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+         <div className="p-5 border-b border-gray-100 flex flex-col gap-4 bg-gray-50/50">
            <div className="flex items-center gap-3">
              <span className="text-2xl opacity-80">🍔</span>
              <div>
@@ -312,15 +311,28 @@ export default function Cashier() {
                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen - {activeBranch || 'Loading...'}</p>
              </div>
            </div>
-           <select 
-             value={channelFilter} 
-             onChange={(e) => setChannelFilter(e.target.value)}
-             className="text-xs font-bold bg-white border border-gray-200 text-gray-700 rounded-lg px-2 py-1.5 outline-none cursor-pointer shadow-sm"
-           >
-             <option value="All">All Channels</option>
-             <option value="Kiosk">Kiosk</option>
-             <option value="Online">Online</option>
-           </select>
+           
+           {/* Order Channel Filter placed exactly as requested */}
+           <div className="flex bg-white rounded-lg border border-gray-200 p-1 shadow-sm w-full">
+              <button 
+                onClick={() => setChannelFilter('All')} 
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${channelFilter === 'All' ? 'bg-[#E39A7B] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+              >
+                All Channels
+              </button>
+              <button 
+                onClick={() => setChannelFilter('Kiosk')} 
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${channelFilter === 'Kiosk' ? 'bg-purple-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+              >
+                Kiosk Orders
+              </button>
+              <button 
+                onClick={() => setChannelFilter('Online')} 
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${channelFilter === 'Online' ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+              >
+                Online Orders
+              </button>
+           </div>
          </div>
          
          <div className="p-4 flex gap-3 border-b border-gray-100 overflow-x-auto hide-scrollbar">
