@@ -9,7 +9,7 @@ export default function Order() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState(null);
-  
+
   // Chat States
   const [chatLogs, setChatLogs] = useState({});
   const [messages, setMessages] = useState({});
@@ -23,8 +23,10 @@ export default function Order() {
       navigate('/login');
       return;
     }
+    
     const newSocket = io(API_URL);
     setSocket(newSocket);
+
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -46,16 +48,24 @@ export default function Order() {
         setLoading(false);
       }
     };
+    
     fetchOrders();
+
+    // Listen for direct status updates
     newSocket.on('status_updated', (data) => {
       setOrders(prev => prev.map(o => o.id === data.orderId ? { ...o, status: data.status } : o));
     });
+    
+    // Auto-refresh when the cashier updates payment or anything else globally
+    newSocket.on('dashboard_refresh', fetchOrders);
+
     newSocket.on('receive_message', (data) => {
       setChatLogs(prev => ({
         ...prev,
         [data.orderId]: [...(prev[data.orderId] || []), data]
       }));
     });
+
     return () => newSocket.close();
   }, [user, navigate, API_URL]);
 
@@ -63,20 +73,20 @@ export default function Order() {
     e.preventDefault();
     const text = messages[orderId];
     if (text && text.trim() && socket) {
-      const msgData = { 
-        orderId, 
-        sender: user.name, 
-        text, 
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-      };
+      const msgData = {
+         orderId,
+         sender: user.name,
+         text,
+         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+       };
       socket.emit('send_message', msgData);
       setMessages(prev => ({ ...prev, [orderId]: '' }));
     }
   };
 
   const filteredOrders = activeTab === 'All' 
-    ? orders 
-    : orders.filter(order => order.status === activeTab);
+     ? orders 
+     : orders.filter(order => order.status === activeTab);
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-bold">Loading your orders...</div>;
 
@@ -100,7 +110,10 @@ export default function Order() {
       <div className="max-w-[800px] mx-auto pt-8 px-4 md:px-0">
         <div className="space-y-6">
           {filteredOrders.length > 0 ? (
-            filteredOrders.map(order => (
+            filteredOrders.map(order => {
+              const isPaid = ['GCash', 'Cash'].includes(order.payment_method);
+              
+              return (
               <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-[#FFB5AB]/30 overflow-hidden">
                 <div className="flex flex-col p-6 md:p-8 bg-[#fffaf7]">
                   <div className="flex justify-between items-start mb-6">
@@ -108,11 +121,11 @@ export default function Order() {
                       <h3 className="text-2xl font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</h3>
                       <p className="text-xs text-gray-500 font-bold mt-1 uppercase tracking-wider">{order.date} • {order.branch}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex gap-2">
                       <span className={`px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-wider border shadow-sm
                         ${order.status === 'Completed' ? 'bg-green-100 text-green-700 border-green-200' : 
-                          order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 
-                          'bg-blue-100 text-blue-700 border-blue-200'}`}>
+                           order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 
+                           'bg-blue-100 text-blue-700 border-blue-200'}`}>
                         {order.status}
                       </span>
                     </div>
@@ -124,15 +137,15 @@ export default function Order() {
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-green-500 transition-all duration-1000 -z-10"
                       style={{
                         width: order.status === 'Pending' ? '0%' : 
-                               order.status === 'Confirmed' ? '25%' : 
-                               order.status === 'Preparing' ? '50%' : 
-                               order.status === 'Out for Delivery' ? '75%' : '100%'
+                                order.status === 'Confirmed' ? '25%' : 
+                                order.status === 'Preparing' ? '50%' : 
+                                order.status === 'Out for Delivery' ? '75%' : '100%'
                       }}
                     ></div>
                     
                     {['Received', 'Confirmed', 'Preparing', 'Ready', 'On the way', 'Done'].map((step, idx) => {
                       const isActive = 
-                        (order.status === 'Pending' && idx === 0) ||
+                         (order.status === 'Pending' && idx === 0) ||
                         (order.status === 'Confirmed' && idx <= 1) ||
                         (order.status === 'Preparing' && idx <= 2) ||
                         (order.status === 'Ready' && idx <= 3) ||
@@ -154,7 +167,7 @@ export default function Order() {
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Delivering to</p>
                     <p className="text-sm font-bold text-gray-800">{order.delivery_address || 'Pick-up at Branch'}</p>
                     {order.delivery_address && (
-                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#E39A7B] hover:underline mt-1 inline-block">View pinned location ↗</a>
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#E39A7B] hover:underline mt-1 inline-block">View pinned location 📍</a>
                     )}
                   </div>
                   
@@ -170,7 +183,13 @@ export default function Order() {
                   <div className="flex justify-between items-end pt-4 border-t border-gray-200">
                     <div>
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total</p>
-                      {order.notes && <p className="text-xs text-gray-500 font-medium italic">Note: "{order.notes}"</p>}
+                      
+                      {/* Customer Side Payment Badge */}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${isPaid ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
+                        {isPaid ? 'Paid' : 'Unpaid'}
+                      </span>
+                      
+                      {order.notes && <p className="text-xs text-gray-500 font-medium italic mt-2">Note: "{order.notes}"</p>}
                     </div>
                     <span className="text-2xl font-black text-[#E39A7B]">₱{parseFloat(order.total_amount).toFixed(2)}</span>
                   </div>
@@ -194,19 +213,19 @@ export default function Order() {
                         ))}
                         {(!chatLogs[order.id] || chatLogs[order.id].length === 0) && (
                           <div className="h-full flex items-center justify-center text-xs font-bold text-gray-400">
-                            Say hi to your rider — tell them where to find you.
+                            Say hi to your rider & tell them where to find you.
                           </div>
                         )}
                       </div>
                       <form onSubmit={(e) => sendMessage(e, order.id)} className="bg-white border-t border-gray-200 p-3 flex gap-2">
                         <input 
-                          type="text" 
-                          value={messages[order.id] || ''} 
-                          onChange={e => setMessages(prev => ({...prev, [order.id]: e.target.value}))} 
-                          placeholder="Type a message..." 
-                          className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#E39A7B] text-sm font-medium text-gray-800"
+                           type="text" 
+                           value={messages[order.id] || ''} 
+                           onChange={e => setMessages(prev => ({...prev, [order.id]: e.target.value}))} 
+                           placeholder="Type a message..." 
+                           className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#E39A7B] text-sm font-medium text-gray-800"
                         />
-                        <button type="submit" className="bg-[#E39A7B] text-white px-5 rounded-xl font-black shadow-sm hover:bg-[#DBB06B] transition-colors">↗</button>
+                        <button type="submit" className="bg-[#E39A7B] text-white px-5 rounded-xl font-black shadow-sm hover:bg-[#DBB06B] transition-colors">➔</button>
                       </form>
                     </div>
                   </div>
@@ -218,7 +237,7 @@ export default function Order() {
                    </div>
                 )}
               </div>
-            ))
+            )})
           ) : (
             <div className="bg-white rounded-xl shadow-sm border border-[#FFB5AB]/30 p-16 text-center">
               <h3 className="text-xl font-bold text-gray-900 mb-2">No orders found</h3>

@@ -88,8 +88,14 @@ export default function Cashier() {
         });
         if (response.ok) {
           const allOrders = await response.json();
-          // FILTER: Only show orders matching this cashier's branch
-          setOrders(allOrders.filter(o => o.branch === activeBranch));
+          const filtered = allOrders.filter(o => o.branch === activeBranch);
+          setOrders(filtered);
+          
+          // Keep the middle pane perfectly synced with background updates
+          setSelectedOrder(prev => {
+              if (!prev) return null;
+              return filtered.find(o => o.id === prev.id) || prev;
+          });
         }
       } catch (error) { console.error('Failed to fetch orders', error); }
     };
@@ -141,8 +147,10 @@ export default function Cashier() {
       const newPaymentMethod = 'Cash';
       const newStatus = selectedOrder.status === 'Pending' ? 'Confirmed' : selectedOrder.status;
 
-      setOrders(prevOrders => prevOrders.map(o => o.id === selectedOrder.id ? { ...o, payment_method: newPaymentMethod, status: newStatus } : o));
-      setSelectedOrder(prev => ({ ...prev, payment_method: newPaymentMethod, status: newStatus }));
+      const updatedOrder = { ...selectedOrder, payment_method: newPaymentMethod, status: newStatus };
+      
+      setOrders(prevOrders => prevOrders.map(o => o.id === selectedOrder.id ? updatedOrder : o));
+      setSelectedOrder(updatedOrder);
 
       setIsPaymentModalOpen(false);
       setIsReceiptModalOpen(true);
@@ -151,22 +159,22 @@ export default function Cashier() {
       // Background API calls to sync with the database
       const token = localStorage.getItem('token');
       
-      // Update Payment
-      fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/payment`, {
+      await fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/payment`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ paymentMethod: newPaymentMethod })
       });
 
-      // Update Status if it was pending
       if (selectedOrder.status === 'Pending') {
-          fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/status`, {
+          await fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ status: newStatus })
           });
-          if (socket) socket.emit('status_change', { orderId: selectedOrder.id, status: newStatus });
       }
+      
+      // Force all devices (including the customer tracking screen) to refresh
+      if (socket) socket.emit('status_change', { orderId: selectedOrder.id, status: newStatus });
   };
 
   const handlePrintReceipt = () => {
@@ -463,17 +471,11 @@ export default function Cashier() {
                </div>
                <div className="p-6 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center gap-3">
                  
-                 {/* Explicit Kiosk / Counter Payment Handling */}
-                 {['GCash', 'Cash'].includes(selectedOrder.payment_method) ? (
-                    <button disabled className="bg-gray-100 text-green-700 border border-green-300 px-8 py-3 rounded-xl font-bold text-sm shadow-sm cursor-not-allowed flex items-center gap-2">
-                        Paid ✓
-                    </button>
-                 ) : (
-                    ['Take-out', 'Dine-in', 'Pick-up'].includes(selectedOrder.order_type) && (
-                        <button onClick={() => setIsPaymentModalOpen(true)} className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-green-700">
-                            Take Payment
-                        </button>
-                    )
+                 {/* Explicit Kiosk / Counter Payment Handling - Only show if Unpaid */}
+                 {!['GCash', 'Cash'].includes(selectedOrder.payment_method) && ['Take-out', 'Dine-in', 'Pick-up'].includes(selectedOrder.order_type) && (
+                     <button onClick={() => setIsPaymentModalOpen(true)} className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-green-700">
+                         Take Payment
+                     </button>
                  )}
 
                  {/* Standard Workflow Buttons */}
