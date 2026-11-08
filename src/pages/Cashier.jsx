@@ -21,7 +21,11 @@ export default function Cashier() {
   const [branches, setBranches] = useState([]);
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  
+  // Filter States
   const [activeTab, setActiveTab] = useState('Active');
+  const [channelFilter, setChannelFilter] = useState('All'); // 'All', 'Kiosk', 'Online'
+
   const [socket, setSocket] = useState(null);
 
   // Chat States
@@ -217,13 +221,6 @@ export default function Cashier() {
     }
   };
 
-  const filteredOrders = orders.filter(o => {
-    if (activeTab === 'Active') return !['Completed', 'Cancelled'].includes(o.status);
-    if (activeTab === 'Done') return o.status === 'Completed';
-    if (activeTab === 'Cancelled') return o.status === 'Cancelled';
-    return true;
-  });
-
   const handleUnlock = (e) => {
     e.preventDefault();
     if (unlockPassword.length >= 6) {
@@ -233,6 +230,22 @@ export default function Cashier() {
       alert('Employee password must be at least 6 characters.');
     }
   };
+
+  // Dual Filtering: Status & Channel
+  const filteredOrders = orders.filter(o => {
+    // 1. Status Filter
+    let statusMatch = true;
+    if (activeTab === 'Active') statusMatch = !['Completed', 'Cancelled'].includes(o.status);
+    if (activeTab === 'Done') statusMatch = o.status === 'Completed';
+    if (activeTab === 'Cancelled') statusMatch = o.status === 'Cancelled';
+
+    // 2. Channel Filter
+    let channelMatch = true;
+    if (channelFilter === 'Kiosk') channelMatch = ['Dine-in', 'Take-out'].includes(o.order_type);
+    if (channelFilter === 'Online') channelMatch = ['Delivery', 'Pick-up'].includes(o.order_type);
+
+    return statusMatch && channelMatch;
+  });
 
   // VAT Calculation Helpers
   const calculateVAT = (total) => {
@@ -289,8 +302,9 @@ export default function Cashier() {
   // 2. MAIN DASHBOARD SCREEN
   return (
     <div className="flex h-screen bg-[#fffaf7] font-sans">
-      <div className="w-[380px] bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 shrink-0">
-         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+      <div className="w-[420px] bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 shrink-0">
+         
+         <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
            <div className="flex items-center gap-3">
              <span className="text-2xl opacity-80">🍔</span>
              <div>
@@ -298,25 +312,49 @@ export default function Cashier() {
                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen - {activeBranch || 'Loading...'}</p>
              </div>
            </div>
+           <select 
+             value={channelFilter} 
+             onChange={(e) => setChannelFilter(e.target.value)}
+             className="text-xs font-bold bg-white border border-gray-200 text-gray-700 rounded-lg px-2 py-1.5 outline-none cursor-pointer shadow-sm"
+           >
+             <option value="All">All Channels</option>
+             <option value="Kiosk">Kiosk</option>
+             <option value="Online">Online</option>
+           </select>
          </div>
-         <div className="p-4 flex gap-3 border-b border-gray-100 overflow-x-auto hide-scrollbar bg-gray-50/50">
+         
+         <div className="p-4 flex gap-3 border-b border-gray-100 overflow-x-auto hide-scrollbar">
            {['Active', 'Done', 'Cancelled', 'All'].map(tab => (
-             <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-800'}`}>
+             <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab ? 'bg-gray-800 text-white shadow-sm border border-gray-800' : 'text-gray-500 border border-gray-200 hover:text-gray-800 hover:bg-gray-50'}`}>
                {tab}
              </button>
            ))}
          </div>
+         
          <div className="flex-1 overflow-y-auto p-4 space-y-3">
            {filteredOrders.length === 0 ? (
              <div className="text-center py-10 text-gray-400 font-bold text-sm">Nothing here<br/><span className="text-xs font-medium">New orders appear instantly.</span></div>
            ) : (
-             filteredOrders.map(order => (
+             filteredOrders.map(order => {
+               // Determine order channel label visually
+               const isKiosk = ['Dine-in', 'Take-out'].includes(order.order_type);
+               
+               return (
                <div key={order.id} onClick={() => setSelectedOrder(order)} className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col gap-2 ${selectedOrder?.id === order.id ? 'bg-[#FFD3AC]/10 border-[#E39A7B] shadow-sm' : 'bg-white border-gray-200 hover:border-[#FFB5AB]'}`}>
                  <div className="flex justify-between items-start">
-                   <h3 className="font-black text-gray-900 text-lg">O-{String(order.id).padStart(4, '0')}</h3>
+                   <h3 className="font-black text-gray-900 text-lg">
+                     O-{String(order.id).padStart(4, '0')}
+                   </h3>
                    <span className="font-black text-gray-900">₱{parseFloat(order.total_amount).toFixed(2)}</span>
                  </div>
-                 <p className="text-xs text-gray-600 font-bold truncate">{order.customerName}</p>
+                 
+                 <div className="flex items-center gap-2">
+                   <p className="text-xs text-gray-600 font-bold truncate flex-1">{order.customerName}</p>
+                   <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${isKiosk ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                     {isKiosk ? 'KIOSK' : 'ONLINE'}
+                   </span>
+                 </div>
+
                  <div className="flex gap-2 mt-1">
                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>{order.status}</span>
                    {/* Explicitly check if payment is confirmed as 'Cash' or 'GCash' */}
@@ -325,7 +363,7 @@ export default function Cashier() {
                    </span>
                  </div>
                </div>
-             ))
+             )})
            )}
          </div>
       </div>
