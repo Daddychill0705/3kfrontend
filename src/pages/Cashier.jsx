@@ -351,6 +351,7 @@ export default function Cashier() {
            ) : (
              filteredOrders.map(order => {
                const displayName = getCustomerName(order);
+               const isPaid = ['GCash', 'Cash'].includes(order.payment_method);
                
                return (
                <div key={order.id} onClick={() => setSelectedOrder(order)} className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col gap-2 ${selectedOrder?.id === order.id ? 'bg-[#FFD3AC]/10 border-[#E39A7B] shadow-sm' : 'bg-white border-gray-200 hover:border-[#FFB5AB]'}`}>
@@ -370,9 +371,9 @@ export default function Cashier() {
                    </span>
                    {/* Status Badge */}
                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${order.status === 'Pending' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>{order.status}</span>
-                   {/* Payment Badge */}
-                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${['GCash', 'Cash'].includes(order.payment_method) ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                     {['GCash', 'Cash'].includes(order.payment_method) ? 'Paid' : 'Unpaid'}
+                   {/* Payment Badge - Correctly tied to isPaid variable */}
+                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${isPaid ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                     {isPaid ? 'Paid' : 'Unpaid'}
                    </span>
                  </div>
                </div>
@@ -459,7 +460,7 @@ export default function Cashier() {
                  )}
 
                  {/* Standard Workflow Buttons */}
-                 {selectedOrder.status === 'Pending' && selectedOrder.payment_method === 'GCash' && (
+                 {selectedOrder.status === 'Pending' && ['GCash', 'Cash'].includes(selectedOrder.payment_method) && (
                    <button onClick={() => updateStatus(selectedOrder.id, 'Confirmed')} className="bg-[#E39A7B] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#DBB06B]">Confirm</button>
                  )}
                  {selectedOrder.status === 'Confirmed' && (
