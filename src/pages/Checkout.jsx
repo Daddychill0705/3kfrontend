@@ -53,13 +53,22 @@ export default function Checkout() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!cart.length) return alert('Your cart is empty. Add items before placing an order.');
     if (formData.paymentMethod === 'GCash' && !receipt) {
       return alert('Please upload your GCash receipt.');
     }
     
+    const selectedBranch = branches.find(b => b.id === Number(formData.branchId));
+    if (!selectedBranch) {
+      return alert('Available branches have not loaded yet. Please refresh the page and try again.');
+    }
+
     setLoading(true);
     const token = localStorage.getItem('token');
-    const selectedBranch = branches.find(b => b.id === Number(formData.branchId));
+    if (!token) {
+      setLoading(false);
+      return alert('Your session has expired. Please log in again before placing your order.');
+    }
     let uploadedReceiptUrl = null;
 
     // Upload receipt to Cloudinary
@@ -87,7 +96,7 @@ export default function Checkout() {
       items: JSON.stringify(cart),
       totalAmount: cartTotal,
       orderType: formData.orderType,
-      branch: selectedBranch ? selectedBranch.name : 'Unknown Branch',
+      branch: selectedBranch.name,
       address: formData.address,
       phone: formData.phone,
       paymentMethod: formData.paymentMethod,
@@ -106,7 +115,11 @@ export default function Checkout() {
         body: JSON.stringify(payload)
       });
       
-      if (!response.ok) throw new Error('Checkout failed');
+      const responseData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = responseData.error || `Checkout failed (HTTP ${response.status}). Please try again.`;
+        throw new Error(responseData.code ? `${message} (${responseData.code})` : message);
+      }
       
       clearCart();
       navigate('/order');
