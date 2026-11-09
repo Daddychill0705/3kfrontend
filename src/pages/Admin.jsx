@@ -480,8 +480,8 @@ export default function Admin() {
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-black text-gray-900">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</p>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${order.payment_method === 'GCash' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
-                            {order.payment_method === 'GCash' ? 'Paid' : 'Unpaid'}
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${['GCash', 'Cash'].includes(order.payment_method) ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
+                            {['GCash', 'Cash'].includes(order.payment_method) ? 'Paid' : 'Unpaid'}
                           </span>
                         </td>
                       </tr>
@@ -533,8 +533,8 @@ export default function Admin() {
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-black text-gray-900">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</p>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${order.payment_method === 'GCash' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
-                            {order.payment_method === 'GCash' ? 'Paid' : 'Unpaid'}
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${['GCash', 'Cash'].includes(order.payment_method) ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
+                            {['GCash', 'Cash'].includes(order.payment_method) ? 'Paid' : 'Unpaid'}
                           </span>
                         </td>
                       </tr>

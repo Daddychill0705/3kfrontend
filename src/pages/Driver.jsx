@@ -137,8 +137,8 @@ export default function Driver() {
                 </div>
                 <div className="text-right">
                   <span className="text-2xl font-black text-gray-900 block mb-2">₱{parseFloat(order.total_amount).toFixed(2)}</span>
-                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider ${order.payment_method === 'GCash' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-yellow-50 text-yellow-700 border border-yellow-200'}`}>
-                    {order.payment_method === 'GCash' ? 'Paid' : 'Unpaid'}
+                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider ${['GCash', 'Cash'].includes(order.payment_method) ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-yellow-50 text-yellow-700 border border-yellow-200'}`}>
+                    {['GCash', 'Cash'].includes(order.payment_method) ? 'Paid' : 'Unpaid'}
                   </span>
                 </div>
               </div>
@@ -184,7 +184,7 @@ export default function Driver() {
             <button onClick={() => setDeliveryModalOrder(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
             <h3 className="text-xl font-black text-gray-900 mb-2">Deliver O-{String(deliveryModalOrder.id).padStart(4, '0')}</h3>
             <p className="text-gray-600 font-medium mb-6 text-sm">
-              {deliveryModalOrder.payment_method === 'GCash' 
+              {['GCash', 'Cash'].includes(deliveryModalOrder.payment_method)
                  ? 'This order is already paid. Confirm that it was handed over.' 
                  : `This order is unpaid. Collect ₱${parseFloat(deliveryModalOrder.total_amount).toFixed(2)} from the customer before handing it over.`}
             </p>
