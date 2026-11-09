@@ -18,6 +18,9 @@ export default function Cashier() {
   const [orders, setOrders] = useState([]);
   const chatNow = useOrderChatClock(orders);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [completingOrderIds, setCompletingOrderIds] = useState(() => new Set());
+  const [isCompleteConfirmOpen, setIsCompleteConfirmOpen] = useState(false);
+  const [isCompletingOrder, setIsCompletingOrder] = useState(false);
   
   // Filter States
   const [activeTab, setActiveTab] = useState('Active');
@@ -141,8 +144,39 @@ export default function Cashier() {
         if (socket) socket.emit('status_change', { orderId: id, status });
         setOrders(prevOrders => prevOrders.map(o => o.id === id ? { ...o, status } : o));
         setSelectedOrder(prev => prev && prev.id === id ? { ...prev, status } : prev);
+        return true;
       }
     } catch (error) { console.error('Error updating status', error); }
+    return false;
+  };
+
+  const confirmCompleteOrder = async () => {
+    if (!selectedOrder || isCompletingOrder) return;
+    const orderId = selectedOrder.id;
+    setIsCompletingOrder(true);
+    setIsCompleteConfirmOpen(false);
+    setCompletingOrderIds(prev => new Set(prev).add(orderId));
+
+    const completed = await updateStatus(orderId, 'Completed');
+    setIsCompletingOrder(false);
+    if (!completed) {
+      setCompletingOrderIds(prev => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
+      });
+      alert('Could not complete this order. Please try again.');
+      return;
+    }
+
+    setTimeout(() => {
+      setCompletingOrderIds(prev => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
+      });
+      setActiveTab('Done');
+    }, 550);
   };
   
   const updatePaymentStatus = async (id, paymentMethod) => {
@@ -253,8 +287,8 @@ export default function Cashier() {
   const filteredOrders = orders.filter(o => {
     // 1. Status Filter
     let statusMatch = true;
-    if (activeTab === 'Active') statusMatch = !['Completed', 'Cancelled'].includes(o.status);
-    if (activeTab === 'Done') statusMatch = o.status === 'Completed';
+    if (activeTab === 'Active') statusMatch = !['Completed', 'Cancelled'].includes(o.status) || completingOrderIds.has(o.id);
+    if (activeTab === 'Done') statusMatch = o.status === 'Completed' && !completingOrderIds.has(o.id);
     if (activeTab === 'Cancelled') statusMatch = o.status === 'Cancelled';
 
     // 2. Order Type Filter
@@ -321,7 +355,7 @@ export default function Cashier() {
                const isPaid = ['GCash', 'Cash'].includes(order.payment_method);
                
                return (
-               <div key={order.id} onClick={() => setSelectedOrder(order)} className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col gap-2 ${selectedOrder?.id === order.id ? 'bg-[#FFD3AC]/10 border-[#E39A7B] shadow-sm' : 'bg-white border-gray-200 hover:border-[#FFB5AB]'}`}>
+               <div key={order.id} onClick={() => setSelectedOrder(order)} className={`p-4 rounded-xl border cursor-pointer transition-all duration-500 ease-in-out flex flex-col gap-2 ${completingOrderIds.has(order.id) ? 'opacity-0 -translate-x-3 scale-95 max-h-0 py-0 my-0 overflow-hidden pointer-events-none' : 'opacity-100 max-h-48'} ${selectedOrder?.id === order.id ? 'bg-[#FFD3AC]/10 border-[#E39A7B] shadow-sm' : 'bg-white border-gray-200 hover:border-[#FFB5AB]'}`}>
                  <div className="flex justify-between items-start">
                    <h3 className="font-black text-gray-900 text-lg">
                      O-{String(order.id).padStart(4, '0')}
@@ -456,7 +490,7 @@ export default function Cashier() {
                    <button onClick={() => updateStatus(selectedOrder.id, 'Ready')} className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-green-700">Mark as Ready</button>
                  )}
                  {selectedOrder.status === 'Ready' && ['Pick-up', 'Take-out', 'Dine-in'].includes(selectedOrder.order_type) && (
-                   <button onClick={() => updateStatus(selectedOrder.id, 'Completed')} className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-black">Complete Order</button>
+                   <button onClick={() => setIsCompleteConfirmOpen(true)} className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-black">Complete Order</button>
                  )}
                  {['Delivery', 'Pick-up'].includes(selectedOrder.order_type) && isOrderChatOpen(selectedOrder, chatNow) && (
                    <button onClick={openRiderChat} className="bg-white border border-blue-200 text-blue-700 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-50 transition-colors inline-flex items-center gap-2">
@@ -471,6 +505,25 @@ export default function Cashier() {
           )}
         </div>
       </div>
+
+      {isCompleteConfirmOpen && selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 className="text-xl font-black text-gray-900 mb-2">Complete this order?</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to complete order O-{String(selectedOrder.id).padStart(4, '0')}? It will move to Done.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setIsCompleteConfirmOpen(false)} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50">
+                Cancel
+              </button>
+              <button type="button" onClick={confirmCompleteOrder} disabled={isCompletingOrder} className="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold hover:bg-black disabled:opacity-60">
+                {isCompletingOrder ? 'Completing...' : 'Yes, complete order'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Payment Calculator Modal */}
       {isPaymentModalOpen && selectedOrder && (
