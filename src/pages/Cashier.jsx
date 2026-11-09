@@ -22,6 +22,10 @@ export default function Cashier() {
   const [orderTypeFilter, setOrderTypeFilter] = useState('All'); // 'All', 'Dine-in', 'Take-out', 'Online'
 
   const [socket, setSocket] = useState(null);
+  const [chatLogs, setChatLogs] = useState([]);
+  const [chatMessage, setChatMessage] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [currentChatOrderId, setCurrentChatOrderId] = useState(null);
 
   // Payment States
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -91,6 +95,15 @@ export default function Cashier() {
     
     fetchOrders();
     newSocket.on('dashboard_refresh', fetchOrders);
+
+    newSocket.on('receive_message', (data) => {
+      setCurrentChatOrderId(currentId => {
+        if (currentId === data.orderId) {
+          setChatLogs(prev => [...prev, data]);
+        }
+        return currentId;
+      });
+    });
     
     return () => newSocket.close();
   }, [activeBranch, API_URL]);
@@ -180,6 +193,38 @@ export default function Cashier() {
       } finally {
         setIsSubmittingPayment(false);
       }
+  };
+
+  const openRiderChat = async () => {
+    if (!selectedOrder) return;
+
+    setIsChatOpen(true);
+    setCurrentChatOrderId(selectedOrder.id);
+    setChatLogs([]);
+    if (socket) socket.emit('join_order', selectedOrder.id);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/orders/${selectedOrder.id}/chat`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) setChatLogs(await response.json());
+    } catch (error) {
+      console.error('Failed to load order chat', error);
+    }
+  };
+
+  const sendChatMessage = (event) => {
+    event.preventDefault();
+    if (!chatMessage.trim() || !socket || !selectedOrder) return;
+
+    socket.emit('send_message', {
+      orderId: selectedOrder.id,
+      sender: `Cashier (${activeBranch})`,
+      text: chatMessage.trim(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
+    setChatMessage('');
   };
 
   // Dual Filtering: Status & Order Type
@@ -391,6 +436,11 @@ export default function Cashier() {
                  {selectedOrder.status === 'Ready' && ['Pick-up', 'Take-out', 'Dine-in'].includes(selectedOrder.order_type) && (
                    <button onClick={() => updateStatus(selectedOrder.id, 'Completed')} className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-black">Complete Order</button>
                  )}
+                 {selectedOrder.order_type === 'Delivery' && !['Completed', 'Cancelled'].includes(selectedOrder.status) && (
+                   <button onClick={openRiderChat} className="bg-white border border-blue-200 text-blue-700 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-50 transition-colors">
+                     Chat with Rider
+                   </button>
+                 )}
 
                  <button onClick={() => updateStatus(selectedOrder.id, 'Cancelled')} className="bg-white border border-red-200 text-red-500 px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-50 transition-colors">Void</button>
                </div>
@@ -441,6 +491,34 @@ export default function Cashier() {
               </form>
             </div>
           </div>
+      )}
+
+      {isChatOpen && selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[500px] overflow-hidden relative">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="font-black text-gray-900 text-lg">Delivery Chat - O-{String(selectedOrder.id).padStart(4, '0')}</h3>
+              <button onClick={() => { setIsChatOpen(false); setCurrentChatOrderId(null); }} className="text-gray-400 hover:text-gray-900 font-bold text-xl">×</button>
+            </div>
+
+            <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#fffaf7]">
+              {chatLogs.map((message, index) => (
+                <div key={`${message.time}-${index}`} className={`flex flex-col ${message.sender.startsWith('Cashier') ? 'items-end' : 'items-start'}`}>
+                  <div className={`px-4 py-2.5 rounded-2xl max-w-[80%] text-sm font-bold shadow-sm ${message.sender.startsWith('Cashier') ? 'bg-gray-800 text-white rounded-br-none' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'}`}>
+                    {message.text}
+                  </div>
+                  <span className="text-[10px] font-bold text-gray-400 mt-1">{message.sender} • {message.time}</span>
+                </div>
+              ))}
+              {chatLogs.length === 0 && <p className="text-center text-gray-400 text-sm font-bold mt-10">No messages yet. Start the delivery coordination here.</p>}
+            </div>
+
+            <form onSubmit={sendChatMessage} className="p-4 bg-white border-t border-gray-100 flex gap-2">
+              <input type="text" value={chatMessage} onChange={event => setChatMessage(event.target.value)} placeholder="Message the rider and customer..." className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 text-sm font-medium" />
+              <button type="submit" disabled={!chatMessage.trim()} className="bg-gray-800 text-white px-5 rounded-xl font-bold shadow-sm hover:bg-black disabled:opacity-50">Send</button>
+            </form>
+          </div>
+        </div>
       )}
 
     </div>
