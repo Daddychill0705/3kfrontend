@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 
@@ -366,10 +366,6 @@ export default function Cashier() {
         <header className="flex justify-end items-center p-4 border-b border-gray-200 bg-white shadow-sm shrink-0 gap-4">
           
           <div className="flex items-center gap-3 mr-auto">
-             {user?.role === 'admin' && (
-               <Link to="/admin" className="text-sm font-bold text-gray-500 hover:text-gray-900 border border-gray-200 px-3 py-1.5 rounded-lg bg-gray-50">← Back to Admin</Link>
-             )}
-             
              {user?.role === 'admin' ? (
                <select 
                  value={activeBranch} 
@@ -388,9 +384,6 @@ export default function Cashier() {
                </span>
              )}
           </div>
-
-          <Link to="/kiosk" className="text-sm font-black text-[#E39A7B] hover:text-[#DBB06B] border border-[#E39A7B] px-3 py-1.5 rounded-lg bg-[#FFD3AC]/10">🍔 Kiosk UI</Link>
-          <div className="h-4 w-px bg-gray-300"></div>
         </header>
 
         <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
