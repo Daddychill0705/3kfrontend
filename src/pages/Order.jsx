@@ -15,6 +15,7 @@ export default function Order() {
   const [messages, setMessages] = useState({});
   const [unreadChatOrders, setUnreadChatOrders] = useState({});
   const openChatOrdersRef = useRef(new Set());
+  const [activeChatOrderId, setActiveChatOrderId] = useState(null);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -116,6 +117,18 @@ export default function Order() {
       socket.emit('send_message', msgData);
       setMessages(prev => ({ ...prev, [orderId]: '' }));
     }
+  };
+
+  const openRiderChat = (orderId) => {
+    if (activeChatOrderId !== null) openChatOrdersRef.current.delete(String(activeChatOrderId));
+    openChatOrdersRef.current.add(String(orderId));
+    setUnreadChatOrders(prev => ({ ...prev, [orderId]: false }));
+    setActiveChatOrderId(orderId);
+  };
+
+  const closeRiderChat = () => {
+    if (activeChatOrderId !== null) openChatOrdersRef.current.delete(String(activeChatOrderId));
+    setActiveChatOrderId(null);
   };
 
   const getStatusTab = (status) => {
@@ -236,27 +249,24 @@ export default function Order() {
 
                 {/* Real-time Rider Chat Module */}
                 {order.status === 'Out for Delivery' && order.order_type === 'Delivery' && (
-                  <details
-                    className="border-t border-[#FFB5AB]/30 bg-white p-6 md:p-8"
-                    onToggle={event => {
-                      const orderId = String(order.id);
-                      if (event.currentTarget.open) {
-                        openChatOrdersRef.current.add(orderId);
-                        setUnreadChatOrders(prev => ({ ...prev, [order.id]: false }));
-                      } else {
-                        openChatOrdersRef.current.delete(orderId);
-                      }
-                    }}
-                  >
-                    <summary className="cursor-pointer list-none bg-white border border-gray-300 text-gray-800 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors w-full sm:w-fit inline-flex items-center gap-2">
+                  <>
+                    <button type="button" onClick={() => openRiderChat(order.id)} className="border-t border-[#FFB5AB]/30 bg-white p-6 md:p-8 w-full text-left">
+                    <span className="bg-white border border-gray-300 text-gray-800 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors w-full sm:w-fit inline-flex items-center gap-2">
                       💬 Chat with Rider
                       {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
-                    </summary>
-                    <div className="pt-5">
-                    <h3 className="text-lg font-black text-gray-900 mb-1">Chat with your rider</h3>
-                    <p className="text-xs font-bold text-gray-500 mb-4">Chatting with rider • order O-{String(order.id).padStart(4, '0')}</p>
+                    </span>
+                    </button>
+                    {activeChatOrderId === order.id && (
+                    <div className="fixed bottom-4 right-4 z-[60] w-[min(420px,calc(100vw-2rem))] h-[min(560px,calc(100vh-2rem))] bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden">
+                    <div className="px-5 py-4 bg-white border-b border-gray-100 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-base font-black text-gray-900">Chat with your rider</h3>
+                        <p className="text-xs font-bold text-gray-500">Order O-{String(order.id).padStart(4, '0')}</p>
+                      </div>
+                      <button type="button" onClick={closeRiderChat} aria-label="Close chat" className="text-gray-400 hover:text-gray-900 text-2xl leading-none">×</button>
+                    </div>
                     
-                    <div className="bg-gray-50 rounded-xl border border-gray-200 h-64 flex flex-col overflow-hidden mb-4">
+                    <div className="bg-gray-50 flex-1 min-h-0 flex flex-col overflow-hidden">
                       <div className="flex-1 p-4 overflow-y-auto space-y-4">
                         {(chatLogs[order.id] || []).map((msg, i) => (
                           <div key={i} className={`flex flex-col ${msg.sender === user.name ? 'items-end' : 'items-start'}`}>
@@ -284,7 +294,8 @@ export default function Order() {
                       </form>
                     </div>
                     </div>
-                  </details>
+                    )}
+                  </>
                 )}
                 
                 {order.status === 'Completed' && (
