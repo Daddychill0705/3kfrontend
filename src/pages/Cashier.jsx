@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 
 export default function Cashier() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -384,6 +384,15 @@ export default function Cashier() {
                </span>
              )}
           </div>
+          <button
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            className="text-sm font-bold text-red-500 hover:text-red-700 hover:underline"
+          >
+            Log out
+          </button>
         </header>
 
         <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
