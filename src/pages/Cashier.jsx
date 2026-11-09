@@ -37,6 +37,7 @@ export default function Cashier() {
   // Payment & Receipt States
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [cashTendered, setCashTendered] = useState('');
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const printRef = useRef();
 
@@ -149,7 +150,7 @@ export default function Cashier() {
 
   const handlePaymentSubmit = async (e) => {
       e.preventDefault();
-      if (!selectedOrder) return;
+      if (!selectedOrder || isSubmittingPayment) return;
       
       const total = parseFloat(selectedOrder.total_amount);
       const tendered = parseFloat(cashTendered);
@@ -159,39 +160,49 @@ export default function Cashier() {
           return;
       }
       
-      // OPTIMISTIC UI UPDATE: Instantly change local state so the UI updates without delay or race conditions
       const newPaymentMethod = 'Cash';
       const newStatus = selectedOrder.status === 'Pending' ? 'Confirmed' : selectedOrder.status;
-
       const updatedOrder = { ...selectedOrder, payment_method: newPaymentMethod, status: newStatus };
-      
-      setOrders(prevOrders => prevOrders.map(o => o.id === selectedOrder.id ? updatedOrder : o));
-      setSelectedOrder(updatedOrder);
-
-      setIsPaymentModalOpen(false);
-      setIsReceiptModalOpen(true);
-      setCashTendered('');
-
-      // Background API calls to sync with the database
       const token = localStorage.getItem('token');
-      
-      await fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/payment`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ paymentMethod: newPaymentMethod })
-      });
 
-      if (selectedOrder.status === 'Pending') {
-          await fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/status`, {
+      setIsSubmittingPayment(true);
+      try {
+        const paymentResponse = await fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/payment`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ paymentMethod: newPaymentMethod })
+        });
+
+        if (!paymentResponse.ok) {
+          throw new Error('Payment could not be saved. Please try again.');
+        }
+
+        if (selectedOrder.status === 'Pending') {
+          const statusResponse = await fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ status: newStatus })
           });
+
+          if (!statusResponse.ok) {
+            throw new Error('Payment was saved, but the order status could not be updated.');
+          }
+        }
+
+        setOrders(prevOrders => prevOrders.map(o => o.id === selectedOrder.id ? updatedOrder : o));
+        setSelectedOrder(updatedOrder);
+        setIsPaymentModalOpen(false);
+        setIsReceiptModalOpen(true);
+        setCashTendered('');
+
+        // Notify the customer tracking screen after the payment has been saved.
+        if (socket) socket.emit('status_change', { orderId: selectedOrder.id, status: newStatus });
+      } catch (error) {
+        console.error('Error confirming payment', error);
+        alert(error.message || 'Payment could not be saved. Please try again.');
+      } finally {
+        setIsSubmittingPayment(false);
       }
-      
-      // Force all devices (including the customer tracking screen) to refresh globally
-      if (socket) socket.emit('status_change', { orderId: selectedOrder.id, status: newStatus });
-      if (socket) socket.emit('dashboard_refresh'); 
   };
 
   const handlePrintReceipt = () => {
@@ -557,7 +568,7 @@ export default function Cashier() {
                           <span className="text-xl font-black text-green-700">₱{(parseFloat(cashTendered) - parseFloat(selectedOrder.total_amount)).toFixed(2)}</span>
                       </div>
                   )}
-                  <button type="submit" className="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-green-700">Complete Payment</button>
+                  <button type="submit" disabled={isSubmittingPayment} className="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed">{isSubmittingPayment ? 'Saving Payment...' : 'Complete Payment'}</button>
               </form>
             </div>
           </div>
