@@ -230,8 +230,12 @@ export default function Order() {
                 </div>
 
                 {/* Real-time Rider Chat Module */}
-                {order.status === 'Out for Delivery' && (
-                  <div className="border-t border-[#FFB5AB]/30 bg-white p-6 md:p-8">
+                {order.status === 'Out for Delivery' && order.order_type === 'Delivery' && (
+                  <details className="border-t border-[#FFB5AB]/30 bg-white p-6 md:p-8">
+                    <summary className="cursor-pointer list-none bg-white border border-gray-300 text-gray-800 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors w-full sm:w-fit">
+                      💬 Chat with Rider
+                    </summary>
+                    <div className="pt-5">
                     <h3 className="text-lg font-black text-gray-900 mb-1">Chat with your rider</h3>
                     <p className="text-xs font-bold text-gray-500 mb-4">Chatting with rider • order O-{String(order.id).padStart(4, '0')}</p>
                     
@@ -262,7 +266,8 @@ export default function Order() {
                         <button type="submit" className="bg-[#E39A7B] text-white px-5 rounded-xl font-black shadow-sm hover:bg-[#DBB06B] transition-colors">➔</button>
                       </form>
                     </div>
-                  </div>
+                    </div>
+                  </details>
                 )}
                 
                 {order.status === 'Completed' && (
