@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
+const currentBranchKey = (branchName) => {
+  const name = String(branchName || '').toLowerCase();
+  if (name.includes('dasma') || name.includes('dasmarinas')) return 'dasma';
+  if (name.includes('gma') && name.includes('terminal')) return 'gma';
+  if (name.includes('silang')) return 'silang';
+  return '';
+};
+
+const branchPositions = {
+  dasma: { top: '28%', left: '25%' },
+  gma: { top: '60%', left: '75%' },
+  silang: { top: '82%', left: '45%' }
+};
+const branchOrder = ['dasma', 'gma', 'silang'];
+
+const currentBranchPosition = (branchName) => branchPositions[currentBranchKey(branchName)] || null;
+
 export default function Home() {
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
@@ -14,9 +31,13 @@ export default function Home() {
         const response = await fetch(`${API_URL}/api/branches`);
         if (response.ok) {
           const data = await response.json();
-          setBranches(data);
-          if (data.length > 0) {
-            setSelectedBranch(data.find(b => b.is_active) || data[0]);
+          const currentBranches = [...new Map(data
+            .map(branch => [currentBranchKey(branch.name), branch])
+            .filter(([key]) => key)).values()]
+            .sort((left, right) => branchOrder.indexOf(currentBranchKey(left.name)) - branchOrder.indexOf(currentBranchKey(right.name)));
+          setBranches(currentBranches);
+          if (currentBranches.length > 0) {
+            setSelectedBranch(currentBranches.find(b => b.is_active) || currentBranches[0]);
           }
         }
       } catch (error) {
@@ -101,17 +122,10 @@ export default function Home() {
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
           
           <div className="relative w-full h-full min-h-[500px] p-8">
-            {branches.map((branch, idx) => {
-              // Exact positions for up to 5 branches to match your design
-              const positions = [
-                { top: '35%', left: '25%' }, // Branch 1 (e.g. Dasma)
-                { top: '65%', left: '75%' }, // Branch 2 (e.g. GMA)
-                { top: '85%', left: '45%' }, // Branch 3 (e.g. Silang)
-                { top: '15%', left: '60%' }, 
-                { top: '50%', left: '15%' }
-              ];
-              
-              const pos = positions[idx % positions.length];
+            {branches.map((branch) => {
+              const pos = currentBranchPosition(branch.name);
+
+              if (!pos) return null;
 
               return (
                 <div 
