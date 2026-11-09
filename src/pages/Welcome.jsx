@@ -27,7 +27,7 @@ export default function Welcome() {
   return (
     <div 
       onClick={proceedToHome}
-      className={`min-h-screen bg-gradient-to-br from-[#E6D4B8] to-[#C9A77C] flex flex-col items-center justify-center cursor-pointer transition-opacity duration-700 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}
+      className={`wood-wall-surface min-h-screen bg-gradient-to-br from-[#E6D4B8] to-[#C9A77C] flex flex-col items-center justify-center cursor-pointer transition-opacity duration-700 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}
     >
       <div className="w-[200px] h-[200px] md:w-[250px] md:h-[250px] bg-white rounded-full flex justify-center items-center shadow-xl animate-[bounce_3s_ease-in-out_infinite] border-4 border-white/40 mb-8">
         <img src={logoImg} alt="3K Kitchen Logo" className="max-w-[160px] md:max-w-[200px] h-auto drop-shadow-md rounded-full" />

@@ -8,13 +8,22 @@
 }
 
 @layer base {
+  :root {
+    --wood-wall-image:
+      linear-gradient(180deg, rgb(255 255 255 / 24%), rgb(255 255 255 / 4%) 48%, rgb(87 57 30 / 5%)),
+      repeating-linear-gradient(90deg, transparent 0 218px, rgb(91 58 29 / 10%) 219px 221px, transparent 222px 440px),
+      repeating-linear-gradient(180deg, transparent 0 84px, rgb(91 58 29 / 13%) 85px 87px, rgb(255 255 255 / 16%) 88px 90px, transparent 91px 174px),
+      repeating-linear-gradient(92deg, transparent 0 8px, rgb(125 86 48 / 3%) 9px 10px, transparent 11px 27px),
+      linear-gradient(135deg, #F4E7D2, #E4CFB0 48%, #EAD9BF);
+  }
+
   body { 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #3F3428;
     background-color: var(--color-3k-bg); 
-    background-image:
-      repeating-linear-gradient(91deg, transparent 0 54px, rgb(112 77 44 / 2.5%) 55px 57px, transparent 58px 116px),
-      linear-gradient(180deg, rgb(255 255 255 / 18%), transparent 55%, rgb(112 77 44 / 2%));
+    background-image: var(--wood-wall-image);
+    background-size: 100% 100%, 440px 174px, 100% 174px, 120px 174px, 100% 100%;
+    background-repeat: repeat;
     background-attachment: fixed;
   }
 }
@@ -82,10 +91,11 @@
   }
 
   .bg-3k-bg,
-  [class~="bg-[#F5EFE3]"] {
-    background-image:
-      repeating-linear-gradient(91deg, transparent 0 54px, rgb(112 77 44 / 2.5%) 55px 57px, transparent 58px 116px),
-      linear-gradient(180deg, rgb(255 255 255 / 18%), transparent 55%, rgb(112 77 44 / 2%));
+  [class~="bg-[#F5EFE3]"],
+  .wood-wall-surface {
+    background-image: var(--wood-wall-image);
+    background-size: 100% 100%, 440px 174px, 100% 174px, 120px 174px, 100% 100%;
+    background-repeat: repeat;
     background-attachment: fixed;
   }
 }
