@@ -10,9 +10,9 @@ const currentBranchKey = (branchName) => {
 };
 
 const branchPositions = {
-  dasma: { top: '28%', left: '25%' },
-  gma: { top: '60%', left: '75%' },
-  silang: { top: '82%', left: '45%' }
+  dasma: { top: '31%', left: '48%', labelLeft: '-18px', labelTop: '-12px', labelTransform: 'translate(-100%, -100%)' },
+  gma: { top: '34%', left: '53%', labelLeft: '22px', labelTop: '0', labelTransform: 'translate(0, -50%)' },
+  silang: { top: '39%', left: '50%', labelLeft: '-18px', labelTop: '38px', labelTransform: 'translate(-100%, 0)' }
 };
 const branchOrder = ['dasma', 'gma', 'silang'];
 
@@ -120,6 +120,9 @@ export default function Home() {
         {/* Removed lg:h-auto and set a fixed min-height so absolute elements show up */}
         <div className="relative min-h-[500px] w-full bg-[#E6D4B8]/20 rounded-3xl overflow-hidden shadow-inner border border-[#C9A77C]/30 flex">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+            <img src="/img/philippines-shadow.svg" alt="" className="h-[94%] max-w-[55%] w-auto object-contain opacity-90 drop-shadow-2xl" />
+          </div>
           
           <div className="relative w-full h-full min-h-[500px] p-8">
             {branches.map((branch) => {
@@ -137,11 +140,14 @@ export default function Home() {
                   }}
                   onClick={() => setSelectedBranch(branch)}
                 >
-                  <div className={`px-4 py-2 rounded-full shadow-lg border-2 text-xs font-black mb-2 truncate max-w-[150px] text-center transition-colors
-                    ${selectedBranch?.id === branch.id ? 'bg-[#815633] text-white border-white' : 'bg-white text-gray-800 border-transparent hover:border-[#815633]'}`}>
+                  <div
+                    style={{ left: pos.labelLeft, top: pos.labelTop, transform: pos.labelTransform }}
+                    className={`absolute px-4 py-2 rounded-full shadow-lg border-2 text-xs font-black whitespace-nowrap max-w-[170px] text-center transition-colors
+                    ${selectedBranch?.id === branch.id ? 'bg-[#815633] text-white border-white' : 'bg-white text-gray-800 border-transparent hover:border-[#815633]'}`}
+                  >
                     {branch.name}
                   </div>
-                  <div className="text-4xl text-center drop-shadow-md relative">
+                  <div className="absolute -translate-x-1/2 -translate-y-1/2 text-4xl text-center drop-shadow-md relative">
                     📍
                     {selectedBranch?.id === branch.id && (
                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-black/20 blur-sm rounded-full -z-10"></span>
