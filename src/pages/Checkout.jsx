@@ -11,7 +11,7 @@ export default function Checkout() {
     orderType: 'Delivery',
     phone: '',
     address: '',
-    paymentMethod: 'Cash on delivery',
+    paymentMethod: 'GCash',
     notes: '',
     scheduleMode: 'As soon as possible',
     scheduleDay: 'Today',
@@ -54,7 +54,7 @@ export default function Checkout() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!cart.length) return alert('Your cart is empty. Add items before placing an order.');
-    if (formData.paymentMethod === 'GCash' && !receipt) {
+    if (!receipt) {
       return alert('Please upload your GCash receipt.');
     }
     
@@ -211,13 +211,9 @@ export default function Checkout() {
 
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
               <label className="block text-sm font-bold text-gray-900 mb-4">Payment</label>
-              <div className="flex gap-3 mb-6">
-                <button type="button" onClick={() => setFormData({...formData, paymentMethod: 'Cash on delivery'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${formData.paymentMethod === 'Cash on delivery' ? 'bg-green-50 text-green-700 border-green-200 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Cash on delivery</button>
-                <button type="button" onClick={() => setFormData({...formData, paymentMethod: 'GCash'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${formData.paymentMethod === 'GCash' ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>GCash</button>
-              </div>
+              <p className="inline-flex px-5 py-2.5 rounded-full text-sm font-bold border bg-blue-50 text-blue-700 border-blue-200 mb-6">GCash only</p>
               
-              {formData.paymentMethod === 'GCash' && (
-                <div className="bg-[#fffaf7] p-6 rounded-xl border border-[#FFB5AB]/40 text-center">
+              <div className="bg-[#fffaf7] p-6 rounded-xl border border-[#FFB5AB]/40 text-center">
                   <div className="w-40 h-40 bg-white mx-auto mb-4 p-2 rounded-xl shadow-sm border border-gray-200 flex items-center justify-center text-4xl">QR</div>
                   <p className="font-black text-gray-900 text-lg">Ruchell Quesada</p>
                   <p className="text-sm font-bold text-gray-500 mb-4">0997 131 2386</p>
@@ -228,7 +224,6 @@ export default function Checkout() {
                     <input type="file" accept="image/*" onChange={handleFileChange} className="w-full text-sm font-medium text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#E39A7B] file:text-white hover:file:bg-[#DBB06B]" />
                   </div>
                 </div>
-              )}
 
               <div className="mt-6">
                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Notes for the kitchen</label>
