@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
@@ -10,7 +10,9 @@ export default function Driver() {
   const [deliveryModalOrder, setDeliveryModalOrder] = useState(null);
   const [message, setMessage] = useState('');
   const [chatLog, setChatLog] = useState([]);
+  const [unreadChatOrders, setUnreadChatOrders] = useState({});
   const [socket, setSocket] = useState(null);
+  const chatOrderRef = useRef(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   
@@ -30,7 +32,15 @@ export default function Driver() {
         const response = await fetch(`${API_URL}/api/admin/orders`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (response.ok) setOrders(await response.json());
+        if (response.ok) {
+          const allOrders = await response.json();
+          setOrders(allOrders);
+          allOrders.forEach(order => {
+            if (order.status === 'Out for Delivery' && order.order_type === 'Delivery') {
+              newSocket.emit('join_order', order.id);
+            }
+          });
+        }
       } catch (error) { console.error('Failed to fetch orders', error); }
     };
     
@@ -38,13 +48,11 @@ export default function Driver() {
     newSocket.on('dashboard_refresh', fetchOrders);
     
     newSocket.on('receive_message', (data) => {
-      // ONLY append the message if the chat modal is open FOR THIS SPECIFIC ORDER
-      setChatOrder(currentOrderId => {
-        if (currentOrderId === data.orderId) {
-          setChatLog(prev => [...prev, data]);
-        }
-        return currentOrderId;
-      });
+      if (String(chatOrderRef.current) === String(data.orderId)) {
+        setChatLog(prev => [...prev, data]);
+      } else if (data.sender !== user.name) {
+        setUnreadChatOrders(prev => ({ ...prev, [data.orderId]: true }));
+      }
     });
     return () => newSocket.close();
   }, [user, navigate, API_URL]);
@@ -66,6 +74,8 @@ export default function Driver() {
 
   const openChat = async (orderId) => {
     setChatOrder(orderId);
+    chatOrderRef.current = orderId;
+    setUnreadChatOrders(prev => ({ ...prev, [orderId]: false }));
     setChatLog([]); // Clear previous chat context immediately
     if (socket) socket.emit('join_order', orderId);
     
@@ -167,7 +177,10 @@ export default function Driver() {
                 )}
                 {order.status === 'Out for Delivery' && (
                   <>
-                    <button onClick={() => openChat(order.id)} className="flex-1 bg-white border border-gray-300 text-gray-700 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">💬 Chat</button>
+                    <button onClick={() => openChat(order.id)} className="flex-1 bg-white border border-gray-300 text-gray-700 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-2">
+                      💬 Chat
+                      {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
+                    </button>
                     <button onClick={() => updateStatus(order.id, 'Ready')} className="flex-1 bg-white border border-gray-300 text-gray-700 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">Release</button>
                     <button onClick={() => setDeliveryModalOrder(order)} className="flex-[2] bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#DBB06B] transition-colors">Mark delivered</button>
                   </>
@@ -206,7 +219,7 @@ export default function Driver() {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[500px] overflow-hidden relative">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="font-black text-gray-900 text-lg">Chat - O-{String(chatOrder).padStart(4, '0')}</h3>
-              <button onClick={() => setChatOrder(null)} className="text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
+              <button onClick={() => { setChatOrder(null); chatOrderRef.current = null; }} className="text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
             </div>
             
             <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#fffaf7]">

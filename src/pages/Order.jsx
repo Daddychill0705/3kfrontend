@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
@@ -13,6 +13,8 @@ export default function Order() {
   // Chat States
   const [chatLogs, setChatLogs] = useState({});
   const [messages, setMessages] = useState({});
+  const [unreadChatOrders, setUnreadChatOrders] = useState({});
+  const openChatOrdersRef = useRef(new Set());
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -93,6 +95,9 @@ export default function Order() {
         ...prev,
         [data.orderId]: [...(prev[data.orderId] || []), data]
       }));
+      if (data.sender !== user.name && !openChatOrdersRef.current.has(String(data.orderId))) {
+        setUnreadChatOrders(prev => ({ ...prev, [data.orderId]: true }));
+      }
     });
 
     return () => newSocket.close();
@@ -231,9 +236,21 @@ export default function Order() {
 
                 {/* Real-time Rider Chat Module */}
                 {order.status === 'Out for Delivery' && order.order_type === 'Delivery' && (
-                  <details className="border-t border-[#FFB5AB]/30 bg-white p-6 md:p-8">
-                    <summary className="cursor-pointer list-none bg-white border border-gray-300 text-gray-800 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors w-full sm:w-fit">
+                  <details
+                    className="border-t border-[#FFB5AB]/30 bg-white p-6 md:p-8"
+                    onToggle={event => {
+                      const orderId = String(order.id);
+                      if (event.currentTarget.open) {
+                        openChatOrdersRef.current.add(orderId);
+                        setUnreadChatOrders(prev => ({ ...prev, [order.id]: false }));
+                      } else {
+                        openChatOrdersRef.current.delete(orderId);
+                      }
+                    }}
+                  >
+                    <summary className="cursor-pointer list-none bg-white border border-gray-300 text-gray-800 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors w-full sm:w-fit inline-flex items-center gap-2">
                       💬 Chat with Rider
+                      {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
                     </summary>
                     <div className="pt-5">
                     <h3 className="text-lg font-black text-gray-900 mb-1">Chat with your rider</h3>

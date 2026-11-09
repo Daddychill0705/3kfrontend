@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
@@ -25,7 +25,8 @@ export default function Cashier() {
   const [chatLogs, setChatLogs] = useState([]);
   const [chatMessage, setChatMessage] = useState('');
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [currentChatOrderId, setCurrentChatOrderId] = useState(null);
+  const currentChatOrderIdRef = useRef(null);
+  const [unreadChatOrders, setUnreadChatOrders] = useState({});
 
   // Payment States
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -83,6 +84,11 @@ export default function Cashier() {
           // FILTER: Only show orders matching this cashier's branch
           const filtered = allOrders.filter(o => o.branch === activeBranch);
           setOrders(filtered);
+          filtered.forEach(order => {
+            if (['Delivery', 'Pick-up'].includes(order.order_type) && !['Completed', 'Cancelled'].includes(order.status)) {
+              newSocket.emit('join_order', order.id);
+            }
+          });
           
           // Keep selected order synced if it updates in the background
           setSelectedOrder(prev => {
@@ -97,12 +103,11 @@ export default function Cashier() {
     newSocket.on('dashboard_refresh', fetchOrders);
 
     newSocket.on('receive_message', (data) => {
-      setCurrentChatOrderId(currentId => {
-        if (currentId === data.orderId) {
-          setChatLogs(prev => [...prev, data]);
-        }
-        return currentId;
-      });
+      if (String(currentChatOrderIdRef.current) === String(data.orderId)) {
+        setChatLogs(prev => [...prev, data]);
+      } else if (!data.sender.startsWith('Cashier')) {
+        setUnreadChatOrders(prev => ({ ...prev, [data.orderId]: true }));
+      }
     });
     
     return () => newSocket.close();
@@ -199,7 +204,8 @@ export default function Cashier() {
     if (!selectedOrder) return;
 
     setIsChatOpen(true);
-    setCurrentChatOrderId(selectedOrder.id);
+    currentChatOrderIdRef.current = selectedOrder.id;
+    setUnreadChatOrders(prev => ({ ...prev, [selectedOrder.id]: false }));
     setChatLogs([]);
     if (socket) socket.emit('join_order', selectedOrder.id);
 
@@ -437,8 +443,9 @@ export default function Cashier() {
                    <button onClick={() => updateStatus(selectedOrder.id, 'Completed')} className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-black">Complete Order</button>
                  )}
                  {['Delivery', 'Pick-up'].includes(selectedOrder.order_type) && !['Completed', 'Cancelled'].includes(selectedOrder.status) && (
-                   <button onClick={openRiderChat} className="bg-white border border-blue-200 text-blue-700 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-50 transition-colors">
+                   <button onClick={openRiderChat} className="bg-white border border-blue-200 text-blue-700 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-50 transition-colors inline-flex items-center gap-2">
                      Chat with Rider
+                     {unreadChatOrders[selectedOrder.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
                    </button>
                  )}
 
@@ -498,7 +505,7 @@ export default function Cashier() {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[500px] overflow-hidden relative">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="font-black text-gray-900 text-lg">Delivery Chat - O-{String(selectedOrder.id).padStart(4, '0')}</h3>
-              <button onClick={() => { setIsChatOpen(false); setCurrentChatOrderId(null); }} className="text-gray-400 hover:text-gray-900 font-bold text-xl">×</button>
+              <button onClick={() => { setIsChatOpen(false); currentChatOrderIdRef.current = null; }} className="text-gray-400 hover:text-gray-900 font-bold text-xl">×</button>
             </div>
 
             <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#fffaf7]">
