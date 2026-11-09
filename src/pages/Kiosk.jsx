@@ -15,6 +15,7 @@ export default function Kiosk() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [successOrder, setSuccessOrder] = useState(null);
   
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -122,9 +123,7 @@ export default function Kiosk() {
       
       setCart([]);
       setIsCartOpen(false);
-      setOrderType(''); // Reset flow to the initial Dine in / Take out screen
-      setCustomerName(''); // Reset name field
-      alert('Order placed successfully! Please proceed to the counter to pay.');
+      setSuccessOrder({ id: responseData.orderId, customerName: customerName.trim() });
     } catch (error) { alert(error.message); } 
     finally { setCheckoutLoading(false); }
   };
@@ -383,6 +382,28 @@ export default function Kiosk() {
           </div>
         </div>
       </div>
+      {successOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="presentation">
+          <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="kiosk-order-success-title">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl font-black text-green-700">✓</div>
+            <h2 id="kiosk-order-success-title" className="mb-3 text-2xl font-black text-gray-900">Order received!</h2>
+            <p className="mb-2 text-gray-700">
+              {successOrder.customerName}, your order{successOrder.id ? ` #${successOrder.id}` : ''} was sent to the cashier.
+            </p>
+            <p className="mb-7 text-sm text-gray-500">The kitchen will start preparing it shortly.</p>
+            <button
+              onClick={() => {
+                setSuccessOrder(null);
+                setOrderType('');
+                setCustomerName('');
+              }}
+              className="w-full rounded-xl bg-[#E39A7B] py-3.5 font-bold text-white shadow-sm transition-colors hover:bg-[#DBB06B]"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
