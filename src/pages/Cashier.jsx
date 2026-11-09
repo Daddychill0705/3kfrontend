@@ -513,8 +513,13 @@ export default function Cashier() {
                  )}
 
                  {/* Standard Workflow Buttons */}
-                 {selectedOrder.status === 'Pending' && ['GCash', 'Cash'].includes(selectedOrder.payment_method) && (
-                   <button onClick={() => updateStatus(selectedOrder.id, 'Confirmed')} className="bg-[#E39A7B] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#DBB06B]">Confirm</button>
+                 {selectedOrder.status === 'Pending' && (
+                   ['GCash', 'Cash'].includes(selectedOrder.payment_method) ||
+                   (selectedOrder.order_type === 'Delivery' && selectedOrder.payment_method === 'Cash on delivery')
+                 ) && (
+                   <button onClick={() => updateStatus(selectedOrder.id, 'Confirmed')} className="bg-[#E39A7B] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#DBB06B]">
+                     {selectedOrder.order_type === 'Delivery' && selectedOrder.payment_method === 'Cash on delivery' ? 'Confirm Order' : 'Confirm'}
+                   </button>
                  )}
                  {selectedOrder.status === 'Confirmed' && (
                    <button onClick={() => updateStatus(selectedOrder.id, 'Preparing')} className="bg-[#E39A7B] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#DBB06B]">Send to kitchen</button>
