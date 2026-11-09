@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
-import { useAuth } from '../context/AuthContext';
 
 export default function Kiosk() {
   // Flow States
@@ -18,7 +17,6 @@ export default function Kiosk() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   
   const navigate = useNavigate();
-  const { user } = useAuth();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const categories = [
@@ -88,43 +86,39 @@ export default function Kiosk() {
     }
 
     setCheckoutLoading(true);
-    let token = localStorage.getItem('token');
-    
-    if (!token) {
-      try {
-        const res = await fetch(`${API_URL}/api/guest`, { method: 'POST' });
-        const data = await res.json();
-        token = data.token;
-      } catch (e) {
-        alert("Failed to initialize guest session.");
-        setCheckoutLoading(false);
-        return;
-      }
-    }
-
-    const payload = {
-      items: JSON.stringify(cart),
-      totalAmount: cartTotal,
-      orderType: orderType, // Uses customer selection (Dine-in or Take-out)
-      branch: kioskBranch,
-      paymentMethod: 'Cash on delivery',
-      // We pass the customer's name inside the delivery address field uniquely formatted
-      address: `Kiosk Customer: ${customerName}`, 
-      phone: '',
-      notes: ''
-    };
-
     try {
+      // Kiosk walk-ins always use a guest session, regardless of any staff/customer login in this browser.
+      const guestResponse = await fetch(`${API_URL}/api/guest`, { method: 'POST' });
+      const guestData = await guestResponse.json().catch(() => ({}));
+      if (!guestResponse.ok || !guestData.token) {
+        throw new Error(guestData.error || 'Could not start a kiosk guest session. Please try again.');
+      }
+
+      const payload = {
+        items: JSON.stringify(cart),
+        totalAmount: cartTotal,
+        orderType,
+        branch: kioskBranch,
+        paymentMethod: 'Cash on delivery',
+        address: `Kiosk Customer: ${customerName.trim()}`,
+        phone: '',
+        notes: ''
+      };
+
       const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
+            'Authorization': `Bearer ${guestData.token}`
         },
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) throw new Error('Checkout failed');
+      const responseData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = responseData.error || `Checkout failed (HTTP ${response.status}).`;
+        throw new Error(responseData.code ? `${message} (${responseData.code})` : message);
+      }
       
       setCart([]);
       setIsCartOpen(false);
