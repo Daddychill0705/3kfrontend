@@ -27,6 +27,32 @@ export default function Order() {
     const newSocket = io(API_URL);
     setSocket(newSocket);
 
+    const fetchChatHistory = async (orderId, token) => {
+      try {
+        const response = await fetch(`${API_URL}/api/orders/${orderId}/chat`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) return;
+
+        const history = await response.json();
+        setChatLogs(prev => {
+          const currentMessages = prev[orderId] || [];
+          const mergedHistory = [...history];
+          currentMessages.forEach(message => {
+            const alreadyLoaded = mergedHistory.some(existing =>
+              existing.sender === message.sender &&
+              existing.text === message.text &&
+              existing.time === message.time
+            );
+            if (!alreadyLoaded) mergedHistory.push(message);
+          });
+          return { ...prev, [orderId]: mergedHistory };
+        });
+      } catch (error) {
+        console.error('Error fetching delivery chat history:', error);
+      }
+    };
+
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -39,6 +65,9 @@ export default function Order() {
           data.forEach(order => {
             if (['Preparing', 'Out for Delivery'].includes(order.status)) {
               newSocket.emit('join_order', order.id);
+            }
+            if (order.status === 'Out for Delivery' && order.order_type === 'Delivery') {
+              fetchChatHistory(order.id, token);
             }
           });
         }
