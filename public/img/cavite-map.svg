@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 540" fill="none">
+  <defs>
+    <linearGradient id="sea" x1="40" y1="20" x2="680" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#20C6E7"/>
+      <stop offset="1" stop-color="#1498C8"/>
+    </linearGradient>
+    <linearGradient id="coast" x1="170" y1="45" x2="510" y2="505" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9F1E7"/>
+      <stop offset="1" stop-color="#B9E4DF"/>
+    </linearGradient>
+    <linearGradient id="land" x1="128" y1="63" x2="506" y2="474" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4D9A4D"/>
+      <stop offset="1" stop-color="#26743D"/>
+    </linearGradient>
+    <filter id="land-shadow" x="35" y="0" width="650" height="560" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#164F45" flood-opacity="0.34"/>
+    </filter>
+    <filter id="paper-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="2" seed="8" result="grain"/>
+      <feColorMatrix in="grain" type="saturate" values="0" result="gray-grain"/>
+      <feComponentTransfer in="gray-grain" result="soft-grain">
+        <feFuncA type="table" tableValues="0 0.1"/>
+      </feComponentTransfer>
+      <feComposite in="soft-grain" in2="SourceGraphic" operator="in"/>
+    </filter>
+    <path id="cavite-shape" d="M83 263 98 250 106 229 124 221 139 206 159 207 175 194 195 190 208 173 232 166 246 149 270 145 288 128 309 123 321 100 339 89 349 63 368 55 376 29 389 13 401 21 397 44 417 35 434 27 447 50 463 52 479 69 488 91 505 103 513 119 537 129 550 145 569 151 582 171 603 177 617 194 634 204 625 221 607 232 604 247 587 258 580 274 586 292 573 307 575 325 560 338 562 357 546 372 544 391 526 399 514 420 493 427 480 448 462 451 447 470 425 476 405 491 384 490 366 502 346 496 331 507 310 494 295 480 276 473 264 458 244 454 231 440 211 434 198 417 181 410 166 396 148 389 138 372 119 367 112 350 96 342 100 326 88 313 94 295 81 283Z"/>
+  </defs>
+
+  <rect width="720" height="540" fill="url(#sea)"/>
+  <path d="M79 253 90 241 93 222 116 211 129 196 151 196 167 183 188 179 203 161 227 155 242 138 264 136 281 119 303 112 313 91 332 78 342 53 361 45 369 21 390 3 411 9 410 30 431 21 443 15 457 37 472 40 490 60 498 83 516 94 524 111 545 122 559 137 578 143 590 162 611 167 626 185 650 197 640 221 620 233 618 252 602 263 595 279 603 298 589 314 592 333 576 346 578 365 560 380 557 400 538 408 526 430 505 436 489 457 470 460 455 480 432 485 411 502 388 500 369 512 347 506 332 517 307 502 292 488 271 480 257 465 237 461 223 447 203 441 188 423 172 417 156 401 137 394 126 377 107 371 99 353 82 345 83 324 70 309 77 290 65 276Z" fill="url(#coast)"/>
+  <use href="#cavite-shape" fill="url(#land)" stroke="#1F6638" stroke-width="4" stroke-linejoin="round" filter="url(#land-shadow)"/>
+  <use href="#cavite-shape" fill="#fff" opacity="0.13" filter="url(#paper-grain)"/>
+
+  <!-- Soft terrain shading to echo the illustrated reference map. -->
+  <path d="M112 264c60-34 98-65 133-101 36-37 69-52 102-68m-218 224c59-13 107-30 148-62 44-34 92-50 151-66m-221 186c65-14 118-28 165-59 40-27 81-38 128-47" stroke="#A6D187" stroke-opacity="0.19" stroke-width="8" stroke-linecap="round"/>
+  <text x="356" y="292" fill="#F0F3D9" fill-opacity="0.68" font-family="Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="5">CAVITE</text>
+</svg>

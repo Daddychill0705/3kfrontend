@@ -10,9 +10,9 @@ const currentBranchKey = (branchName) => {
 };
 
 const branchPositions = {
-  dasma: { top: '31%', left: '48%', labelLeft: '-18px', labelTop: '-12px', labelTransform: 'translate(-100%, -100%)' },
-  gma: { top: '34%', left: '53%', labelLeft: '22px', labelTop: '0', labelTransform: 'translate(0, -50%)' },
-  silang: { top: '39%', left: '50%', labelLeft: '-18px', labelTop: '38px', labelTransform: 'translate(-100%, 0)' }
+  dasma: { top: '42%', left: '69%', labelLeft: '-14px', labelTop: '-10px', labelTransform: 'translate(-100%, -100%)' },
+  gma: { top: '50%', left: '63%', labelLeft: '-14px', labelTop: '0', labelTransform: 'translate(-100%, -50%)' },
+  silang: { top: '60%', left: '69%', labelLeft: '18px', labelTop: '0', labelTransform: 'translate(0, -50%)' }
 };
 const branchOrder = ['dasma', 'gma', 'silang'];
 
@@ -118,11 +118,8 @@ export default function Home() {
         </div>
 
         {/* Removed lg:h-auto and set a fixed min-height so absolute elements show up */}
-        <div className="relative min-h-[500px] w-full bg-[#E6D4B8]/20 rounded-3xl overflow-hidden shadow-inner border border-[#C9A77C]/30 flex">
-          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
-            <img src="/img/philippines-shadow.svg" alt="" className="h-[94%] max-w-[55%] w-auto object-contain opacity-90 drop-shadow-2xl" />
-          </div>
+        <div className="relative min-h-[500px] w-full bg-[#20B6D8] rounded-3xl overflow-hidden shadow-inner border border-[#82D5E6] flex">
+          <img src="/img/cavite-map.svg" alt="Illustrated map of Cavite" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
           
           <div className="relative w-full h-full min-h-[500px] p-8">
             {branches.map((branch) => {
