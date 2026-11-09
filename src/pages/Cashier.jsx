@@ -436,7 +436,7 @@ export default function Cashier() {
                  {selectedOrder.status === 'Ready' && ['Pick-up', 'Take-out', 'Dine-in'].includes(selectedOrder.order_type) && (
                    <button onClick={() => updateStatus(selectedOrder.id, 'Completed')} className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-black">Complete Order</button>
                  )}
-                 {selectedOrder.order_type === 'Delivery' && !['Completed', 'Cancelled'].includes(selectedOrder.status) && (
+                 {['Delivery', 'Pick-up'].includes(selectedOrder.order_type) && !['Completed', 'Cancelled'].includes(selectedOrder.status) && (
                    <button onClick={openRiderChat} className="bg-white border border-blue-200 text-blue-700 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-50 transition-colors">
                      Chat with Rider
                    </button>
