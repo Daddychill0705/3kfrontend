@@ -4,8 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 
 export default function Order() {
-  const tabs = ['All', 'Pending', 'Preparing', 'Out for Delivery', 'Completed'];
-  const [activeTab, setActiveTab] = useState('All');
+  const tabs = ['Pending', 'Preparing', 'Out for Delivery', 'Completed'];
+  const [activeTab, setActiveTab] = useState('Pending');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState(null);
@@ -113,9 +113,14 @@ export default function Order() {
     }
   };
 
-  const filteredOrders = activeTab === 'All' 
-     ? orders 
-     : orders.filter(order => order.status === activeTab);
+  const getStatusTab = (status) => {
+    if (status === 'Pending') return 'Pending';
+    if (['Confirmed', 'Preparing', 'Ready'].includes(status)) return 'Preparing';
+    if (status === 'Out for Delivery') return 'Out for Delivery';
+    return 'Completed';
+  };
+
+  const filteredOrders = orders.filter(order => getStatusTab(order.status) === activeTab);
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-bold">Loading your orders...</div>;
 
