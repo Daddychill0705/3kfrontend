@@ -58,14 +58,14 @@ export default function About() {
             </p>
           </div>
           <div className="flex justify-center items-center p-4 md:p-8">
-            <div className="w-[250px] h-[250px] md:w-[300px] md:h-[300px] bg-[radial-gradient(ellipse_at_50%_50%,#FFB5AB,#FFD3AC)] rounded-full flex justify-center items-center shadow-[0_20px_60px_rgba(227,154,123,0.3)] animate-[bounce_3s_ease-in-out_infinite]">
+            <div className="w-[250px] h-[250px] md:w-[300px] md:h-[300px] bg-[radial-gradient(ellipse_at_50%_50%,#C9A77C,#E6D4B8)] rounded-full flex justify-center items-center shadow-[0_20px_60px_rgba(227,154,123,0.3)] animate-[bounce_3s_ease-in-out_infinite]">
               <img src={logoImg} alt="3K Kitchen Logo" className="w-full h-auto max-w-[200px] md:max-w-[250px] rounded-full" />
             </div>
           </div>
         </div>
         
         {/* Our Values Section */}
-        <div className="bg-white rounded-2xl p-8 md:p-12 shadow-lg mb-16 border border-[#FFB5AB]/30">
+        <div className="bg-white rounded-2xl p-8 md:p-12 shadow-lg mb-16 border border-[#C9A77C]/30">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-2">Our Values</h2>
           </div>
@@ -74,10 +74,10 @@ export default function About() {
             {companyValues.map((val, index) => (
               <div 
                 key={index} 
-                className="flex flex-col bg-[#fffaf7] rounded-xl border border-[#FFB5AB]/30 shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden"
+                className="flex flex-col bg-[#F5EFE3] rounded-xl border border-[#C9A77C]/30 shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden"
               >
                 {/* Image Cover Container (Matches Reference Image) */}
-                <div className="h-40 w-full bg-[#FFD3AC]/40 relative overflow-hidden flex items-center justify-center">
+                <div className="h-40 w-full bg-[#E6D4B8]/40 relative overflow-hidden flex items-center justify-center">
                   <img 
                     src={val.img} 
                     alt={val.title} 

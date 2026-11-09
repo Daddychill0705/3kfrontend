@@ -1,17 +1,92 @@
 @import "tailwindcss";
 
 @theme {
-  --color-3k-red: #E39A7B;
-  --color-3k-red-hover: #DBB06B;
-  --color-3k-bg: #fffaf7; /* Match exact background */
-  --color-3k-accent: #FFB5AB;
+  --color-3k-red: #815633;
+  --color-3k-red-hover: #62432B;
+  --color-3k-bg: #F5EFE3;
+  --color-3k-accent: #C9A77C;
 }
 
 @layer base {
   body { 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #333;
+    color: #3F3428;
     background-color: var(--color-3k-bg); 
+    background-image:
+      repeating-linear-gradient(91deg, transparent 0 54px, rgb(112 77 44 / 2.5%) 55px 57px, transparent 58px 116px),
+      linear-gradient(180deg, rgb(255 255 255 / 18%), transparent 55%, rgb(112 77 44 / 2%));
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .bg-white {
+    background-color: #FCFAF5;
+  }
+
+  .bg-gray-900,
+  .bg-gray-800 {
+    background-color: #4A3422;
+  }
+
+  .bg-gray-50 {
+    background-color: #FAF6EE;
+  }
+
+  .bg-gray-100 {
+    background-color: #F1E7D7;
+  }
+
+  .bg-gray-200 {
+    background-color: #E5D8C3;
+  }
+
+  .text-gray-900 {
+    color: #34291E;
+  }
+
+  .text-gray-800 {
+    color: #493A2B;
+  }
+
+  .text-gray-700 {
+    color: #5E4C39;
+  }
+
+  .text-gray-600 {
+    color: #6F5D49;
+  }
+
+  .text-gray-500 {
+    color: #786347;
+  }
+
+  .text-gray-400 {
+    color: #8F7A62;
+  }
+
+  .border-gray-100 {
+    border-color: #EEE4D5;
+  }
+
+  .border-gray-200 {
+    border-color: #E1D3BF;
+  }
+
+  .border-gray-300 {
+    border-color: #D1BFA5;
+  }
+
+  .hover\:bg-black:hover {
+    background-color: #362416;
+  }
+
+  .bg-3k-bg,
+  [class~="bg-[#F5EFE3]"] {
+    background-image:
+      repeating-linear-gradient(91deg, transparent 0 54px, rgb(112 77 44 / 2.5%) 55px 57px, transparent 58px 116px),
+      linear-gradient(180deg, rgb(255 255 255 / 18%), transparent 55%, rgb(112 77 44 / 2%));
+    background-attachment: fixed;
   }
 }
 

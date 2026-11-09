@@ -4,7 +4,7 @@ import logoImg from '../assets/logo.jpg';
 
 export default function Footer() {
   return (
-    <footer className="bg-gradient-to-br from-[#E39A7B] to-[#DBB06B] text-white pt-12 pb-8 px-4 md:px-8 mt-16">
+    <footer className="bg-gradient-to-br from-[#815633] to-[#62432B] text-white pt-12 pb-8 px-4 md:px-8 mt-16">
       {/* Changed lg:grid-cols-4 to lg:grid-cols-3 to center the 3 remaining columns */}
       <div className="max-w-[1200px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         

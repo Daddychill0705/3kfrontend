@@ -100,8 +100,8 @@ export default function Menu() {
               onClick={() => setActiveCategory(category)}
               className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 cursor-pointer shadow-sm
                 ${activeCategory === category 
-                   ? 'bg-[#E39A7B] text-white shadow-md scale-105 border border-[#E39A7B]' 
-                   : 'bg-white text-gray-700 border border-gray-200 hover:border-[#E39A7B] hover:text-[#E39A7B]'
+                   ? 'bg-[#815633] text-white shadow-md scale-105 border border-[#815633]'
+                   : 'bg-white text-gray-700 border border-gray-200 hover:border-[#815633] hover:text-[#815633]'
                 }`}
             >
               {category}
@@ -111,16 +111,16 @@ export default function Menu() {
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {filteredItems.map(item => (
-            <div className={`bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 flex flex-col border border-transparent ${item.is_sold_out ? 'opacity-60 grayscale' : 'hover:-translate-y-1.5 hover:shadow-xl hover:border-[#FFB5AB]'}`} key={item.id}>
+            <div className={`bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 flex flex-col border border-transparent ${item.is_sold_out ? 'opacity-60 grayscale' : 'hover:-translate-y-1.5 hover:shadow-xl hover:border-[#C9A77C]'}`} key={item.id}>
               
-              <div className="h-[220px] bg-[#FFD3AC]/30 flex items-center justify-center relative overflow-hidden">
+              <div className="h-[220px] bg-[#E6D4B8]/30 flex items-center justify-center relative overflow-hidden">
                 <img 
                   src={item.image_url?.startsWith('http') ? item.image_url : (item.image_url?.startsWith('/') ? item.image_url : `${API_URL}${item.image_url}`)} 
                   alt={item.name} 
                   className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                   onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="text-6xl opacity-40">🍽️</div>'; }}
                 />
-                <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-[#E39A7B] shadow-sm">
+                <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-[#815633] shadow-sm">
                   {item.category}
                 </div>
                 {item.is_sold_out ? (
@@ -133,7 +133,7 @@ export default function Menu() {
               <div className="p-6 flex flex-col flex-grow">
                 <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">{item.name}</h3>
                 <div className="flex-grow"></div>
-                <div className="text-2xl font-black text-[#E39A7B] mb-5 mt-4">
+                <div className="text-2xl font-black text-[#815633] mb-5 mt-4">
                   ₱{parseFloat(item.price).toFixed(2)}
                 </div>
                 
@@ -141,14 +141,14 @@ export default function Menu() {
                   <button 
                     onClick={() => handleAddToCart(item)}
                     disabled={item.is_sold_out}
-                    className={`w-full py-3 rounded-lg text-sm font-bold transition-all duration-300 ${item.is_sold_out ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#FFD3AC]/20 text-gray-900 border-[1.5px] border-[#E39A7B] hover:bg-[#E39A7B] hover:text-white'}`}
+                    className={`w-full py-3 rounded-lg text-sm font-bold transition-all duration-300 ${item.is_sold_out ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#E6D4B8]/20 text-gray-900 border-[1.5px] border-[#815633] hover:bg-[#815633] hover:text-white'}`}
                   >
                     Add to Cart
                   </button>
                   <button 
                     onClick={() => handleBuyNow(item)}
                     disabled={item.is_sold_out}
-                    className={`w-full py-3 rounded-lg text-sm font-bold transition-all duration-300 shadow-sm ${item.is_sold_out ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#E39A7B] text-white border border-transparent hover:bg-[#DBB06B]'}`}
+                    className={`w-full py-3 rounded-lg text-sm font-bold transition-all duration-300 shadow-sm ${item.is_sold_out ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#815633] text-white border border-transparent hover:bg-[#62432B]'}`}
                   >
                     Buy Now
                   </button>

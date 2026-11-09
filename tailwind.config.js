@@ -7,9 +7,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        '3k-red': '#C41E3A',
-        '3k-red-hover': '#a01829',
-        '3k-bg': '#f5f1ed',
+        '3k-red': '#815633',
+        '3k-red-hover': '#62432B',
+        '3k-bg': '#F5EFE3',
       }
     },
   },

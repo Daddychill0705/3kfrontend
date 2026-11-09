@@ -100,14 +100,14 @@ export default function Profile() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-[#FFB5AB]/30 lg:col-span-1 h-fit relative">
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-[#C9A77C]/30 lg:col-span-1 h-fit relative">
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-              <div className="w-16 h-16 bg-[#FFD3AC] text-[#E39A7B] rounded-full flex items-center justify-center text-2xl font-black">
+              <div className="w-16 h-16 bg-[#E6D4B8] text-[#815633] rounded-full flex items-center justify-center text-2xl font-black">
                 {user.name.charAt(0)}
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
-                <span className="text-sm font-bold text-[#E39A7B] bg-[#FFB5AB]/20 px-3 py-1 rounded-full mt-1 inline-block">
+                <span className="text-sm font-bold text-[#815633] bg-[#C9A77C]/20 px-3 py-1 rounded-full mt-1 inline-block">
                   {user.role.toUpperCase()}
                 </span>
               </div>
@@ -116,7 +116,7 @@ export default function Profile() {
             {user.role !== 'guest' && !isEditing && (
               <button 
                 onClick={() => setIsEditing(true)} 
-                className="absolute top-6 right-6 text-sm font-bold text-[#E39A7B] hover:underline"
+                className="absolute top-6 right-6 text-sm font-bold text-[#815633] hover:underline"
               >
                 Edit
               </button>
@@ -150,22 +150,22 @@ export default function Profile() {
                 
                 <div>
                   <label className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1 block">Email</label>
-                  <input type="email" required value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:border-[#E39A7B]" />
+                  <input type="email" required value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:border-[#815633]" />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1 block">Phone Number</label>
-                  <input type="text" placeholder="e.g. +63 900 000 0000" value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:border-[#E39A7B]" />
+                  <input type="text" placeholder="e.g. +63 900 000 0000" value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:border-[#815633]" />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1 block">Date of Birth</label>
-                  <input type="date" value={editForm.dob} onChange={e => setEditForm({...editForm, dob: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:border-[#E39A7B]" />
+                  <input type="date" value={editForm.dob} onChange={e => setEditForm({...editForm, dob: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:border-[#815633]" />
                 </div>
                 
                 <p className="text-[10px] text-gray-500 italic mt-2">Note: You can only update your profile once every 30 days.</p>
                 
                 <div className="flex gap-2 pt-2">
                   <button type="button" onClick={() => setIsEditing(false)} className="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-50">Cancel</button>
-                  <button type="submit" disabled={isUpdating} className="flex-1 px-4 py-2 bg-[#E39A7B] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#DBB06B] disabled:opacity-50">
+                  <button type="submit" disabled={isUpdating} className="flex-1 px-4 py-2 bg-[#815633] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#62432B] disabled:opacity-50">
                     {isUpdating ? 'Saving...' : 'Save'}
                   </button>
                 </div>
@@ -174,10 +174,10 @@ export default function Profile() {
           </div>
 
           <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-[#FFB5AB]/30">
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-[#C9A77C]/30">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-gray-900">Recent Orders</h3>
-                <Link to="/order" className="text-sm font-bold text-[#E39A7B] hover:text-[#DBB06B] hover:underline">View All</Link>
+                <Link to="/order" className="text-sm font-bold text-[#815633] hover:text-[#62432B] hover:underline">View All</Link>
               </div>
               
               <div className="space-y-4">
@@ -185,13 +185,13 @@ export default function Profile() {
                   <p className="text-gray-500 font-medium">No recent orders found.</p>
                 ) : (
                   orders.map(order => (
-                    <div key={order.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-4 border border-[#FFB5AB]/40 rounded-xl bg-[#FFD3AC]/10 gap-4">
+                    <div key={order.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-4 border border-[#C9A77C]/40 rounded-xl bg-[#E6D4B8]/10 gap-4">
                       <div>
                         <p className="font-bold text-gray-900">Order #{order.id}</p>
                         <p className="text-sm text-gray-600 font-medium">{order.date}</p>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="px-3 py-1 bg-white text-[#E39A7B] border border-[#E39A7B] font-bold text-sm rounded-full">
+                        <span className="px-3 py-1 bg-white text-[#815633] border border-[#815633] font-bold text-sm rounded-full">
                           {order.status}
                         </span>
                         <span className="font-black text-gray-900">₱{parseFloat(order.total).toFixed(2)}</span>
@@ -202,10 +202,10 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-[#FFB5AB]/30">
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-[#C9A77C]/30">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-gray-900">Current Cart</h3>
-                <Link to="/cart" className="text-sm font-bold text-[#E39A7B] hover:text-[#DBB06B] hover:underline">Go to Checkout</Link>
+                <Link to="/cart" className="text-sm font-bold text-[#815633] hover:text-[#62432B] hover:underline">Go to Checkout</Link>
               </div>
               
               <div className="divide-y divide-gray-100">
@@ -215,7 +215,7 @@ export default function Profile() {
                   cart.map(item => (
                     <div key={item.id} className="flex justify-between items-center py-4 first:pt-0 last:pb-0">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#FFD3AC] rounded-lg flex items-center justify-center font-bold text-xl">🍽️</div>
+                        <div className="w-10 h-10 bg-[#E6D4B8] rounded-lg flex items-center justify-center font-bold text-xl">🍽️</div>
                         <div>
                           <p className="font-bold text-gray-900">{item.name}</p>
                           <p className="text-sm text-gray-500 font-medium">Qty: {item.qty}</p>

@@ -31,7 +31,7 @@ export default function Home() {
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Loading branches...</div>;
 
   return (
-    <div className="bg-[#fffaf7] min-h-[calc(100vh-80px)] flex items-center py-12">
+    <div className="bg-[#F5EFE3] min-h-[calc(100vh-80px)] flex items-center py-12">
       <div className="max-w-[1400px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 px-6 md:px-12">
         
         <div className="flex flex-col justify-center">
@@ -39,7 +39,7 @@ export default function Home() {
             📍 {branches.length} Branches across Cavite
           </p>
           <h1 className="text-5xl md:text-7xl font-black text-gray-900 leading-[1.1] mb-6 tracking-tight">
-            Home-style<br/>favorites, <span className="text-[#E39A7B] italic">near you.</span>
+            Home-style<br/>favorites, <span className="text-[#815633] italic">near you.</span>
           </h1>
           <p className="text-lg text-gray-600 font-medium mb-10 max-w-md leading-relaxed">
             Sizzling sisig, lechon kawali, pancit and bilao from the 3K Kitchen branch closest to you. Pick it up, have it delivered, or order ahead.
@@ -47,7 +47,7 @@ export default function Home() {
 
           <div className="relative mb-8 max-w-md">
             <select 
-              className="w-full appearance-none bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-xl shadow-sm focus:outline-none focus:border-[#E39A7B] cursor-pointer"
+              className="w-full appearance-none bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-xl shadow-sm focus:outline-none focus:border-[#815633] cursor-pointer"
               value={selectedBranch?.id || ''}
               onChange={(e) => setSelectedBranch(branches.find(b => b.id === Number(e.target.value)))}
             >
@@ -79,7 +79,7 @@ export default function Home() {
 
               <div className="flex gap-3">
                 <Link to="/menu" className="flex-1">
-                  <button className="w-full bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-[#DBB06B] transition-all">
+                  <button className="w-full bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-[#62432B] transition-all">
                     Order from {selectedBranch.name}
                   </button>
                 </Link>
@@ -97,7 +97,7 @@ export default function Home() {
         </div>
 
         {/* Removed lg:h-auto and set a fixed min-height so absolute elements show up */}
-        <div className="relative min-h-[500px] w-full bg-[#FFD3AC]/20 rounded-3xl overflow-hidden shadow-inner border border-[#FFB5AB]/30 flex">
+        <div className="relative min-h-[500px] w-full bg-[#E6D4B8]/20 rounded-3xl overflow-hidden shadow-inner border border-[#C9A77C]/30 flex">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
           
           <div className="relative w-full h-full min-h-[500px] p-8">
@@ -124,7 +124,7 @@ export default function Home() {
                   onClick={() => setSelectedBranch(branch)}
                 >
                   <div className={`px-4 py-2 rounded-full shadow-lg border-2 text-xs font-black mb-2 truncate max-w-[150px] text-center transition-colors
-                    ${selectedBranch?.id === branch.id ? 'bg-[#E39A7B] text-white border-white' : 'bg-white text-gray-800 border-transparent hover:border-[#E39A7B]'}`}>
+                    ${selectedBranch?.id === branch.id ? 'bg-[#815633] text-white border-white' : 'bg-white text-gray-800 border-transparent hover:border-[#815633]'}`}>
                     {branch.name}
                   </div>
                   <div className="text-4xl text-center drop-shadow-md relative">

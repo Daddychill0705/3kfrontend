@@ -313,12 +313,12 @@ export default function Admin() {
   ];
 
   return (
-    <div className="flex h-screen bg-[#fffaf7] font-sans">
+    <div className="flex h-screen bg-[#F5EFE3] font-sans">
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/40 z-20 md:hidden transition-opacity" onClick={() => setIsSidebarOpen(false)} />
       )}
       
-      <aside className={`fixed md:static inset-y-0 left-0 z-30 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} w-64 bg-white flex flex-col shadow-lg border-r border-[#FFB5AB]/30 shrink-0`}>
+      <aside className={`fixed md:static inset-y-0 left-0 z-30 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} w-64 bg-white flex flex-col shadow-lg border-r border-[#C9A77C]/30 shrink-0`}>
         <div className="p-6 border-b border-gray-100">
           <button className="md:hidden absolute top-4 right-4 text-gray-400" onClick={() => setIsSidebarOpen(false)}>✕</button>
           <h2 className="text-xl font-black text-gray-900">Super admin</h2>
@@ -450,7 +450,7 @@ export default function Admin() {
               
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm min-w-[900px]">
-                  <thead className="bg-[#FFD3AC]/20">
+                  <thead className="bg-[#E6D4B8]/20">
                     <tr>
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Order</th>
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Customer</th>
@@ -503,7 +503,7 @@ export default function Admin() {
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm min-w-[900px]">
-                  <thead className="bg-[#FFD3AC]/20">
+                  <thead className="bg-[#E6D4B8]/20">
                     <tr>
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Order</th>
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Customer</th>
@@ -556,7 +556,7 @@ export default function Admin() {
               </div>
               <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm min-w-[900px]">
-                      <thead className="bg-[#FFD3AC]/20">
+                      <thead className="bg-[#E6D4B8]/20">
                           <tr>
                               <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Order ID</th>
                               <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Customer</th>
@@ -571,7 +571,7 @@ export default function Admin() {
                                   <td className="px-6 py-4 font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</td>
                                   <td className="px-6 py-4 font-bold text-gray-900">{order.customerName}</td>
                                   <td className="px-6 py-4 font-bold text-gray-700">{order.payment_method}</td>
-                                  <td className="px-6 py-4 font-black text-[#E39A7B]">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</td>
+                                  <td className="px-6 py-4 font-black text-[#815633]">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</td>
                                   <td className="px-6 py-4">
                                       {order.gcash_receipt_url ? (
                                           <a href={order.gcash_receipt_url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline font-bold text-xs">View Receipt</a>
@@ -639,7 +639,7 @@ export default function Admin() {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm min-w-[900px]">
-                        <thead className="bg-[#FFD3AC]/20">
+                        <thead className="bg-[#E6D4B8]/20">
                             <tr>
                                 <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Name</th>
                                 <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Email</th>
@@ -656,7 +656,7 @@ export default function Admin() {
                                     <td className="px-6 py-4 font-medium text-gray-700">{c.phone || 'N/A'}</td>
                                     <td className="px-6 py-4 font-bold text-gray-500 text-xs">{new Date(c.created_at).toLocaleDateString()}</td>
                                     <td className="px-6 py-4">
-                                        <button onClick={() => setViewCustomer(c)} className="bg-white border border-gray-300 text-[#E39A7B] px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50 transition-colors">View Profile & Logs</button>
+                                        <button onClick={() => setViewCustomer(c)} className="bg-white border border-gray-300 text-[#815633] px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50 transition-colors">View Profile & Logs</button>
                                     </td>
                                 </tr>
                             ))}
@@ -715,7 +715,7 @@ export default function Admin() {
                     
                     <div className="flex justify-end gap-4 mt-6">
                       <button type="button" onClick={() => { setEditingProduct(null); setEditImage(null); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
-                      <button type="submit" className="px-6 py-2 bg-[#E39A7B] text-white font-bold rounded-lg shadow-sm hover:bg-[#DBB06B]">Update</button>
+                      <button type="submit" className="px-6 py-2 bg-[#815633] text-white font-bold rounded-lg shadow-sm hover:bg-[#62432B]">Update</button>
                     </div>
                   </form>
                 </div>
@@ -983,7 +983,7 @@ export default function Admin() {
               <h3 className="font-black text-gray-900 text-xl">Customer Profile</h3>
               <button onClick={() => setViewCustomer(null)} className="text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
             </div>
-            <div className="p-6 flex-1 overflow-y-auto space-y-6 bg-[#fffaf7]">
+            <div className="p-6 flex-1 overflow-y-auto space-y-6 bg-[#F5EFE3]">
                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Account Details</h4>
                  <div className="grid grid-cols-2 gap-4">

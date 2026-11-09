@@ -133,7 +133,7 @@ export default function Checkout() {
   if (cart.length === 0) return navigate('/cart');
 
   return (
-    <div className="bg-[#fffaf7] min-h-screen py-12 px-4 md:px-8 font-sans">
+    <div className="bg-[#F5EFE3] min-h-screen py-12 px-4 md:px-8 font-sans">
       <div className="max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <div className="lg:col-span-2 space-y-8">
@@ -143,7 +143,7 @@ export default function Checkout() {
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
               <label className="block text-sm font-bold text-gray-900 mb-3">Which branch?</label>
               <div className="relative">
-                <select name="branchId" value={formData.branchId} onChange={handleInputChange} className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#E39A7B] focus:bg-white outline-none font-bold text-gray-800 appearance-none cursor-pointer">
+                <select name="branchId" value={formData.branchId} onChange={handleInputChange} className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#815633] focus:bg-white outline-none font-bold text-gray-800 appearance-none cursor-pointer">
                   {branches.map(b => (
                     <option key={b.id} value={b.id}>{b.name} - Open now</option>
                   ))}
@@ -156,22 +156,22 @@ export default function Checkout() {
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
               <label className="block text-sm font-bold text-gray-900 mb-4">When?</label>
               <div className="flex gap-3 mb-6">
-                <button type="button" onClick={() => setFormData({...formData, scheduleMode: 'As soon as possible'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${formData.scheduleMode === 'As soon as possible' ? 'bg-[#E39A7B] text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>As soon as possible</button>
-                <button type="button" onClick={() => setFormData({...formData, scheduleMode: 'Schedule for later'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${formData.scheduleMode === 'Schedule for later' ? 'bg-[#E39A7B] text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Schedule for later</button>
+                <button type="button" onClick={() => setFormData({...formData, scheduleMode: 'As soon as possible'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${formData.scheduleMode === 'As soon as possible' ? 'bg-[#815633] text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>As soon as possible</button>
+                <button type="button" onClick={() => setFormData({...formData, scheduleMode: 'Schedule for later'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${formData.scheduleMode === 'Schedule for later' ? 'bg-[#815633] text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Schedule for later</button>
               </div>
               
               {formData.scheduleMode === 'Schedule for later' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Day</label>
-                    <select name="scheduleDay" value={formData.scheduleDay} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl font-bold outline-none focus:border-[#E39A7B]">
+                    <select name="scheduleDay" value={formData.scheduleDay} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl font-bold outline-none focus:border-[#815633]">
                       <option>Today</option>
                       <option>Tomorrow</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Time</label>
-                    <select name="scheduleTime" value={formData.scheduleTime} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl font-bold outline-none focus:border-[#E39A7B]">
+                    <select name="scheduleTime" value={formData.scheduleTime} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl font-bold outline-none focus:border-[#815633]">
                       <option>08:00 AM</option>
                       <option>09:00 AM</option>
                       <option>10:00 AM</option>
@@ -193,7 +193,7 @@ export default function Checkout() {
               <div className="space-y-5">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Mobile number</label>
-                  <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} required placeholder="09000000000" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium" />
+                  <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} required placeholder="09000000000" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#815633] outline-none font-medium" />
                 </div>
 
                 {formData.orderType === 'Delivery' && (
@@ -203,7 +203,7 @@ export default function Checkout() {
                       <div className="absolute inset-0 opacity-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
                       <span className="text-4xl relative z-10 drop-shadow-md">📍</span>
                     </div>
-                    <input type="text" name="address" value={formData.address} onChange={handleInputChange} required placeholder="Street, Barangay, City" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium" />
+                    <input type="text" name="address" value={formData.address} onChange={handleInputChange} required placeholder="Street, Barangay, City" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#815633] outline-none font-medium" />
                   </div>
                 )}
               </div>
@@ -217,15 +217,15 @@ export default function Checkout() {
               </div>
               
               {formData.paymentMethod === 'GCash' ? (
-                <div className="bg-[#fffaf7] p-6 rounded-xl border border-[#FFB5AB]/40 text-center">
+                <div className="bg-[#F5EFE3] p-6 rounded-xl border border-[#C9A77C]/40 text-center">
                   <div className="w-40 h-40 bg-white mx-auto mb-4 p-2 rounded-xl shadow-sm border border-gray-200 flex items-center justify-center text-4xl">QR</div>
                   <p className="font-black text-gray-900 text-lg">Ruchell Quesada</p>
                   <p className="text-sm font-bold text-gray-500 mb-4">0997 131 2386</p>
-                  <p className="text-sm font-bold text-gray-800 mb-4">Send exactly <span className="text-[#E39A7B]">₱{cartTotal.toFixed(2)}</span></p>
+                  <p className="text-sm font-bold text-gray-800 mb-4">Send exactly <span className="text-[#815633]">₱{cartTotal.toFixed(2)}</span></p>
                   
                   <div className="text-left space-y-4">
-                    <input type="text" placeholder="Reference No. (e.g. 1012 345 678901)" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium text-sm" />
-                    <input type="file" accept="image/*" onChange={handleFileChange} className="w-full text-sm font-medium text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#E39A7B] file:text-white hover:file:bg-[#DBB06B]" />
+                    <input type="text" placeholder="Reference No. (e.g. 1012 345 678901)" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#815633] outline-none font-medium text-sm" />
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="w-full text-sm font-medium text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#815633] file:text-white hover:file:bg-[#62432B]" />
                   </div>
                 </div>
               ) : (
@@ -234,7 +234,7 @@ export default function Checkout() {
 
               <div className="mt-6">
                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Notes for the kitchen</label>
-                <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows="2" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium text-sm"></textarea>
+                <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows="2" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#815633] outline-none font-medium text-sm"></textarea>
               </div>
             </div>
           </form>
@@ -259,7 +259,7 @@ export default function Checkout() {
             <div className="bg-gray-50 p-4 rounded-xl mb-6">
               <div className="flex justify-between items-center mb-1">
                 <span className="font-bold text-gray-500 text-sm">Estimated total</span>
-                <span className="text-xl font-black text-[#E39A7B]">₱{cartTotal.toFixed(2)}</span>
+                <span className="text-xl font-black text-[#815633]">₱{cartTotal.toFixed(2)}</span>
               </div>
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Taxes included</p>
             </div>

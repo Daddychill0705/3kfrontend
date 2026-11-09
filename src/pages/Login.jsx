@@ -33,7 +33,7 @@ export default function Login() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[calc(100vh-80px)] bg-3k-bg">
-      <div className="bg-white flex flex-col justify-center items-center py-12 px-6 lg:order-1 order-2 border-r border-[#FFB5AB]/20 shadow-xl z-10">
+      <div className="bg-white flex flex-col justify-center items-center py-12 px-6 lg:order-1 order-2 border-r border-[#C9A77C]/20 shadow-xl z-10">
         <div className="w-full max-w-[400px]">
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Welcome Back</h1>
           <p className="text-sm text-gray-600 mb-8 leading-relaxed font-medium">
@@ -52,7 +52,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com" 
                 required 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#E39A7B] focus:ring-2 focus:ring-[#E39A7B]/20 transition-all font-medium" 
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633] focus:ring-2 focus:ring-[#815633]/20 transition-all font-medium"
               />
             </div>
             <div className="mb-6">
@@ -64,7 +64,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••" 
                 required 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#E39A7B] focus:ring-2 focus:ring-[#E39A7B]/20 transition-all font-medium" 
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633] focus:ring-2 focus:ring-[#815633]/20 transition-all font-medium"
               />
             </div>
             <div className="flex justify-between items-center mb-8 text-sm">
@@ -79,7 +79,7 @@ export default function Login() {
             <button 
               type="button" 
               onClick={handleGuestLogin}
-              className="w-full bg-[#FFD3AC]/30 text-[#E39A7B] font-bold py-3 rounded-lg border border-[#E39A7B]/50 hover:bg-[#FFD3AC]/60 hover:-translate-y-1 transition-all duration-300 mb-6">
+              className="w-full bg-[#E6D4B8]/30 text-[#815633] font-bold py-3 rounded-lg border border-[#815633]/50 hover:bg-[#E6D4B8]/60 hover:-translate-y-1 transition-all duration-300 mb-6">
               Continue as Guest
             </button>
           </form>
@@ -91,10 +91,10 @@ export default function Login() {
           </div>
           
           <div className="flex gap-4 mb-8">
-            <button className="flex-1 py-3 border border-gray-300 rounded-lg bg-white cursor-pointer text-sm font-bold transition-all duration-300 hover:border-[#E39A7B] hover:bg-[#FFD3AC]/20 hover:text-[#E39A7B] flex items-center justify-center gap-2">
+            <button className="flex-1 py-3 border border-gray-300 rounded-lg bg-white cursor-pointer text-sm font-bold transition-all duration-300 hover:border-[#815633] hover:bg-[#E6D4B8]/20 hover:text-[#815633] flex items-center justify-center gap-2">
               Google
             </button>
-            <button className="flex-1 py-3 border border-gray-300 rounded-lg bg-white cursor-pointer text-sm font-bold transition-all duration-300 hover:border-[#E39A7B] hover:bg-[#FFD3AC]/20 hover:text-[#E39A7B] flex items-center justify-center gap-2">
+            <button className="flex-1 py-3 border border-gray-300 rounded-lg bg-white cursor-pointer text-sm font-bold transition-all duration-300 hover:border-[#815633] hover:bg-[#E6D4B8]/20 hover:text-[#815633] flex items-center justify-center gap-2">
               Facebook
             </button>
           </div>
@@ -105,13 +105,13 @@ export default function Login() {
         </div>
       </div>
       
-      <div className="bg-gradient-to-br from-[#FFD3AC] to-[#FFB5AB] flex-col justify-center items-center p-12 relative overflow-hidden hidden lg:flex lg:order-2">
+      <div className="bg-gradient-to-br from-[#E6D4B8] to-[#C9A77C] flex-col justify-center items-center p-12 relative overflow-hidden hidden lg:flex lg:order-2">
         <div className="text-center z-10">
           <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Welcome To The 3K Kitchen</h2>
           <p className="text-lg text-gray-800 font-medium leading-relaxed mb-8">
             Experience the taste of the Philippines with our handcrafted dishes.
           </p>
-          <div className="w-[300px] h-[300px] bg-[radial-gradient(ellipse_at_50%_50%,#FFB5AB,#FFD3AC)] rounded-full flex justify-center items-center mx-auto shadow-xl animate-[bounce_3s_ease-in-out_infinite] border-4 border-white/20">
+          <div className="w-[300px] h-[300px] bg-[radial-gradient(ellipse_at_50%_50%,#C9A77C,#E6D4B8)] rounded-full flex justify-center items-center mx-auto shadow-xl animate-[bounce_3s_ease-in-out_infinite] border-4 border-white/20">
             <img src={logoImg} alt="3K Kitchen Logo" className="max-w-[300px] h-auto drop-shadow-md rounded-full" />
           </div>
         </div>

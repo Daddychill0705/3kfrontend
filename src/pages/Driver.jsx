@@ -126,7 +126,7 @@ export default function Driver() {
   const displayList = activeTab === 'Available' ? availableDeliveries : activeTab === 'My deliveries' ? activeDeliveries : historyDeliveries;
 
   return (
-    <div className="bg-[#fffaf7] min-h-screen pb-16 font-sans">
+    <div className="bg-[#F5EFE3] min-h-screen pb-16 font-sans">
       <div className="bg-white border-b border-gray-200 flex items-center justify-between p-4 sticky top-0 z-20">
         <div>
           <h1 className="text-xl font-black text-gray-900">Driver</h1>
@@ -149,7 +149,7 @@ export default function Driver() {
 
       <div className="max-w-[800px] mx-auto px-4 space-y-6">
         {displayList.length === 0 ? (
-          <div className="bg-[#fffaf7] p-16 text-center mt-8">
+          <div className="bg-[#F5EFE3] p-16 text-center mt-8">
             <h3 className="text-2xl font-bold text-gray-900 mb-2">No active deliveries</h3>
             <p className="text-gray-500 text-sm font-medium">Claim an order from the Available tab.</p>
           </div>
@@ -190,7 +190,7 @@ export default function Driver() {
 
               <div className="flex gap-3">
                 {order.status === 'Ready' && (
-                  <button onClick={() => { updateStatus(order.id, 'Out for Delivery'); setActiveTab('My deliveries'); }} className="w-full bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#DBB06B] transition-colors">Claim this delivery</button>
+                  <button onClick={() => { updateStatus(order.id, 'Out for Delivery'); setActiveTab('My deliveries'); }} className="w-full bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] transition-colors">Claim this delivery</button>
                 )}
                 {order.status === 'Out for Delivery' && (
                   <>
@@ -199,7 +199,7 @@ export default function Driver() {
                       {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
                     </button>
                     <button onClick={() => updateStatus(order.id, 'Ready')} className="flex-1 bg-white border border-gray-300 text-gray-700 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">Release</button>
-                    <button onClick={() => setDeliveryModalOrder(order)} className="flex-[2] bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#DBB06B] transition-colors">Mark delivered</button>
+                    <button onClick={() => setDeliveryModalOrder(order)} className="flex-[2] bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] transition-colors">Mark delivered</button>
                   </>
                 )}
                 {order.status === 'Completed' && isOrderChatOpen(order, chatNow) && (
@@ -229,7 +229,7 @@ export default function Driver() {
                 updateStatus(deliveryModalOrder.id, 'Completed');
                 setDeliveryModalOrder(null);
               }} 
-               className="w-full bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#DBB06B]"
+               className="w-full bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B]"
             >
               Confirm delivered
             </button>
@@ -245,10 +245,10 @@ export default function Driver() {
               <button onClick={() => { setChatOrder(null); chatOrderRef.current = null; }} className="text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
             </div>
             
-            <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#fffaf7]">
+            <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#F5EFE3]">
               {chatLog.map((msg, i) => (
                 <div key={i} className={`flex flex-col ${msg.sender === user.name ? 'items-end' : 'items-start'}`}>
-                  <div className={`px-4 py-2.5 rounded-2xl max-w-[80%] text-sm font-bold shadow-sm ${msg.sender === user.name ? 'bg-[#E39A7B] text-white rounded-br-none' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'}`}>
+                  <div className={`px-4 py-2.5 rounded-2xl max-w-[80%] text-sm font-bold shadow-sm ${msg.sender === user.name ? 'bg-[#815633] text-white rounded-br-none' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'}`}>
                     {msg.text}
                   </div>
                   <span className="text-[10px] font-bold text-gray-400 mt-1">{msg.sender} • {msg.time}</span>
@@ -257,8 +257,8 @@ export default function Driver() {
               {chatLog.length === 0 && <p className="text-center text-gray-400 text-sm font-bold mt-10">Message the customer about the delivery.</p>}
             </div>
             <form onSubmit={sendMessage} className="p-4 bg-white border-t border-gray-100 flex gap-2">
-              <input type="text" value={message} onChange={e => setMessage(e.target.value)} placeholder="Type a message..." className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E39A7B] text-sm font-medium" />
-              <button type="submit" className="bg-[#E39A7B] text-white px-5 rounded-xl font-bold shadow-sm hover:bg-[#DBB06B]">Send</button>
+              <input type="text" value={message} onChange={e => setMessage(e.target.value)} placeholder="Type a message..." className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#815633] text-sm font-medium" />
+              <button type="submit" className="bg-[#815633] text-white px-5 rounded-xl font-bold shadow-sm hover:bg-[#62432B]">Send</button>
             </form>
           </div>
         </div>

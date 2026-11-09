@@ -157,14 +157,14 @@ export default function Order() {
 
   return (
     <div className="bg-3k-bg min-h-screen pb-16 font-sans">
-      <div className="bg-white sticky top-[72px] z-40 shadow-sm border-b border-[#FFB5AB]/50">
+      <div className="bg-white sticky top-[72px] z-40 shadow-sm border-b border-[#C9A77C]/50">
         <div className="max-w-[1000px] mx-auto flex overflow-x-auto hide-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex-1 min-w-[100px] py-4 text-sm md:text-base font-bold text-center whitespace-nowrap transition-all duration-300 border-b-2
-                ${activeTab === tab ? 'text-[#E39A7B] border-[#E39A7B]' : 'text-gray-500 border-transparent hover:text-[#FFB5AB]'}`}
+                ${activeTab === tab ? 'text-[#815633] border-[#815633]' : 'text-gray-500 border-transparent hover:text-[#C9A77C]'}`}
             >
               {tab}
             </button>
@@ -179,8 +179,8 @@ export default function Order() {
               const isPaid = ['GCash', 'Cash'].includes(order.payment_method);
               
               return (
-              <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-[#FFB5AB]/30 overflow-hidden">
-                <div className="flex flex-col p-6 md:p-8 bg-[#fffaf7]">
+              <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-[#C9A77C]/30 overflow-hidden">
+                <div className="flex flex-col p-6 md:p-8 bg-[#F5EFE3]">
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <h3 className="text-2xl font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</h3>
@@ -218,7 +218,7 @@ export default function Order() {
                         (order.status === 'Completed' && idx <= 5);
                         
                       return (
-                        <div key={step} className="flex flex-col items-center gap-2 bg-[#fffaf7] px-1">
+                        <div key={step} className="flex flex-col items-center gap-2 bg-[#F5EFE3] px-1">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 transition-colors ${isActive ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300 text-gray-400'}`}>
                             {isActive ? '✓' : idx + 1}
                           </div>
@@ -232,7 +232,7 @@ export default function Order() {
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Delivering to</p>
                     <p className="text-sm font-bold text-gray-800">{order.delivery_address || 'Pick-up at Branch'}</p>
                     {order.delivery_address && (
-                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#E39A7B] hover:underline mt-1 inline-block">View pinned location 📍</a>
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#815633] hover:underline mt-1 inline-block">View pinned location 📍</a>
                     )}
                   </div>
                   
@@ -256,7 +256,7 @@ export default function Order() {
                       
                       {order.notes && <p className="text-xs text-gray-500 font-medium italic mt-2">Note: "{order.notes}"</p>}
                     </div>
-                    <span className="text-2xl font-black text-[#E39A7B]">₱{parseFloat(order.total_amount).toFixed(2)}</span>
+                    <span className="text-2xl font-black text-[#815633]">₱{parseFloat(order.total_amount).toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -264,7 +264,7 @@ export default function Order() {
                 {order.order_type === 'Delivery' && (
                   <>
                     {(order.status === 'Out for Delivery' || (order.status === 'Completed' && isOrderChatOpen(order, chatNow))) && (
-                    <button type="button" onClick={() => openRiderChat(order.id)} className="border-t border-[#FFB5AB]/30 bg-white p-6 md:p-8 w-full text-left">
+                    <button type="button" onClick={() => openRiderChat(order.id)} className="border-t border-[#C9A77C]/30 bg-white p-6 md:p-8 w-full text-left">
                     <span className="bg-white border border-gray-300 text-gray-800 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors w-full sm:w-fit inline-flex items-center gap-2">
                       💬 Chat with Rider
                       {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
@@ -285,7 +285,7 @@ export default function Order() {
                       <div className="flex-1 p-4 overflow-y-auto space-y-4">
                         {(chatLogs[order.id] || []).map((msg, i) => (
                           <div key={i} className={`flex flex-col ${msg.sender === user.name ? 'items-end' : 'items-start'}`}>
-                            <div className={`px-4 py-2.5 rounded-2xl max-w-[80%] text-sm font-bold shadow-sm ${msg.sender === user.name ? 'bg-gray-200 text-gray-900 rounded-br-none' : 'bg-[#E39A7B] text-white rounded-bl-none'}`}>
+                            <div className={`px-4 py-2.5 rounded-2xl max-w-[80%] text-sm font-bold shadow-sm ${msg.sender === user.name ? 'bg-gray-200 text-gray-900 rounded-br-none' : 'bg-[#815633] text-white rounded-bl-none'}`}>
                               {msg.text}
                             </div>
                             <span className="text-[10px] font-bold text-gray-400 mt-1">{msg.sender} • {msg.time}</span>
@@ -303,9 +303,9 @@ export default function Order() {
                            value={messages[order.id] || ''} 
                            onChange={e => setMessages(prev => ({...prev, [order.id]: e.target.value}))} 
                            placeholder="Type a message..." 
-                           className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#E39A7B] text-sm font-medium text-gray-800"
+                           className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#815633] text-sm font-medium text-gray-800"
                         />
-                        <button type="submit" className="bg-[#E39A7B] text-white px-5 rounded-xl font-black shadow-sm hover:bg-[#DBB06B] transition-colors">➔</button>
+                        <button type="submit" className="bg-[#815633] text-white px-5 rounded-xl font-black shadow-sm hover:bg-[#62432B] transition-colors">➔</button>
                       </form>
                     </div>
                     </div>
@@ -314,17 +314,17 @@ export default function Order() {
                 )}
                 
                 {order.status === 'Completed' && order.order_type === 'Delivery' && !isOrderChatOpen(order, chatNow) && (
-                   <div className="border-t border-[#FFB5AB]/30 bg-gray-50 p-6 text-center">
+                   <div className="border-t border-[#C9A77C]/30 bg-gray-50 p-6 text-center">
                      <p className="text-sm font-bold text-gray-600">This delivery is finished, so the chat is closed.</p>
                    </div>
                 )}
               </div>
             )})
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-[#FFB5AB]/30 p-16 text-center">
+            <div className="bg-white rounded-xl shadow-sm border border-[#C9A77C]/30 p-16 text-center">
               <h3 className="text-xl font-bold text-gray-900 mb-2">No orders found</h3>
               <p className="text-gray-500 mb-6 font-medium">You don't have any orders under this status.</p>
-              <Link to="/menu" className="inline-block px-8 py-3 bg-[#E39A7B] text-white rounded-sm text-sm font-bold hover:bg-[#DBB06B] transition-colors shadow-sm">Browse Menu</Link>
+              <Link to="/menu" className="inline-block px-8 py-3 bg-[#815633] text-white rounded-sm text-sm font-bold hover:bg-[#62432B] transition-colors shadow-sm">Browse Menu</Link>
             </div>
           )}
         </div>

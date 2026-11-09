@@ -311,7 +311,7 @@ export default function Cashier() {
 
   // Main cashier dashboard
   return (
-    <div className="flex h-screen bg-[#fffaf7] font-sans">
+    <div className="flex h-screen bg-[#F5EFE3] font-sans">
       <div className="w-[420px] bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 shrink-0">
          
          <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
@@ -339,7 +339,7 @@ export default function Cashier() {
               <button 
                 key={type} 
                 onClick={() => setOrderTypeFilter(type)} 
-                className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${orderTypeFilter === type ? 'bg-[#E39A7B] text-white border-[#E39A7B] shadow-sm' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+                className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${orderTypeFilter === type ? 'bg-[#815633] text-white border-[#815633] shadow-sm' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
               >
                 {type === 'All' ? 'All Types' : type}
               </button>
@@ -355,7 +355,7 @@ export default function Cashier() {
                const isPaid = ['GCash', 'Cash'].includes(order.payment_method);
                
                return (
-               <div key={order.id} onClick={() => setSelectedOrder(order)} className={`p-4 rounded-xl border cursor-pointer transition-all duration-500 ease-in-out flex flex-col gap-2 ${completingOrderIds.has(order.id) ? 'opacity-0 -translate-x-3 scale-95 max-h-0 py-0 my-0 overflow-hidden pointer-events-none' : 'opacity-100 max-h-48'} ${selectedOrder?.id === order.id ? 'bg-[#FFD3AC]/10 border-[#E39A7B] shadow-sm' : 'bg-white border-gray-200 hover:border-[#FFB5AB]'}`}>
+               <div key={order.id} onClick={() => setSelectedOrder(order)} className={`p-4 rounded-xl border cursor-pointer transition-all duration-500 ease-in-out flex flex-col gap-2 ${completingOrderIds.has(order.id) ? 'opacity-0 -translate-x-3 scale-95 max-h-0 py-0 my-0 overflow-hidden pointer-events-none' : 'opacity-100 max-h-48'} ${selectedOrder?.id === order.id ? 'bg-[#E6D4B8]/10 border-[#815633] shadow-sm' : 'bg-white border-gray-200 hover:border-[#C9A77C]'}`}>
                  <div className="flex justify-between items-start">
                    <h3 className="font-black text-gray-900 text-lg">
                      O-{String(order.id).padStart(4, '0')}
@@ -382,7 +382,7 @@ export default function Cashier() {
            )}
          </div>
       </div>
-      <div className="flex-1 bg-[#fffaf7] flex flex-col">
+      <div className="flex-1 bg-[#F5EFE3] flex flex-col">
         <header className="flex justify-end items-center p-4 border-b border-gray-200 bg-white shadow-sm shrink-0 gap-4">
           
           <div className="flex items-center gap-3 mr-auto">
@@ -453,7 +453,7 @@ export default function Cashier() {
                  </div>
                  <div className="flex justify-between items-center pt-6 border-t border-gray-100">
                    <span className="text-base font-black text-gray-900">Total</span>
-                   <span className="text-2xl font-black text-[#E39A7B]">₱{parseFloat(selectedOrder.total_amount).toFixed(2)}</span>
+                   <span className="text-2xl font-black text-[#815633]">₱{parseFloat(selectedOrder.total_amount).toFixed(2)}</span>
                  </div>
                </div>
                <div className="p-6 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center gap-3">
@@ -479,12 +479,12 @@ export default function Cashier() {
                    ['GCash', 'Cash'].includes(selectedOrder.payment_method) ||
                    (selectedOrder.order_type === 'Delivery' && selectedOrder.payment_method === 'Cash on delivery')
                  ) && (
-                   <button onClick={() => updateStatus(selectedOrder.id, 'Confirmed')} className="bg-[#E39A7B] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#DBB06B]">
+                   <button onClick={() => updateStatus(selectedOrder.id, 'Confirmed')} className="bg-[#815633] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#62432B]">
                      {selectedOrder.order_type === 'Delivery' && selectedOrder.payment_method === 'Cash on delivery' ? 'Confirm Order' : 'Confirm'}
                    </button>
                  )}
                  {selectedOrder.status === 'Confirmed' && (
-                   <button onClick={() => updateStatus(selectedOrder.id, 'Preparing')} className="bg-[#E39A7B] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#DBB06B]">Send to kitchen</button>
+                   <button onClick={() => updateStatus(selectedOrder.id, 'Preparing')} className="bg-[#815633] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#62432B]">Send to kitchen</button>
                  )}
                  {selectedOrder.status === 'Preparing' && (
                    <button onClick={() => updateStatus(selectedOrder.id, 'Ready')} className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-green-700">Mark as Ready</button>
@@ -541,7 +541,7 @@ export default function Cashier() {
                   )}
                   <div className="flex justify-between items-center">
                       <span className="font-bold text-gray-600">Total Due</span>
-                      <span className="text-2xl font-black text-[#E39A7B]">₱{parseFloat(selectedOrder.total_amount).toFixed(2)}</span>
+                      <span className="text-2xl font-black text-[#815633]">₱{parseFloat(selectedOrder.total_amount).toFixed(2)}</span>
                   </div>
                   <div>
                       <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Cash Tendered</label>
@@ -552,7 +552,7 @@ export default function Cashier() {
                           step="0.01"
                           value={cashTendered} 
                           onChange={(e) => setCashTendered(e.target.value)} 
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#E39A7B] text-xl font-black text-gray-900" 
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#815633] text-xl font-black text-gray-900"
                       />
                   </div>
                   {cashTendered && parseFloat(cashTendered) >= parseFloat(selectedOrder.total_amount) && (
@@ -577,7 +577,7 @@ export default function Cashier() {
               <button onClick={() => { setIsChatOpen(false); currentChatOrderIdRef.current = null; }} className="text-gray-400 hover:text-gray-900 font-bold text-xl">×</button>
             </div>
 
-            <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#fffaf7]">
+            <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#F5EFE3]">
               {chatLogs.map((message, index) => (
                 <div key={`${message.time}-${index}`} className={`flex flex-col ${message.sender.startsWith('Cashier') ? 'items-end' : 'items-start'}`}>
                   <div className={`px-4 py-2.5 rounded-2xl max-w-[80%] text-sm font-bold shadow-sm ${message.sender.startsWith('Cashier') ? 'bg-gray-800 text-white rounded-br-none' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'}`}>
