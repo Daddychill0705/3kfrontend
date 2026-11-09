@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
+import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry';
 
 export default function Driver() {
   const [orders, setOrders] = useState([]);
+  const chatNow = useOrderChatClock(orders);
   const [activeTab, setActiveTab] = useState('Available');
   const [chatOrder, setChatOrder] = useState(null);
   const [deliveryModalOrder, setDeliveryModalOrder] = useState(null);
@@ -36,7 +38,7 @@ export default function Driver() {
           const allOrders = await response.json();
           setOrders(allOrders);
           allOrders.forEach(order => {
-            if (order.status === 'Out for Delivery' && order.order_type === 'Delivery') {
+            if (order.order_type === 'Delivery' && (order.status === 'Out for Delivery' || (order.status === 'Completed' && isOrderChatOpen(order)))) {
               newSocket.emit('join_order', order.id);
             }
           });
@@ -54,8 +56,23 @@ export default function Driver() {
         setUnreadChatOrders(prev => ({ ...prev, [data.orderId]: true }));
       }
     });
+    newSocket.on('chat_closed', ({ orderId }) => {
+      if (String(chatOrderRef.current) === String(orderId)) {
+        setChatOrder(null);
+        chatOrderRef.current = null;
+      }
+    });
     return () => newSocket.close();
   }, [user, navigate, API_URL]);
+
+  useEffect(() => {
+    if (chatOrder === null) return;
+    const order = orders.find(item => String(item.id) === String(chatOrder));
+    if (order && !isOrderChatOpen(order, chatNow)) {
+      setChatOrder(null);
+      chatOrderRef.current = null;
+    }
+  }, [chatOrder, orders, chatNow]);
 
   const updateStatus = async (id, status) => {
     const token = localStorage.getItem('token');
@@ -184,6 +201,12 @@ export default function Driver() {
                     <button onClick={() => updateStatus(order.id, 'Ready')} className="flex-1 bg-white border border-gray-300 text-gray-700 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">Release</button>
                     <button onClick={() => setDeliveryModalOrder(order)} className="flex-[2] bg-[#E39A7B] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#DBB06B] transition-colors">Mark delivered</button>
                   </>
+                )}
+                {order.status === 'Completed' && isOrderChatOpen(order, chatNow) && (
+                  <button onClick={() => openChat(order.id)} className="flex-1 bg-white border border-gray-300 text-gray-700 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-2">
+                    💬 Chat
+                    {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
+                  </button>
                 )}
               </div>
             </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
+import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry';
 
 export default function Cashier() {
   const { user, logout } = useAuth();
@@ -15,6 +16,7 @@ export default function Cashier() {
   
   const [branches, setBranches] = useState([]);
   const [orders, setOrders] = useState([]);
+  const chatNow = useOrderChatClock(orders);
   const [selectedOrder, setSelectedOrder] = useState(null);
   
   // Filter States
@@ -85,7 +87,7 @@ export default function Cashier() {
           const filtered = allOrders.filter(o => o.branch === activeBranch);
           setOrders(filtered);
           filtered.forEach(order => {
-            if (['Delivery', 'Pick-up'].includes(order.order_type) && !['Completed', 'Cancelled'].includes(order.status)) {
+            if (['Delivery', 'Pick-up'].includes(order.order_type) && isOrderChatOpen(order)) {
               newSocket.emit('join_order', order.id);
             }
           });
@@ -109,9 +111,23 @@ export default function Cashier() {
         setUnreadChatOrders(prev => ({ ...prev, [data.orderId]: true }));
       }
     });
+
+    newSocket.on('chat_closed', ({ orderId }) => {
+      if (String(currentChatOrderIdRef.current) === String(orderId)) {
+        setIsChatOpen(false);
+        currentChatOrderIdRef.current = null;
+      }
+    });
     
     return () => newSocket.close();
   }, [activeBranch, API_URL]);
+
+  useEffect(() => {
+    if (isChatOpen && selectedOrder && !isOrderChatOpen(selectedOrder, chatNow)) {
+      setIsChatOpen(false);
+      currentChatOrderIdRef.current = null;
+    }
+  }, [isChatOpen, selectedOrder, chatNow]);
 
   const updateStatus = async (id, status) => {
     const token = localStorage.getItem('token');
@@ -442,7 +458,7 @@ export default function Cashier() {
                  {selectedOrder.status === 'Ready' && ['Pick-up', 'Take-out', 'Dine-in'].includes(selectedOrder.order_type) && (
                    <button onClick={() => updateStatus(selectedOrder.id, 'Completed')} className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-black">Complete Order</button>
                  )}
-                 {['Delivery', 'Pick-up'].includes(selectedOrder.order_type) && !['Completed', 'Cancelled'].includes(selectedOrder.status) && (
+                 {['Delivery', 'Pick-up'].includes(selectedOrder.order_type) && isOrderChatOpen(selectedOrder, chatNow) && (
                    <button onClick={openRiderChat} className="bg-white border border-blue-200 text-blue-700 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-50 transition-colors inline-flex items-center gap-2">
                      Chat with Rider
                      {unreadChatOrders[selectedOrder.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}

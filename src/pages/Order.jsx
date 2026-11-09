@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
+import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry';
 
 export default function Order() {
   const tabs = ['Pending', 'Preparing', 'Out for Delivery', 'Completed'];
   const [activeTab, setActiveTab] = useState('Pending');
   const [orders, setOrders] = useState([]);
+  const chatNow = useOrderChatClock(orders);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState(null);
 
@@ -66,10 +68,10 @@ export default function Order() {
         if (response.ok) {
           setOrders(data);
           data.forEach(order => {
-            if (['Preparing', 'Out for Delivery'].includes(order.status)) {
+            if (['Preparing', 'Out for Delivery'].includes(order.status) || (order.status === 'Completed' && isOrderChatOpen(order))) {
               newSocket.emit('join_order', order.id);
             }
-            if (order.status === 'Out for Delivery' && order.order_type === 'Delivery') {
+            if (order.order_type === 'Delivery' && (order.status === 'Out for Delivery' || (order.status === 'Completed' && isOrderChatOpen(order)))) {
               fetchChatHistory(order.id, token);
             }
           });
@@ -101,6 +103,11 @@ export default function Order() {
       }
     });
 
+    newSocket.on('chat_closed', ({ orderId }) => {
+      openChatOrdersRef.current.delete(String(orderId));
+      setActiveChatOrderId(currentId => String(currentId) === String(orderId) ? null : currentId);
+    });
+
     return () => newSocket.close();
   }, [user, navigate, API_URL]);
 
@@ -130,6 +137,12 @@ export default function Order() {
     if (activeChatOrderId !== null) openChatOrdersRef.current.delete(String(activeChatOrderId));
     setActiveChatOrderId(null);
   };
+
+  useEffect(() => {
+    if (activeChatOrderId === null) return;
+    const order = orders.find(item => String(item.id) === String(activeChatOrderId));
+    if (order && !isOrderChatOpen(order, chatNow)) closeRiderChat();
+  }, [activeChatOrderId, orders, chatNow]);
 
   const getStatusTab = (status) => {
     if (status === 'Pending') return 'Pending';
@@ -248,14 +261,16 @@ export default function Order() {
                 </div>
 
                 {/* Real-time Rider Chat Module */}
-                {order.status === 'Out for Delivery' && order.order_type === 'Delivery' && (
+                {order.order_type === 'Delivery' && (
                   <>
+                    {(order.status === 'Out for Delivery' || (order.status === 'Completed' && isOrderChatOpen(order, chatNow))) && (
                     <button type="button" onClick={() => openRiderChat(order.id)} className="border-t border-[#FFB5AB]/30 bg-white p-6 md:p-8 w-full text-left">
                     <span className="bg-white border border-gray-300 text-gray-800 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors w-full sm:w-fit inline-flex items-center gap-2">
                       💬 Chat with Rider
                       {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
                     </span>
                     </button>
+                    )}
                     {activeChatOrderId === order.id && (
                     <div className="fixed bottom-4 right-4 z-[60] w-[min(420px,calc(100vw-2rem))] h-[min(560px,calc(100vh-2rem))] bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden">
                     <div className="px-5 py-4 bg-white border-b border-gray-100 flex items-center justify-between">
@@ -298,7 +313,7 @@ export default function Order() {
                   </>
                 )}
                 
-                {order.status === 'Completed' && (
+                {order.status === 'Completed' && order.order_type === 'Delivery' && !isOrderChatOpen(order, chatNow) && (
                    <div className="border-t border-[#FFB5AB]/30 bg-gray-50 p-6 text-center">
                      <p className="text-sm font-bold text-gray-600">This delivery is finished, so the chat is closed.</p>
                    </div>
