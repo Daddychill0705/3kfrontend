@@ -9,7 +9,8 @@ export default function CashierPOS({ branch, onBack }) {
   const [menuError, setMenuError] = useState('');
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [orderType, setOrderType] = useState('Dine-in');
+  const [orderType, setOrderType] = useState('');
+  const [isOrderTypeSelectionOpen, setIsOrderTypeSelectionOpen] = useState(true);
   const [customerName, setCustomerName] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [isOrderFlowOpen, setIsOrderFlowOpen] = useState(false);
@@ -85,6 +86,7 @@ export default function CashierPOS({ branch, onBack }) {
   };
 
   const beginItemOrder = item => {
+    if (!orderType) return;
     if (Number(item.is_sold_out) === 1 || item.is_sold_out === true) return;
     setActiveProduct(item);
     setProductQuantity(1);
@@ -165,7 +167,7 @@ export default function CashierPOS({ branch, onBack }) {
   };
 
   const openPayment = () => {
-    if (!cart.length) return;
+    if (!cart.length || !orderType) return;
     setIsCartOpen(false);
     setError('');
     setActiveProduct(null);
@@ -191,7 +193,7 @@ export default function CashierPOS({ branch, onBack }) {
 
   const completeSale = async event => {
     event.preventDefault();
-    if (isSubmitting || cart.length === 0) return;
+    if (isSubmitting || cart.length === 0 || !orderType) return;
     if (!customerName.trim()) {
       setError('Enter the customer name or calling name to complete this sale.');
       return;
@@ -286,12 +288,13 @@ export default function CashierPOS({ branch, onBack }) {
     setCart([]);
     setCustomerName('');
     setOrderNotes('');
-    setOrderType('Dine-in');
+    setOrderType('');
     setPaymentMethod('Cash');
     setCashTendered('');
     setGcashRef('');
     setError('');
     setIsCartOpen(false);
+    setIsOrderTypeSelectionOpen(true);
   };
 
   const formatMoney = money;
@@ -617,7 +620,7 @@ export default function CashierPOS({ branch, onBack }) {
           <div className="flex max-h-[92vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 p-4">
               <div className="min-w-0"><h2 className="truncate font-black uppercase text-gray-900">{receipt.customerName}</h2><p className="text-xs font-bold text-gray-500">Order #O-{String(receipt.id).padStart(4, '0')}</p></div>
-              <button type="button" aria-label="Close receipt" onClick={() => setReceipt(null)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
+              <button type="button" aria-label="Close receipt and start a new order" onClick={startNewOrder} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
             </div>
             <div className="overflow-y-auto p-5 font-mono text-xs text-gray-900">
               <div className="center text-center"><p className="text-base font-black">3K KITCHEN</p><p>{receipt.branch}</p><p>SALES RECEIPT</p></div>
@@ -641,6 +644,28 @@ export default function CashierPOS({ branch, onBack }) {
             </div>
             {receipt.status !== 'Confirmed' && <p className="px-4 pb-3 text-center text-xs font-medium text-amber-700">Sale saved and paid; confirm the order from the queue before sending it to the kitchen.</p>}
           </div>
+        </div>
+      )}
+
+      {isOrderTypeSelectionOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+          <section role="dialog" aria-modal="true" aria-labelledby="order-type-title" className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <header className="border-b border-gray-100 bg-gray-50 p-5">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#815633]">New counter order</p>
+              <h2 id="order-type-title" className="mt-1 text-xl font-black text-gray-900">Choose order type</h2>
+              <p className="mt-1 text-sm text-gray-600">Select Dine-in or Take-out before adding items.</p>
+            </header>
+            <div className="grid grid-cols-2 gap-3 p-5">
+              {['Dine-in', 'Take-out'].map(type => (
+                <button key={type} type="button" onClick={() => { setOrderType(type); setIsOrderTypeSelectionOpen(false); }} className="min-h-24 rounded-xl border-2 border-[#C9A77C]/40 bg-[#FBFAF4] px-4 py-5 text-base font-black text-[#815633] shadow-sm transition hover:border-[#815633] hover:bg-[#F5EFE3]">
+                  {type}
+                </button>
+              ))}
+            </div>
+            <footer className="border-t border-gray-100 p-4">
+              <button type="button" onClick={onBack} className="w-full rounded-xl border border-gray-200 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to orders</button>
+            </footer>
+          </section>
         </div>
       )}
     </div>
