@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Header from './components/Header';
@@ -14,6 +15,8 @@ import Contact from './pages/Contact';
 import Order from './pages/Order';
 import Login from './pages/Login';
 import Register from './pages/Register';
+const Terms = lazy(() => import('./pages/Terms'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 import ForgotPassword from './pages/Forgotpassword';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
@@ -81,6 +84,8 @@ function App() {
               } />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/terms" element={<Suspense fallback={<div className="min-h-screen bg-3k-bg" />}><Terms /></Suspense>} />
+              <Route path="/privacy" element={<Suspense fallback={<div className="min-h-screen bg-3k-bg" />}><PrivacyPolicy /></Suspense>} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/profile" element={
                 <AuthWrapper allowedRoles={['customer', 'admin', 'cashier', 'rider']} guestRedirectTo="/home">

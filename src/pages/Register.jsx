@@ -99,10 +99,19 @@ export default function Register() {
             </div>
 
             <div className="flex items-start gap-3 mb-8 text-sm">
-              <input type="checkbox" id="terms" required className="mt-1 w-4 h-4 cursor-pointer accent-3k-red shrink-0" />
-              <label htmlFor="terms" className="text-gray-600 font-medium leading-relaxed cursor-pointer">
-                I agree to the Terms and Conditions and Privacy Policy
-              </label>
+              <input
+                type="checkbox"
+                id="terms"
+                required
+                aria-label="I agree to the Terms and Conditions and Privacy Policy"
+                className="mt-1 w-4 h-4 cursor-pointer accent-3k-red shrink-0"
+              />
+              <p className="text-gray-600 font-medium leading-relaxed">
+                I have read and agree to the{' '}
+                <Link to="/terms" className="text-3k-red font-bold underline underline-offset-2 hover:text-3k-red-hover">Terms and Conditions</Link>
+                {' '}and{' '}
+                <Link to="/privacy" className="text-3k-red font-bold underline underline-offset-2 hover:text-3k-red-hover">Privacy Policy</Link>.
+              </p>
             </div>
             
             <button type="submit" disabled={loading} className="w-full bg-3k-red text-white font-bold py-3 rounded-lg shadow-md hover:bg-3k-red-hover transition-all mb-6">
