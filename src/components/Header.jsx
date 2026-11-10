@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -8,6 +8,11 @@ export default function Header() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { cartCount } = useCart();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const isActive = (path) => location.pathname === path 
     ? "text-[#815633] border-b-2 border-[#815633] pb-1"
@@ -19,7 +24,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white px-4 md:px-8 py-4 flex justify-between items-center shadow-sm sticky top-0 z-50">
+    <header className="bg-white px-4 md:px-8 py-3 md:py-4 flex justify-between items-center shadow-sm sticky top-0 z-50">
       <div className="flex items-center gap-6">
         <Link to="/home" className="text-[1.8rem] font-bold text-[#815633] tracking-[2px] no-underline hover:text-[#62432B] transition-colors">
           3K <span className="text-gray-400 font-light tracking-[0.5px] ml-1">KITCHEN</span>
@@ -31,35 +36,47 @@ export default function Header() {
         </Link>
       </div>
 
-      <input type="checkbox" id="menu-toggle" className="hidden peer" />
-      <label htmlFor="menu-toggle" className="md:hidden flex flex-col cursor-pointer gap-1 z-50 hover:opacity-70">
-        <span className="w-6 h-[3px] bg-gray-800 transition-all duration-300 peer-checked:rotate-45 peer-checked:translate-y-[6px]"></span>
-        <span className="w-6 h-[3px] bg-gray-800 transition-all duration-300 peer-checked:opacity-0"></span>
-        <span className="w-6 h-[3px] bg-gray-800 transition-all duration-300 peer-checked:-rotate-45 peer-checked:-translate-y-[6px]"></span>
-      </label>
+      <button
+        type="button"
+        aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        aria-expanded={mobileMenuOpen}
+        onClick={() => setMobileMenuOpen(open => !open)}
+        className="md:hidden relative z-[70] flex w-10 h-10 items-center justify-center rounded-lg text-[#4A3422] hover:bg-[#F1E7D7] transition-colors"
+      >
+        <span className="text-2xl leading-none">{mobileMenuOpen ? '×' : '☰'}</span>
+      </button>
 
-      <nav className="absolute md:static top-full left-0 w-full md:w-auto bg-white flex-col md:flex-row gap-4 md:gap-12 p-4 md:p-0 shadow-md md:shadow-none hidden peer-checked:flex md:flex items-center transition-all">
-        <Link to="/kiosk" className="w-full sm:hidden mb-2">
+      {mobileMenuOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-[60] bg-black/25 md:hidden"
+        />
+      )}
+
+      <nav className={`absolute top-full right-0 z-[65] flex w-[min(86vw,320px)] flex-col items-stretch gap-3 rounded-bl-2xl border border-gray-200 bg-white p-4 shadow-2xl transition-all duration-300 ease-out md:static md:w-auto md:flex-row md:items-center md:gap-12 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:opacity-100 md:translate-x-0 md:pointer-events-auto ${mobileMenuOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-[calc(100%+1rem)] opacity-0 pointer-events-none'}`}>
+        <Link to="/kiosk" onClick={() => setMobileMenuOpen(false)} className="w-full sm:hidden mb-1">
           <button className="w-full bg-gradient-to-r from-[#E6D4B8] to-[#C9A77C] text-[#815633] border border-[#815633] px-4 py-2 rounded-lg font-black text-sm tracking-wider shadow-sm flex items-center justify-center gap-2">
             <span className="text-base">🍔</span> ENTER KIOSK UI
           </button>
         </Link>
         
-        <Link to="/home" className={`text-base font-medium ${isActive('/home')}`}>Home</Link>
-        <Link to="/menu" className={`text-base font-medium ${isActive('/menu')}`}>Menu</Link>
+        <Link to="/home" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/home')}`}>Home</Link>
+        <Link to="/menu" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/menu')}`}>Menu</Link>
         
         {user ? (
           <>
-            <Link to="/cart" className={`text-base font-medium ${isActive('/cart')}`}>Cart ({cartCount})</Link>
-            <Link to="/order" className={`text-base font-medium ${isActive('/order')}`}>Orders</Link>
-            <Link to="/profile" className={`text-base font-medium ${isActive('/profile')}`}>Profile</Link>
-            <button onClick={handleLogout} className="text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300">Logout</button>
+            <Link to="/cart" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/cart')}`}>Cart ({cartCount})</Link>
+            <Link to="/order" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/order')}`}>Orders</Link>
+            <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/profile')}`}>Profile</Link>
+            <button onClick={handleLogout} className="w-full md:w-auto text-left md:text-center text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300">Logout</button>
           </>
         ) : (
           <>
-            <Link to="/about" className={`text-base font-medium ${isActive('/about')}`}>About</Link>
-            <Link to="/contact" className={`text-base font-medium ${isActive('/contact')}`}>Contact</Link>
-            <Link to="/login">
+            <Link to="/about" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/about')}`}>About</Link>
+            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/contact')}`}>Contact</Link>
+            <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="w-full md:w-auto">
               <button className="border-[1.5px] border-gray-800 px-6 py-2 rounded-md cursor-pointer text-sm font-semibold transition-all duration-300 bg-transparent text-gray-800 hover:bg-[#C9A77C] hover:border-[#C9A77C] hover:text-white w-full md:w-auto mt-2 md:mt-0">
                 Sign In
               </button>

@@ -85,20 +85,20 @@ export default function Menu() {
         </div>
       )}
 
-      <div className="max-w-[1400px] mx-auto py-16 px-4 md:px-8">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-[2.5rem] font-bold text-gray-900 mb-4">Our Menu</h1>
-          <p className="text-lg text-gray-700 leading-relaxed max-w-2xl mx-auto font-medium">
+      <div className="max-w-[1400px] mx-auto py-8 sm:py-16 px-3 sm:px-4 md:px-8">
+        <div className="text-center mb-7 sm:mb-10">
+          <h1 className="text-2xl sm:text-3xl md:text-[2.5rem] font-bold text-gray-900 mb-3 sm:mb-4">Our Menu</h1>
+          <p className="text-sm sm:text-lg text-gray-700 leading-relaxed max-w-2xl mx-auto font-medium">
             Discover our handcrafted Filipino comfort food, made with love and authentic ingredients from GMA Cavite.
           </p>
         </div>
         
-        <div className="flex flex-wrap justify-center gap-3 mb-12">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-12">
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 cursor-pointer shadow-sm
+              className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer shadow-sm
                 ${activeCategory === category 
                    ? 'bg-[#815633] text-white shadow-md scale-105 border border-[#815633]'
                    : 'bg-white text-gray-700 border border-gray-200 hover:border-[#815633] hover:text-[#815633]'
@@ -109,18 +109,18 @@ export default function Menu() {
           ))}
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 lg:gap-8">
           {filteredItems.map(item => (
             <div className={`bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 flex flex-col border border-transparent ${item.is_sold_out ? 'opacity-60 grayscale' : 'hover:-translate-y-1.5 hover:shadow-xl hover:border-[#C9A77C]'}`} key={item.id}>
               
-              <div className="h-[220px] bg-[#E6D4B8]/30 flex items-center justify-center relative overflow-hidden">
+              <div className="h-28 sm:h-[220px] bg-[#E6D4B8]/30 flex items-center justify-center relative overflow-hidden">
                 <img 
                   src={item.image_url?.startsWith('http') ? item.image_url : (item.image_url?.startsWith('/') ? item.image_url : `${API_URL}${item.image_url}`)} 
                   alt={item.name} 
                   className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                   onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="text-6xl opacity-40">🍽️</div>'; }}
                 />
-                <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-[#815633] shadow-sm">
+                <div className="absolute top-2 left-2 max-w-[calc(100%-1rem)] truncate bg-white/90 backdrop-blur-sm px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-xs font-bold text-[#815633] shadow-sm">
                   {item.category}
                 </div>
                 {item.is_sold_out ? (
@@ -130,25 +130,25 @@ export default function Menu() {
                 ) : null}
               </div>
               
-              <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">{item.name}</h3>
+              <div className="p-3 sm:p-6 flex flex-col flex-grow">
+                <h3 className="text-sm sm:text-xl font-bold text-gray-900 mb-2 leading-snug line-clamp-2 min-h-[2.5rem] sm:min-h-0">{item.name}</h3>
                 <div className="flex-grow"></div>
-                <div className="text-2xl font-black text-[#815633] mb-5 mt-4">
+                <div className="text-lg sm:text-2xl font-black text-[#815633] mb-2 sm:mb-5 mt-2 sm:mt-4">
                   ₱{parseFloat(item.price).toFixed(2)}
                 </div>
                 
-                <div className="flex flex-col gap-2 mt-auto">
+                <div className="flex flex-col gap-1.5 sm:gap-2 mt-auto">
                   <button 
                     onClick={() => handleAddToCart(item)}
                     disabled={item.is_sold_out}
-                    className={`w-full py-3 rounded-lg text-sm font-bold transition-all duration-300 ${item.is_sold_out ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#E6D4B8]/20 text-gray-900 border-[1.5px] border-[#815633] hover:bg-[#815633] hover:text-white'}`}
+                    className={`w-full py-2 sm:py-3 rounded-lg text-[11px] sm:text-sm font-bold transition-all duration-300 ${item.is_sold_out ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#E6D4B8]/20 text-gray-900 border-[1.5px] border-[#815633] hover:bg-[#815633] hover:text-white'}`}
                   >
                     Add to Cart
                   </button>
                   <button 
                     onClick={() => handleBuyNow(item)}
                     disabled={item.is_sold_out}
-                    className={`w-full py-3 rounded-lg text-sm font-bold transition-all duration-300 shadow-sm ${item.is_sold_out ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#815633] text-white border border-transparent hover:bg-[#62432B]'}`}
+                    className={`w-full py-2 sm:py-3 rounded-lg text-[11px] sm:text-sm font-bold transition-all duration-300 shadow-sm ${item.is_sold_out ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#815633] text-white border border-transparent hover:bg-[#62432B]'}`}
                   >
                     Buy Now
                   </button>
