@@ -25,6 +25,11 @@ export default function Kiosk() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [cashTendered, setCashTendered] = useState('');
+  const [gcashReference, setGcashReference] = useState('');
+  const [paymentError, setPaymentError] = useState('');
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -166,18 +171,39 @@ export default function Kiosk() {
   const removeItem = (id) => setCart(prev => prev.filter(item => item.id !== id));
   const cartTotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.qty), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  const changeToReturn = Math.max(0, Number(cashTendered || 0) - cartTotal);
+
+  const openPayment = () => {
+    if (!cart.length || !customerName.trim()) return;
+    if (!cashTendered) setCashTendered(cartTotal.toFixed(2));
+    setPaymentError('');
+    setIsCartOpen(false);
+    setIsPaymentOpen(true);
+  };
+
+  const backToCart = () => {
+    setIsPaymentOpen(false);
+    setPaymentError('');
+    setIsCartOpen(true);
+  };
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return;
-    if (!orderType) return alert('Please choose dine-in or take-out before ordering.');
+    if (checkoutLoading || cart.length === 0) return;
+    if (!orderType) return setPaymentError('Please choose dine-in or take-out before ordering.');
     
     // Require the Kiosk user to enter their name so the Cashier isn't confused
     if (!customerName.trim()) {
-      alert("Please enter your name for the order receipt.");
-      return;
+      return setPaymentError('Please enter your name for the order receipt.');
+    }
+    if (paymentMethod === 'Cash' && Number(cashTendered) < cartTotal) {
+      return setPaymentError('Cash tendered must cover the total amount.');
+    }
+    if (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashReference)) {
+      return setPaymentError('GCash reference number must contain exactly 13 digits.');
     }
 
     setCheckoutLoading(true);
+    setPaymentError('');
     try {
       // Kiosk walk-ins always use a guest session, regardless of any staff/customer login in this browser.
       const guestResponse = await fetch(`${API_URL}/api/guest`, { method: 'POST' });
@@ -191,10 +217,13 @@ export default function Kiosk() {
         totalAmount: cartTotal,
         orderType,
         branch: kioskBranch,
-        paymentMethod: 'Cash on delivery',
+        paymentMethod,
         address: `Kiosk Customer: ${customerName.trim()}`,
         phone: '',
-        notes: orderNotes.trim()
+        notes: orderNotes.trim(),
+        customerName: customerName.trim(),
+        cashTendered: paymentMethod === 'Cash' ? Number(cashTendered) : null,
+        gcashReference: paymentMethod === 'GCash' ? gcashReference : null
       };
 
       const response = await fetch(`${API_URL}/api/orders`, {
@@ -215,8 +244,9 @@ export default function Kiosk() {
       setCart([]);
       setOrderNotes('');
       setIsCartOpen(false);
+      setIsPaymentOpen(false);
       setSuccessOrder({ id: responseData.orderId, customerName: customerName.trim() });
-    } catch (error) { alert(error.message); } 
+    } catch (error) { setPaymentError(error.message || 'Could not submit this order. Please try again.'); }
     finally { setCheckoutLoading(false); }
   };
 
@@ -225,6 +255,11 @@ export default function Kiosk() {
     setOrderNotes('');
     setOrderType('');
     setCustomerName('');
+    setIsPaymentOpen(false);
+    setPaymentMethod('Cash');
+    setCashTendered('');
+    setGcashReference('');
+    setPaymentError('');
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center font-bold text-gray-500">Loading Kiosk System...</div>;
@@ -574,7 +609,8 @@ export default function Kiosk() {
                 Clear all
               </button>
               <button
-                onClick={handleCheckout}
+                type="button"
+                onClick={openPayment}
                 disabled={cart.length === 0 || checkoutLoading || !customerName.trim()}
                 className={`flex-1 rounded-2xl py-4 font-black text-base shadow-md transition-all duration-300 uppercase tracking-wide md:text-lg
                    ${cart.length > 0 && !checkoutLoading && customerName.trim() ? 'bg-[#815633] hover:bg-[#62432B] text-white hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
@@ -585,6 +621,59 @@ export default function Kiosk() {
           </div>
         </div>
       </div>
+      {isPaymentOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <section role="dialog" aria-modal="true" aria-labelledby="kiosk-payment-title" className="max-h-[94vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#FBFAF4] shadow-2xl">
+            <header className="flex items-center justify-between border-b border-[#C9A77C]/30 p-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#815633]">Order checkout</p>
+                <h2 id="kiosk-payment-title" className="mt-1 text-lg font-black text-gray-900">Choose payment method</h2>
+              </div>
+              <button type="button" aria-label="Back to tray" onClick={backToCart} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
+            </header>
+            <form onSubmit={event => { event.preventDefault(); handleCheckout(); }} className="space-y-5 p-5 sm:p-6">
+              <div className="rounded-2xl border border-[#C9A77C]/30 bg-white p-4 text-center">
+                <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Total amount due</span>
+                <p className="mt-1 text-3xl font-black text-[#815633]">₱{cartTotal.toFixed(2)}</p>
+              </div>
+              <div>
+                <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-500">Payment mode</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Cash', 'GCash'].map(method => <button key={method} type="button" onClick={() => { setPaymentMethod(method); setPaymentError(''); }} className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${paymentMethod === method ? 'border-[#815633] bg-[#815633] text-white' : 'border-[#C9A77C]/50 bg-white text-gray-700 hover:bg-gray-50'}`}>{method === 'Cash' ? 'Cash tendered' : 'GCash'}</button>)}
+                </div>
+              </div>
+              {paymentMethod === 'Cash' ? (
+                <div className="space-y-3">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Cash tendered
+                    <input type="number" min={cartTotal} step="0.01" required value={cashTendered} onChange={event => setCashTendered(event.target.value)} className="mt-2 w-full rounded-xl border border-[#C9A77C]/50 bg-white px-4 py-3 text-xl font-black text-gray-900 outline-none focus:border-[#815633]" />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[cartTotal, ...[200, 500, 1000].filter(amount => amount >= cartTotal)].filter((amount, index, amounts) => amounts.indexOf(amount) === index).map(amount => <button key={amount} type="button" onClick={() => setCashTendered(Number(amount).toFixed(2))} className="flex-1 rounded-lg border border-[#C9A77C]/50 bg-white px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100">₱{amount.toFixed(2)}</button>)}
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 p-3"><span className="text-xs font-bold uppercase text-green-800">Change to return</span><span className="text-xl font-black text-green-700">₱{changeToReturn.toFixed(2)}</span></div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-center">
+                    <p className="text-sm font-black text-blue-900">GCash payment</p>
+                    <p className="mt-1 text-sm font-bold text-blue-800">Amount due: ₱{cartTotal.toFixed(2)}</p>
+                    <p className="mt-1 text-xs text-blue-700">Complete your GCash payment, then enter its reference number.</p>
+                  </div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">GCash reference number
+                    <input type="text" required inputMode="numeric" pattern="[0-9]{13}" maxLength={13} value={gcashReference} onChange={event => { setGcashReference(event.target.value.replace(/\D/g, '').slice(0, 13)); setPaymentError(''); }} placeholder="13-digit reference number" className="mt-2 w-full rounded-xl border border-[#C9A77C]/50 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
+                    {gcashReference.length !== 13 && <span className="mt-2 block text-xs font-semibold normal-case tracking-normal text-amber-700">Enter exactly 13 digits ({gcashReference.length}/13).</span>}
+                  </label>
+                </div>
+              )}
+              {paymentError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{paymentError}</p>}
+              <div className="flex gap-3">
+                <button type="button" onClick={backToCart} disabled={checkoutLoading} className="flex-1 rounded-xl border border-[#C9A77C]/50 bg-white py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-60">Back</button>
+                <button type="submit" disabled={checkoutLoading || (paymentMethod === 'Cash' && Number(cashTendered) < cartTotal) || (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashReference))} className="flex-[2] rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">{checkoutLoading ? 'Saving order...' : 'Confirm sale'}</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
       {successOrder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="presentation">
           <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="kiosk-order-success-title">
@@ -600,6 +689,10 @@ export default function Kiosk() {
                 setOrderType('');
                 setCustomerName('');
                 setOrderNotes('');
+                setPaymentMethod('Cash');
+                setCashTendered('');
+                setGcashReference('');
+                setPaymentError('');
               }}
               className="w-full rounded-xl bg-[#815633] py-3.5 font-bold text-white shadow-sm transition-colors hover:bg-[#62432B]"
             >
