@@ -327,7 +327,7 @@ export default function Cashier() {
   if (isPosOpen) {
     return (
       <Suspense fallback={<div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#F5EFE3] font-bold text-[#815633]">Loading POS...</div>}>
-        <CashierPOS branch={activeBranch} onBack={() => setIsPosOpen(false)} />
+        <CashierPOS branch={activeBranch} cashierUser={user} onBack={() => setIsPosOpen(false)} />
       </Suspense>
     );
   }

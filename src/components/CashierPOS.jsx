@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 const money = amount => `₱${Number(amount || 0).toFixed(2)}`;
 
-export default function CashierPOS({ branch, onBack }) {
+export default function CashierPOS({ branch, cashierUser, onBack }) {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const [menuItems, setMenuItems] = useState([]);
   const [menuLoading, setMenuLoading] = useState(true);
@@ -30,6 +30,10 @@ export default function CashierPOS({ branch, onBack }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [receipt, setReceipt] = useState(null);
+  const [isCashierAccessOpen, setIsCashierAccessOpen] = useState(false);
+  const [cashierPassword, setCashierPassword] = useState('');
+  const [cashierAccessError, setCashierAccessError] = useState('');
+  const [isVerifyingCashier, setIsVerifyingCashier] = useState(false);
 
   useEffect(() => {
     let isCurrent = true;
@@ -199,6 +203,31 @@ export default function CashierPOS({ branch, onBack }) {
     setIsOrderFlowOpen(true);
   };
 
+  const verifyCashierAccess = async event => {
+    event.preventDefault();
+    if (isVerifyingCashier || !cashierPassword || !cashierUser?.email) return;
+    setIsVerifyingCashier(true);
+    setCashierAccessError('');
+    try {
+      const response = await fetch(`${API_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cashierUser.email, password: cashierPassword })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.user?.email?.toLowerCase() !== cashierUser.email.toLowerCase() || result.user?.role !== cashierUser.role || !['admin', 'cashier'].includes(result.user?.role)) {
+        throw new Error('Incorrect cashier password.');
+      }
+      setIsCashierAccessOpen(false);
+      setCashierPassword('');
+      onBack();
+    } catch (accessError) {
+      setCashierAccessError(accessError.message || 'Could not verify cashier access.');
+    } finally {
+      setIsVerifyingCashier(false);
+    }
+  };
+
   const completeSale = async event => {
     event.preventDefault();
     if (isSubmitting || cart.length === 0 || !orderType) return;
@@ -320,7 +349,7 @@ export default function CashierPOS({ branch, onBack }) {
         <div className="flex items-center gap-2">
           <span className="hidden rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700 sm:inline-flex">Counter sale</span>
           <button type="button" onClick={() => setIsCartOpen(true)} className="rounded-lg border border-[#C9A77C]/50 bg-white px-4 py-2 text-sm font-bold text-[#815633] shadow-sm hover:bg-[#FBFAF4]">View Cart <span className="ml-1 rounded-full bg-[#815633] px-2 py-0.5 text-xs text-white">{cartCount}</span></button>
-          <button type="button" onClick={onBack} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50">Back to orders</button>
+          <button type="button" onClick={() => { setCashierAccessError(''); setCashierPassword(''); setIsCashierAccessOpen(true); }} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50">🔒 Cashier</button>
         </div>
       </header>
 
@@ -661,10 +690,27 @@ export default function CashierPOS({ branch, onBack }) {
                 </button>
               ))}
             </div>
-            <footer className="border-t border-gray-100 p-4">
-              <button type="button" onClick={onBack} className="w-full rounded-xl border border-gray-200 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to orders</button>
-            </footer>
           </section>
+        </div>
+      )}
+
+      {isCashierAccessOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <form onSubmit={verifyCashierAccess} className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#815633]">Employee verification</p>
+                <h2 className="mt-1 text-lg font-black text-gray-900">Return to cashier</h2>
+                <p className="mt-1 text-sm text-gray-600">Enter the cashier account password to leave the POS.</p>
+              </div>
+              <button type="button" aria-label="Cancel cashier access" onClick={() => setIsCashierAccessOpen(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-100">×</button>
+            </div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Cashier password
+              <input autoFocus type="password" required autoComplete="current-password" value={cashierPassword} onChange={event => setCashierPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-semibold outline-none focus:border-[#815633]" />
+            </label>
+            {cashierAccessError && <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{cashierAccessError}</p>}
+            <button type="submit" disabled={isVerifyingCashier || !cashierPassword} className="mt-4 w-full rounded-xl bg-[#815633] py-3 font-bold text-white hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-60">{isVerifyingCashier ? 'Checking...' : 'Verify and return'}</button>
+          </form>
         </div>
       )}
     </div>
