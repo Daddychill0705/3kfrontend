@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
 
@@ -13,6 +13,15 @@ export default function Kiosk() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
+  const [orderNotes, setOrderNotes] = useState('');
+  const [isOrderFlowOpen, setIsOrderFlowOpen] = useState(false);
+  const [orderFlowStep, setOrderFlowStep] = useState(1);
+  const [activeProduct, setActiveProduct] = useState(null);
+  const [productQuantity, setProductQuantity] = useState(1);
+  const [selectedDrinks, setSelectedDrinks] = useState({});
+  const [selectedAddOns, setSelectedAddOns] = useState({});
+  const [specialRequests, setSpecialRequests] = useState('');
+  const [selectedQuickRequests, setSelectedQuickRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
@@ -54,13 +63,80 @@ export default function Kiosk() {
 
   const filteredItems = activeCategory === 'ALL' ? menuItems : menuItems.filter(item => item.category === activeCategory);
 
-  const addToCart = (item) => {
+  const availableDrinks = useMemo(() => menuItems.filter(item => {
+    const searchable = `${item.category || ''} ${item.name || ''}`.toLowerCase();
+    return /drink|beverage|juice|tea|coffee|soda|water|gulaman|lemonade|shake|milk/.test(searchable) && Number(item.is_sold_out) !== 1 && item.is_sold_out !== true;
+  }), [menuItems]);
+  const availableAddOns = useMemo(() => menuItems.filter(item => {
+    const category = String(item.category || '').toLowerCase();
+    return (category === 'rice and extras' || /add.?ons?|topping/.test(category)) && Number(item.is_sold_out) !== 1 && item.is_sold_out !== true;
+  }), [menuItems]);
+
+  const beginItemOrder = item => {
     if (item.is_sold_out) return;
-    setCart(prev => {
-      const existingItem = prev.find(i => i.id === item.id);
-      if (existingItem) return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { ...item, qty: 1 }];
+    setActiveProduct(item);
+    setProductQuantity(1);
+    setSelectedDrinks({});
+    setSelectedAddOns({});
+    setSpecialRequests('');
+    setSelectedQuickRequests([]);
+    setOrderFlowStep(1);
+    setIsOrderFlowOpen(true);
+  };
+
+  const selectedFlowItems = useMemo(() => {
+    if (!activeProduct) return [];
+    return [
+      { item: activeProduct, qty: productQuantity, type: 'Food' },
+      ...availableDrinks.filter(item => selectedDrinks[item.id]).map(item => ({ item, qty: selectedDrinks[item.id], type: 'Drink' })),
+      ...availableAddOns.filter(item => selectedAddOns[item.id]).map(item => ({ item, qty: selectedAddOns[item.id], type: 'Add-on' }))
+    ].map(({ item, qty, type }) => ({
+      id: item.id,
+      name: item.name,
+      price: Number(item.price),
+      image_url: item.image_url,
+      qty,
+      type
+    }));
+  }, [activeProduct, productQuantity, availableDrinks, selectedDrinks, availableAddOns, selectedAddOns]);
+
+  const flowTotal = selectedFlowItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const changeFlowQuantity = (setter, id, delta) => {
+    setter(previous => {
+      const nextQuantity = (Number(previous[id]) || 0) + delta;
+      if (nextQuantity <= 0) {
+        const next = { ...previous };
+        delete next[id];
+        return next;
+      }
+      return { ...previous, [id]: nextQuantity };
     });
+  };
+
+  const cancelOrderFlow = () => {
+    setIsOrderFlowOpen(false);
+    setOrderFlowStep(1);
+    setActiveProduct(null);
+    setProductQuantity(1);
+    setSelectedDrinks({});
+    setSelectedAddOns({});
+    setSpecialRequests('');
+    setSelectedQuickRequests([]);
+  };
+
+  const addFlowToCart = () => {
+    setCart(previous => {
+      const merged = new Map(previous.map(item => [String(item.id), { ...item }]));
+      selectedFlowItems.forEach(item => {
+        const key = String(item.id);
+        const existing = merged.get(key);
+        merged.set(key, existing ? { ...existing, qty: existing.qty + item.qty } : { ...item });
+      });
+      return [...merged.values()];
+    });
+    const flowNotes = [...selectedQuickRequests, specialRequests.trim()].filter(Boolean).join(', ');
+    if (flowNotes) setOrderNotes(previous => [previous.trim(), flowNotes].filter(Boolean).join(' | '));
+    cancelOrderFlow();
   };
 
   const updateQty = (id, delta) => {
@@ -79,6 +155,7 @@ export default function Kiosk() {
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+    if (!orderType) return alert('Please choose dine-in or take-out before ordering.');
     
     // Require the Kiosk user to enter their name so the Cashier isn't confused
     if (!customerName.trim()) {
@@ -103,7 +180,7 @@ export default function Kiosk() {
         paymentMethod: 'Cash on delivery',
         address: `Kiosk Customer: ${customerName.trim()}`,
         phone: '',
-        notes: ''
+        notes: orderNotes.trim()
       };
 
       const response = await fetch(`${API_URL}/api/orders`, {
@@ -122,6 +199,7 @@ export default function Kiosk() {
       }
       
       setCart([]);
+      setOrderNotes('');
       setIsCartOpen(false);
       setSuccessOrder({ id: responseData.orderId, customerName: customerName.trim() });
     } catch (error) { alert(error.message); } 
@@ -130,6 +208,7 @@ export default function Kiosk() {
 
   const handleCancel = () => {
     setCart([]);
+    setOrderNotes('');
     setOrderType('');
     setCustomerName('');
   };
@@ -203,9 +282,6 @@ export default function Kiosk() {
         </div>
         
         <div className="flex gap-3">
-          <button onClick={() => setOrderType('')} className="bg-white text-gray-700 border border-gray-200 px-4 md:px-6 py-2 md:py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm hover:bg-gray-50 transition-colors uppercase tracking-wider">
-            Change: {orderType}
-          </button>
           <button onClick={handleCancel} className="bg-white text-red-500 border-2 border-red-200 px-4 md:px-6 py-2 md:py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm hover:bg-red-50 hover:border-red-300 transition-colors uppercase tracking-wider">
             Cancel Order
           </button>
@@ -263,11 +339,11 @@ export default function Kiosk() {
                     <div className="flex-grow"></div>
                     <div className="text-xl md:text-2xl font-black text-[#815633] mb-4 mt-2">₱{parseFloat(item.price).toFixed(2)}</div>
                     <button 
-                      onClick={() => addToCart(item)}
+                      onClick={() => beginItemOrder(item)}
                       disabled={item.is_sold_out}
                       className={`w-full py-3 rounded-lg text-sm font-bold transition-all duration-300 shadow-sm ${item.is_sold_out ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-transparent' : 'bg-[#815633] text-white border-transparent hover:bg-[#62432B] hover:shadow-md hover:-translate-y-0.5'}`}
                     >
-                      Add to Order
+                      Choose Options
                     </button>
                   </div>
                 </div>
@@ -306,6 +382,108 @@ export default function Kiosk() {
             </div>
          </div>
       </div>
+
+      {isOrderFlowOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <section role="dialog" aria-modal="true" aria-labelledby="kiosk-order-flow-title" className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <header className="flex items-center justify-between border-b border-gray-100 bg-gray-50 p-4 sm:p-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#815633]">{orderFlowStep < 4 ? `Step ${orderFlowStep} of 4` : 'Review order'}</p>
+                <h2 id="kiosk-order-flow-title" className="mt-1 text-lg font-black text-gray-900">
+                  {orderFlowStep === 1 && 'Choose quantity'}
+                  {orderFlowStep === 2 && 'Add drinks'}
+                  {orderFlowStep === 3 && 'Add-ons and instructions'}
+                  {orderFlowStep === 4 && 'Review your selection'}
+                </h2>
+              </div>
+              <button type="button" aria-label="Cancel item options" onClick={cancelOrderFlow} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
+            </header>
+
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
+              {orderFlowStep === 1 && activeProduct && (
+                <div>
+                  <div className="flex gap-4 rounded-xl border border-gray-200 bg-[#FBFAF4] p-3 sm:p-4">
+                    {activeProduct.image_url && <img src={activeProduct.image_url.startsWith('http') ? activeProduct.image_url : (activeProduct.image_url.startsWith('/') ? activeProduct.image_url : `${API_URL}${activeProduct.image_url}`)} alt={activeProduct.name} className="h-24 w-24 shrink-0 rounded-xl object-cover sm:h-32 sm:w-32" />}
+                    <div className="min-w-0 flex-1 self-center">
+                      <h3 className="text-base font-black text-gray-900 sm:text-lg">{activeProduct.name}</h3>
+                      <p className="mt-1 text-sm font-bold text-[#815633]">{`₱${Number(activeProduct.price).toFixed(2)}`} each</p>
+                    </div>
+                  </div>
+                  <div className="mt-5 flex items-center justify-between rounded-xl border border-gray-200 p-4">
+                    <span className="font-bold text-gray-700">Quantity</span>
+                    <div className="flex items-center gap-3">
+                      <button type="button" aria-label="Decrease quantity" onClick={() => setProductQuantity(quantity => Math.max(1, quantity - 1))} className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-xl font-bold hover:bg-gray-50">−</button>
+                      <span className="w-8 text-center text-lg font-black">{productQuantity}</span>
+                      <button type="button" aria-label="Increase quantity" onClick={() => setProductQuantity(quantity => quantity + 1)} className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-xl font-bold hover:bg-gray-50">+</button>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex justify-between border-t border-gray-200 pt-4 font-black"><span>Subtotal</span><span className="text-[#815633]">₱{(Number(activeProduct.price) * productQuantity).toFixed(2)}</span></div>
+                </div>
+              )}
+
+              {orderFlowStep === 2 && (
+                <div className="space-y-3">
+                  {availableDrinks.length === 0 ? <p className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-600">No drinks are available. Continue to the next step.</p> : availableDrinks.map(item => {
+                    const qty = Number(selectedDrinks[item.id]) || 0;
+                    return <div key={item.id} className={`flex items-center gap-3 rounded-xl border p-3 ${qty ? 'border-[#815633] bg-[#FBFAF4]' : 'border-gray-200'}`}>
+                      {item.image_url && <img src={item.image_url.startsWith('http') ? item.image_url : (item.image_url.startsWith('/') ? item.image_url : `${API_URL}${item.image_url}`)} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />}
+                      <div className="min-w-0 flex-1"><p className="text-sm font-bold text-gray-900">{item.name}</p><p className="text-xs font-bold text-[#815633]">₱{Number(item.price).toFixed(2)}</p></div>
+                      <div className="flex items-center gap-2">
+                        {qty > 0 && <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => changeFlowQuantity(setSelectedDrinks, item.id, -1)} className="flex h-9 w-9 items-center justify-center rounded-lg border text-lg">−</button>}
+                        {qty > 0 && <span className="w-5 text-center font-black">{qty}</span>}
+                        <button type="button" aria-label={`Add ${item.name}`} onClick={() => changeFlowQuantity(setSelectedDrinks, item.id, 1)} className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#815633] text-lg font-bold text-white">+</button>
+                      </div>
+                    </div>;
+                  })}
+                  <div className="flex justify-between border-t border-gray-200 pt-4 font-black"><span>Current subtotal</span><span className="text-[#815633]">₱{flowTotal.toFixed(2)}</span></div>
+                </div>
+              )}
+
+              {orderFlowStep === 3 && (
+                <div className="space-y-5">
+                  <div>
+                    <h3 className="mb-3 text-sm font-black text-gray-900">Available add-ons</h3>
+                    {availableAddOns.length === 0 ? <p className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-5 text-center text-sm text-gray-600">No add-ons are listed right now.</p> : <div className="space-y-2">{availableAddOns.map(item => {
+                      const qty = Number(selectedAddOns[item.id]) || 0;
+                      return <div key={item.id} className={`flex items-center gap-3 rounded-xl border p-3 ${qty ? 'border-[#815633] bg-[#FBFAF4]' : 'border-gray-200'}`}>
+                        <div className="min-w-0 flex-1"><p className="text-sm font-bold text-gray-900">{item.name}</p><p className="text-xs font-bold text-[#815633]">₱{Number(item.price).toFixed(2)}</p></div>
+                        {qty > 0 && <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => changeFlowQuantity(setSelectedAddOns, item.id, -1)} className="flex h-9 w-9 items-center justify-center rounded-lg border text-lg">−</button>}
+                        {qty > 0 && <span className="w-5 text-center font-black">{qty}</span>}
+                        <button type="button" aria-label={`Add ${item.name}`} onClick={() => changeFlowQuantity(setSelectedAddOns, item.id, 1)} className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#815633] text-lg font-bold text-white">+</button>
+                      </div>;
+                    })}</div>}
+                  </div>
+                  <div>
+                    <h3 className="mb-2 text-sm font-black text-gray-900">Special instructions</h3>
+                    <div className="mb-3 flex flex-wrap gap-2">{['No onions', 'Less spicy', 'Extra sauce', 'Sauce on the side', 'No utensils'].map(request => {
+                      const selected = selectedQuickRequests.includes(request);
+                      return <button key={request} type="button" onClick={() => setSelectedQuickRequests(previous => selected ? previous.filter(value => value !== request) : [...previous, request])} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${selected ? 'border-[#815633] bg-[#815633] text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-[#815633]'}`}>{request}</button>;
+                    })}</div>
+                    <textarea value={specialRequests} onChange={event => setSpecialRequests(event.target.value)} maxLength={500} rows={3} placeholder="Other requests (optional)" className="w-full resize-y rounded-xl border border-gray-200 px-3 py-3 text-sm outline-none focus:border-[#815633]" />
+                  </div>
+                  <div className="flex justify-between border-t border-gray-200 pt-3 text-sm font-black"><span>Current subtotal</span><span className="text-[#815633]">₱{flowTotal.toFixed(2)}</span></div>
+                </div>
+              )}
+
+              {orderFlowStep === 4 && (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm"><p><span className="font-bold text-gray-500">Order type:</span> <span className="font-black text-gray-900">{orderType}</span></p><p className="mt-1"><span className="font-bold text-gray-500">Branch:</span> <span className="font-black text-gray-900">{kioskBranch}</span></p></div>
+                  <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 px-4">{selectedFlowItems.map(item => <div key={item.id} className="flex items-center justify-between gap-4 py-3 text-sm"><span className="min-w-0"><span className="font-bold text-gray-400">{item.qty}× </span><span className="font-bold text-gray-900">{item.name}</span><span className="ml-2 text-[10px] font-bold uppercase text-gray-400">{item.type}</span></span><span className="shrink-0 font-bold">₱{(item.price * item.qty).toFixed(2)}</span></div>)}</div>
+                  {([...selectedQuickRequests, specialRequests.trim()].filter(Boolean).length > 0) && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm"><span className="font-bold">Special instructions:</span> {[...selectedQuickRequests, specialRequests.trim()].filter(Boolean).join(', ')}</p>}
+                  <div className="flex justify-between border-t border-gray-200 pt-3 text-lg font-black"><span>Grand total</span><span className="text-[#815633]">₱{flowTotal.toFixed(2)}</span></div>
+                </div>
+              )}
+            </div>
+
+            <footer className="flex flex-wrap justify-between gap-2 border-t border-gray-100 bg-gray-50 p-4">
+              {orderFlowStep === 1 && <><button type="button" onClick={cancelOrderFlow} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Cancel</button><button type="button" onClick={() => setOrderFlowStep(availableDrinks.length ? 2 : 3)} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B]">Next</button></>}
+              {orderFlowStep === 2 && <><button type="button" onClick={() => setOrderFlowStep(1)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Back</button><button type="button" onClick={() => { setSelectedDrinks({}); setOrderFlowStep(3); }} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Skip drinks</button><button type="button" onClick={() => setOrderFlowStep(3)} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B]">Next</button></>}
+              {orderFlowStep === 3 && <><button type="button" onClick={() => setOrderFlowStep(availableDrinks.length ? 2 : 1)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Back</button><button type="button" onClick={() => setOrderFlowStep(4)} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B]">Review order</button></>}
+              {orderFlowStep === 4 && <><button type="button" onClick={() => setOrderFlowStep(3)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Back</button><button type="button" onClick={addFlowToCart} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B]">Add to tray</button></>}
+            </footer>
+          </section>
+        </div>
+      )}
 
       <div className={`fixed inset-0 z-[100] transition-all duration-300 ${isCartOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm cursor-pointer" onClick={() => setIsCartOpen(false)}></div>
@@ -358,6 +536,7 @@ export default function Kiosk() {
                   <input 
                      type="text" 
                      required 
+                     autoComplete="off"
                      value={customerName} 
                      onChange={(e) => setCustomerName(e.target.value)} 
                      placeholder="Enter your name" 
@@ -371,14 +550,24 @@ export default function Kiosk() {
               <span className="text-3xl font-black text-[#815633]">₱{cartTotal.toFixed(2)}</span>
             </div>
             
-            <button 
-              onClick={handleCheckout}
-              disabled={cart.length === 0 || checkoutLoading}
-              className={`w-full py-4 rounded-2xl font-black text-lg shadow-md transition-all duration-300 uppercase tracking-wide 
-                 ${cart.length > 0 && !checkoutLoading ? 'bg-[#815633] hover:bg-[#62432B] text-white hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-            >
-              {checkoutLoading ? 'Processing...' : 'Send to Kitchen'}
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setCart([]); setOrderNotes(''); }}
+                disabled={cart.length === 0 || checkoutLoading}
+                className="shrink-0 rounded-2xl border border-red-200 bg-white px-4 py-3 font-bold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Clear all
+              </button>
+              <button
+                onClick={handleCheckout}
+                disabled={cart.length === 0 || checkoutLoading || !customerName.trim()}
+                className={`flex-1 rounded-2xl py-4 font-black text-base shadow-md transition-all duration-300 uppercase tracking-wide md:text-lg
+                   ${cart.length > 0 && !checkoutLoading && customerName.trim() ? 'bg-[#815633] hover:bg-[#62432B] text-white hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+              >
+                {checkoutLoading ? 'Processing...' : 'Send to Kitchen'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -396,6 +585,7 @@ export default function Kiosk() {
                 setSuccessOrder(null);
                 setOrderType('');
                 setCustomerName('');
+                setOrderNotes('');
               }}
               className="w-full rounded-xl bg-[#815633] py-3.5 font-bold text-white shadow-sm transition-colors hover:bg-[#62432B]"
             >
