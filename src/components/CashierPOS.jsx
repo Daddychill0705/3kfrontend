@@ -374,13 +374,6 @@ export default function CashierPOS({ branch, onBack }) {
               <button type="button" aria-label="Close cart" onClick={() => setIsCartOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
               <button type="button" onClick={() => setCart([])} disabled={!cart.length} className="text-xs font-bold text-red-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40">Clear all</button>
             </div>
-            <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
-              {['Dine-in', 'Take-out'].map(type => <button key={type} type="button" onClick={() => setOrderType(type)} className={`rounded-lg py-2 text-sm font-bold transition ${orderType === type ? 'bg-[#815633] text-white shadow-sm' : 'text-gray-600 hover:bg-white'}`}>{type}</button>)}
-            </div>
-            <label className="block text-xs font-bold text-gray-600">
-              Customer Name / Calling Name <span className="text-red-600">*</span>
-              <input required value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Enter customer name" maxLength={255} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
-            </label>
           </div>
 
           <div className="min-h-36 flex-1 space-y-3 overflow-y-auto p-4">
@@ -404,13 +397,6 @@ export default function CashierPOS({ branch, onBack }) {
                 <span className="w-20 shrink-0 text-right text-xs font-black text-gray-900">{formatMoney(item.price * item.qty)}</span>
               </div>
             ))}
-          </div>
-
-          <div className="border-t border-gray-100 px-4 py-3">
-            <label className="block">
-              <span className="sr-only">Kitchen notes</span>
-              <input value={orderNotes} onChange={event => setOrderNotes(event.target.value)} placeholder="Kitchen notes (optional)" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-medium outline-none focus:border-[#815633]" />
-            </label>
           </div>
 
           <div className="space-y-2 border-t border-gray-200 bg-gray-50 p-4">
@@ -523,7 +509,7 @@ export default function CashierPOS({ branch, onBack }) {
                 <div className="space-y-4">
                   <label className="block text-xs font-bold text-gray-600">
                     Customer Name / Calling Name <span className="text-red-600">*</span>
-                    <input required value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Enter customer name" maxLength={255} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
+                    <input required autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Enter customer name" maxLength={255} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
                   </label>
                   {!customerName.trim() && <p className="text-xs font-semibold text-red-600">A customer name is required before checkout.</p>}
                   {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
