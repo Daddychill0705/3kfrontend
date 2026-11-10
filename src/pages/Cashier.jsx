@@ -211,7 +211,13 @@ export default function Cashier() {
       
       const newPaymentMethod = 'Cash';
       const newStatus = selectedOrder.status === 'Pending' ? 'Confirmed' : selectedOrder.status;
-      const updatedOrder = { ...selectedOrder, payment_method: newPaymentMethod, status: newStatus };
+      const updatedOrder = {
+        ...selectedOrder,
+        payment_method: newPaymentMethod,
+        cash_tendered: tendered,
+        change_given: tendered - total,
+        status: newStatus
+      };
       const token = localStorage.getItem('token');
 
       setIsSubmittingPayment(true);
@@ -219,7 +225,11 @@ export default function Cashier() {
         const paymentResponse = await fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}/payment`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ paymentMethod: newPaymentMethod })
+          body: JSON.stringify({
+            paymentMethod: newPaymentMethod,
+            cashTendered: tendered,
+            changeGiven: tendered - total
+          })
         });
 
         if (!paymentResponse.ok) {
@@ -306,10 +316,11 @@ export default function Cashier() {
   // VAT Calculation Helpers
   // Extract customer name specifically for Kiosk Orders
   const getCustomerName = (order) => {
+      if (order.customer_name?.trim()) return order.customer_name.trim();
       const isKiosk = ['Dine-in', 'Take-out'].includes(order.order_type);
       return (isKiosk && order.delivery_address?.startsWith('Kiosk Customer: ')) 
           ? order.delivery_address.replace('Kiosk Customer: ', '') 
-          : order.customerName;
+          : order.customerName || 'Walk-in Customer';
   };
 
   // Main cashier dashboard
@@ -368,13 +379,13 @@ export default function Cashier() {
                return (
                <div key={order.id} onClick={() => setSelectedOrder(order)} className={`p-4 rounded-xl border cursor-pointer transition-all duration-500 ease-in-out flex flex-col gap-2 ${completingOrderIds.has(order.id) ? 'opacity-0 -translate-x-3 scale-95 max-h-0 py-0 my-0 overflow-hidden pointer-events-none' : 'opacity-100 max-h-48'} ${selectedOrder?.id === order.id ? 'bg-[#E6D4B8]/10 border-[#815633] shadow-sm' : 'bg-white border-gray-200 hover:border-[#C9A77C]'}`}>
                  <div className="flex justify-between items-start">
-                   <h3 className="font-black text-gray-900 text-lg">
-                     O-{String(order.id).padStart(4, '0')}
+                   <h3 className="font-black uppercase text-gray-900 text-lg truncate">
+                     {displayName || 'Walk-in Customer'}
                    </h3>
                    <span className="font-black text-gray-900">₱{parseFloat(order.total_amount).toFixed(2)}</span>
                  </div>
                  
-                 <p className="text-xs text-gray-600 font-bold truncate flex-1">{displayName}</p>
+                 <p className="text-xs text-gray-500 font-bold">Order #O-{String(order.id).padStart(4, '0')}</p>
 
                  <div className="flex gap-2 mt-1">
                    {/* Order Type Badge */}
@@ -444,8 +455,8 @@ export default function Cashier() {
             <div className="max-w-3xl mx-auto w-full bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
                  <div>
-                   <h2 className="text-4xl font-black text-gray-900 mb-2">O-{String(selectedOrder.id).padStart(4, '0')}</h2>
-                   <p className="text-base font-bold text-gray-800">{getCustomerName(selectedOrder)}</p>
+                   <h2 className="text-3xl md:text-4xl font-black uppercase text-gray-900 mb-1">{getCustomerName(selectedOrder)}</h2>
+                   <p className="text-sm font-bold text-gray-500">Order #O-{String(selectedOrder.id).padStart(4, '0')}</p>
                    <p className="text-xs font-bold text-gray-500 mt-1">{selectedOrder.order_type}</p>
                  </div>
                  <div className="text-right flex flex-col items-end gap-2">
@@ -460,6 +471,25 @@ export default function Cashier() {
                  </div>
                </div>
                <div className="p-6 md:p-8 space-y-8">
+                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm">
+                   <div className="flex flex-wrap items-center justify-between gap-2">
+                     <span className="font-bold text-gray-500">Payment method</span>
+                     <span className="font-black uppercase text-gray-900">{selectedOrder.payment_method || 'Not recorded'}</span>
+                   </div>
+                   {selectedOrder.payment_method === 'Cash' && selectedOrder.cash_tendered != null && (
+                     <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-200 pt-2">
+                       <span className="text-gray-500">Cash tendered</span><span className="text-right font-bold">₱{Number(selectedOrder.cash_tendered).toFixed(2)}</span>
+                       <span className="text-gray-500">Change given</span><span className="text-right font-bold">₱{Number(selectedOrder.change_given || 0).toFixed(2)}</span>
+                     </div>
+                   )}
+                   {selectedOrder.payment_method === 'GCash' && selectedOrder.gcash_reference && (
+                     <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 pt-2">
+                       <span className="text-gray-500">GCash reference</span><span className="font-bold">{selectedOrder.gcash_reference}</span>
+                     </div>
+                   )}
+                   {selectedOrder.payment_method === 'GCash' && <div className="mt-2 flex justify-between border-t border-gray-200 pt-2"><span className="text-gray-500">Amount paid</span><span className="font-bold">₱{Number(selectedOrder.total_amount).toFixed(2)}</span></div>}
+                 </div>
+                 {selectedOrder.notes && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm"><span className="font-bold text-gray-700">Special instructions:</span> <span className="text-gray-700">{selectedOrder.notes}</span></div>}
                  <div className="border-t border-gray-100 pt-6">
                    <div className="space-y-4">
                      {selectedOrder.itemsData?.map((item, idx) => (

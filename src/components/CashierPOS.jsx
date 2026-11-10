@@ -11,6 +11,14 @@ export default function CashierPOS({ branch, onBack }) {
   const [orderType, setOrderType] = useState('Dine-in');
   const [customerName, setCustomerName] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
+  const [isOrderFlowOpen, setIsOrderFlowOpen] = useState(false);
+  const [orderFlowStep, setOrderFlowStep] = useState(1);
+  const [activeProduct, setActiveProduct] = useState(null);
+  const [productQuantity, setProductQuantity] = useState(1);
+  const [selectedDrinks, setSelectedDrinks] = useState({});
+  const [selectedAddOns, setSelectedAddOns] = useState({});
+  const [specialRequests, setSpecialRequests] = useState('');
+  const [selectedQuickRequests, setSelectedQuickRequests] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -43,6 +51,16 @@ export default function CashierPOS({ branch, onBack }) {
   }, [API_URL]);
 
   const categories = useMemo(() => ['All', ...new Set(menuItems.map(item => item.category).filter(Boolean))], [menuItems]);
+  const availableDrinks = useMemo(() => menuItems.filter(item => {
+    const searchable = `${item.category || ''} ${item.name || ''}`.toLowerCase();
+    const looksLikeDrink = /drink|beverage|juice|tea|coffee|soda|water|gulaman|lemonade|shake|milk/.test(searchable);
+    return looksLikeDrink && Number(item.is_sold_out) !== 1 && item.is_sold_out !== true;
+  }), [menuItems]);
+  const availableAddOns = useMemo(() => menuItems.filter(item => {
+    const category = String(item.category || '').toLowerCase();
+    const isAddonCategory = category === 'rice and extras' || /add.?ons?|topping/.test(category);
+    return isAddonCategory && Number(item.is_sold_out) !== 1 && item.is_sold_out !== true;
+  }), [menuItems]);
   const visibleItems = useMemo(() => menuItems.filter(item => {
     const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
     const matchesSearch = String(item.name || '').toLowerCase().includes(searchQuery.toLowerCase().trim());
@@ -53,15 +71,90 @@ export default function CashierPOS({ branch, onBack }) {
   const vatAmount = subtotal - vatableSales;
   const changeDue = Math.max(0, Number(cashTendered || 0) - subtotal);
 
-  const addToCart = item => {
-    if (Number(item.is_sold_out) === 1 || item.is_sold_out === true) return;
-    const normalizedItem = { id: item.id, name: item.name, price: Number(item.price), image: item.image_url };
-    setCart(previous => {
-      const found = previous.some(cartItem => String(cartItem.id) === String(item.id));
-      return found
-        ? previous.map(cartItem => String(cartItem.id) === String(item.id) ? { ...cartItem, qty: cartItem.qty + 1 } : cartItem)
-        : [...previous, { ...normalizedItem, qty: 1 }];
+  const changeFlowQuantity = (setter, id, delta) => {
+    setter(previous => {
+      const nextQuantity = (Number(previous[id]) || 0) + delta;
+      if (nextQuantity <= 0) {
+        const next = { ...previous };
+        delete next[id];
+        return next;
+      }
+      return { ...previous, [id]: nextQuantity };
     });
+  };
+
+  const beginItemOrder = item => {
+    if (Number(item.is_sold_out) === 1 || item.is_sold_out === true) return;
+    setActiveProduct(item);
+    setProductQuantity(1);
+    setSelectedDrinks({});
+    setSelectedAddOns({});
+    setSpecialRequests('');
+    setSelectedQuickRequests([]);
+    setOrderFlowStep(1);
+    setIsOrderFlowOpen(true);
+  };
+
+  const selectedFlowItems = useMemo(() => {
+    if (!activeProduct) return [];
+    const selections = [
+      { item: activeProduct, qty: productQuantity, type: 'Food' },
+      ...availableDrinks.filter(item => selectedDrinks[item.id]).map(item => ({ item, qty: selectedDrinks[item.id], type: 'Drink' })),
+      ...availableAddOns.filter(item => selectedAddOns[item.id]).map(item => ({ item, qty: selectedAddOns[item.id], type: 'Add-on' }))
+    ];
+    return selections.map(({ item, qty, type }) => ({
+      id: item.id,
+      name: item.name,
+      price: Number(item.price),
+      image: item.image_url,
+      qty,
+      type
+    }));
+  }, [activeProduct, productQuantity, availableDrinks, selectedDrinks, availableAddOns, selectedAddOns]);
+
+  const summaryItems = useMemo(() => {
+    const merged = new Map();
+    [...cart, ...selectedFlowItems].forEach(item => {
+      const key = String(item.id);
+      const existing = merged.get(key);
+      merged.set(key, existing ? { ...existing, qty: existing.qty + item.qty } : { ...item });
+    });
+    return [...merged.values()];
+  }, [cart, selectedFlowItems]);
+  const summaryTotal = useMemo(() => summaryItems.reduce((sum, item) => sum + item.price * item.qty, 0), [summaryItems]);
+
+  const buildCart = (existingItems, incomingItems) => {
+    const merged = new Map();
+    [...existingItems, ...incomingItems].forEach(item => {
+      const key = String(item.id);
+      const existing = merged.get(key);
+      merged.set(key, existing ? { ...existing, qty: existing.qty + item.qty } : { ...item });
+    });
+    return [...merged.values()];
+  };
+
+  const getFlowNotes = () => [...selectedQuickRequests, specialRequests.trim()].filter(Boolean).join(', ');
+  const combineNotes = (current, addition) => [current.trim(), addition.trim()].filter(Boolean).join(' | ');
+
+  const resetOrderFlow = () => {
+    setIsOrderFlowOpen(false);
+    setOrderFlowStep(1);
+    setActiveProduct(null);
+    setProductQuantity(1);
+    setSelectedDrinks({});
+    setSelectedAddOns({});
+    setSpecialRequests('');
+    setSelectedQuickRequests([]);
+  };
+
+  const addFlowToCart = () => {
+    if (!selectedFlowItems.length) {
+      resetOrderFlow();
+      return;
+    }
+    setCart(previous => buildCart(previous, selectedFlowItems));
+    setOrderNotes(previous => combineNotes(previous, getFlowNotes()));
+    resetOrderFlow();
   };
 
   const updateQuantity = (id, change) => {
@@ -73,7 +166,20 @@ export default function CashierPOS({ branch, onBack }) {
   const openPayment = () => {
     if (!cart.length) return;
     setError('');
-    setCashTendered(subtotal.toFixed(2));
+    setActiveProduct(null);
+    setOrderFlowStep(4);
+    setIsOrderFlowOpen(true);
+  };
+
+  const continueToPayment = () => {
+    const itemsForCheckout = buildCart(cart, selectedFlowItems);
+    const totalForCheckout = itemsForCheckout.reduce((sum, item) => sum + item.price * item.qty, 0);
+    if (!itemsForCheckout.length) return;
+    setCart(itemsForCheckout);
+    setOrderNotes(previous => combineNotes(previous, getFlowNotes()));
+    setCashTendered(totalForCheckout.toFixed(2));
+    setError('');
+    resetOrderFlow();
     setIsPaymentOpen(true);
   };
 
@@ -84,8 +190,8 @@ export default function CashierPOS({ branch, onBack }) {
       setError('Cash tendered must cover the total amount.');
       return;
     }
-    if (paymentMethod === 'GCash' && !gcashRef.trim()) {
-      setError('Enter the GCash reference number after verifying payment.');
+    if (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashRef)) {
+      setError('GCash reference number must contain exactly 13 digits.');
       return;
     }
 
@@ -93,8 +199,7 @@ export default function CashierPOS({ branch, onBack }) {
     setError('');
     const token = localStorage.getItem('token');
     const tendered = paymentMethod === 'Cash' ? Number(cashTendered) : subtotal;
-    const referenceNote = paymentMethod === 'GCash' ? `GCash reference: ${gcashRef.trim()}` : '';
-    const notes = [orderNotes.trim(), referenceNote].filter(Boolean).join(' | ');
+    const notes = orderNotes.trim();
 
     try {
       const response = await fetch(`${API_URL}/api/orders`, {
@@ -108,11 +213,14 @@ export default function CashierPOS({ branch, onBack }) {
           totalAmount: subtotal,
           orderType,
           branch,
-          address: `Kiosk Customer: ${customerName.trim() || 'Walk-in Customer'}`,
+          address: null,
           phone: null,
           paymentMethod,
           notes,
-          receipt_url: null
+          receipt_url: null,
+          customerName: customerName.trim() || 'Walk-in Customer',
+          gcashReference: paymentMethod === 'GCash' ? gcashRef : null,
+          cashTendered: paymentMethod === 'Cash' ? tendered : null
         })
       });
       const result = await response.json().catch(() => ({}));
@@ -139,9 +247,13 @@ export default function CashierPOS({ branch, onBack }) {
         orderType,
         items: cart.map(item => ({ ...item })),
         subtotal,
+        vatableSales,
+        vatAmount,
         paymentMethod,
         cashTendered: tendered,
         change: paymentMethod === 'Cash' ? tendered - subtotal : 0,
+        gcashReference: paymentMethod === 'GCash' ? gcashRef : '',
+        amountPaid: subtotal,
         notes,
         createdAt: new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }),
         status: statusConfirmed ? 'Confirmed' : 'Pending'
@@ -224,7 +336,7 @@ export default function CashierPOS({ branch, onBack }) {
                 {visibleItems.map(item => {
                   const soldOut = Number(item.is_sold_out) === 1 || item.is_sold_out === true;
                   return (
-                    <button key={item.id} type="button" disabled={soldOut} onClick={() => addToCart(item)} className={`group overflow-hidden rounded-2xl border bg-white p-2.5 text-left shadow-sm transition ${soldOut ? 'cursor-not-allowed opacity-55 grayscale' : 'border-gray-200 hover:-translate-y-0.5 hover:border-[#C9A77C] hover:shadow-md active:scale-[0.99]'}`}>
+                    <button key={item.id} type="button" disabled={soldOut} onClick={() => beginItemOrder(item)} className={`group overflow-hidden rounded-2xl border bg-white p-2.5 text-left shadow-sm transition ${soldOut ? 'cursor-not-allowed opacity-55 grayscale' : 'border-gray-200 hover:-translate-y-0.5 hover:border-[#C9A77C] hover:shadow-md active:scale-[0.99]'}`}>
                       <div className="relative mb-2 h-28 overflow-hidden rounded-xl bg-[#F5EFE3] sm:h-32">
                         {item.image_url && <img src={item.image_url} alt={item.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />}
                         {item.category && <span className="absolute left-2 top-2 max-w-[90%] truncate rounded-full border border-white/70 bg-white/90 px-2 py-1 text-[9px] font-black text-gray-700 shadow-sm">{item.category}</span>}
@@ -252,9 +364,9 @@ export default function CashierPOS({ branch, onBack }) {
             <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
               {['Dine-in', 'Take-out'].map(type => <button key={type} type="button" onClick={() => setOrderType(type)} className={`rounded-lg py-2 text-sm font-bold transition ${orderType === type ? 'bg-[#815633] text-white shadow-sm' : 'text-gray-600 hover:bg-white'}`}>{type}</button>)}
             </div>
-            <label className="block">
-              <span className="sr-only">Customer name or table number</span>
-              <input value={customerName} onChange={event => setCustomerName(event.target.value)} placeholder="Customer name / Table #" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
+            <label className="block text-xs font-bold text-gray-600">
+              Customer Name / Calling Name
+              <input value={customerName} onChange={event => setCustomerName(event.target.value)} placeholder="Walk-in Customer" maxLength={255} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
             </label>
           </div>
 
@@ -299,6 +411,141 @@ export default function CashierPOS({ branch, onBack }) {
         </aside>
       </div>
 
+      {isOrderFlowOpen && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+          <section role="dialog" aria-modal="true" aria-labelledby="order-flow-title" className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <header className="flex items-center justify-between border-b border-gray-100 bg-gray-50 p-4 sm:p-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#815633]">{orderFlowStep < 4 ? `Step ${orderFlowStep} of 4` : 'Review order'}</p>
+                <h2 id="order-flow-title" className="mt-1 text-lg font-black text-gray-900">
+                  {orderFlowStep === 1 && 'Select product and quantity'}
+                  {orderFlowStep === 2 && 'Choose drinks'}
+                  {orderFlowStep === 3 && 'Add-ons and special requests'}
+                  {orderFlowStep === 4 && 'Order summary'}
+                </h2>
+              </div>
+              <button type="button" aria-label="Cancel ordering" onClick={resetOrderFlow} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+              {orderFlowStep === 1 && activeProduct && (
+                <div>
+                  <div className="flex gap-4 rounded-xl border border-gray-200 bg-[#FBFAF4] p-3 sm:p-4">
+                    {activeProduct.image_url && <img src={activeProduct.image_url} alt={activeProduct.name} className="h-24 w-24 shrink-0 rounded-xl object-cover sm:h-32 sm:w-32" />}
+                    <div className="min-w-0 flex-1 self-center">
+                      <h3 className="text-base font-black text-gray-900 sm:text-lg">{activeProduct.name}</h3>
+                      <p className="mt-1 text-sm font-bold text-[#815633]">Price: {formatMoney(activeProduct.price)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-5 flex items-center justify-between rounded-xl border border-gray-200 p-4">
+                    <span className="font-bold text-gray-700">Quantity</span>
+                    <div className="flex items-center gap-3">
+                      <button type="button" aria-label="Decrease product quantity" onClick={() => setProductQuantity(quantity => Math.max(1, quantity - 1))} className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-xl font-bold hover:bg-gray-50">−</button>
+                      <span className="w-8 text-center text-lg font-black">{productQuantity}</span>
+                      <button type="button" aria-label="Increase product quantity" onClick={() => setProductQuantity(quantity => quantity + 1)} className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-xl font-bold hover:bg-gray-50">+</button>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex justify-between border-t border-gray-200 pt-4 text-base font-black"><span>Subtotal</span><span className="text-[#815633]">{formatMoney(Number(activeProduct.price) * productQuantity)}</span></div>
+                </div>
+              )}
+
+              {orderFlowStep === 2 && (
+                <div className="space-y-3">
+                  {availableDrinks.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm font-medium text-gray-600">There are no drink items in the current menu. You can continue without a drink.</p>
+                  ) : availableDrinks.map(item => {
+                    const qty = Number(selectedDrinks[item.id]) || 0;
+                    return (
+                      <div key={item.id} className={`flex items-center gap-3 rounded-xl border p-3 ${qty ? 'border-[#815633] bg-[#FBFAF4]' : 'border-gray-200'}`}>
+                        {item.image_url && <img src={item.image_url} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />}
+                        <div className="min-w-0 flex-1"><p className="text-sm font-bold text-gray-900">{item.name}</p><p className="text-xs font-bold text-[#815633]">{formatMoney(item.price)}</p></div>
+                        <div className="flex items-center gap-2">
+                          {qty > 0 && <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => changeFlowQuantity(setSelectedDrinks, item.id, -1)} className="flex h-9 w-9 items-center justify-center rounded-lg border text-lg">−</button>}
+                          {qty > 0 && <span className="w-5 text-center font-black">{qty}</span>}
+                          <button type="button" aria-label={`Add ${item.name}`} onClick={() => changeFlowQuantity(setSelectedDrinks, item.id, 1)} className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#815633] text-lg font-bold text-white">+</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="flex justify-between border-t border-gray-200 pt-4 font-black"><span>Current subtotal</span><span className="text-[#815633]">{formatMoney(summaryTotal)}</span></div>
+                </div>
+              )}
+
+              {orderFlowStep === 3 && (
+                <div className="space-y-5">
+                  <div>
+                    <h3 className="mb-3 text-sm font-black text-gray-900">Available add-ons</h3>
+                    {availableAddOns.length === 0 ? (
+                      <p className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-5 text-center text-sm font-medium text-gray-600">No add-ons are currently listed in the menu.</p>
+                    ) : <div className="space-y-2">
+                      {availableAddOns.map(item => {
+                        const qty = Number(selectedAddOns[item.id]) || 0;
+                        return (
+                          <div key={item.id} className={`flex items-center gap-3 rounded-xl border p-3 ${qty ? 'border-[#815633] bg-[#FBFAF4]' : 'border-gray-200'}`}>
+                            <div className="min-w-0 flex-1"><p className="text-sm font-bold text-gray-900">{item.name}</p><p className="text-xs font-bold text-[#815633]">{formatMoney(item.price)}</p></div>
+                            {qty > 0 && <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => changeFlowQuantity(setSelectedAddOns, item.id, -1)} className="flex h-9 w-9 items-center justify-center rounded-lg border text-lg">−</button>}
+                            {qty > 0 && <span className="w-5 text-center font-black">{qty}</span>}
+                            <button type="button" aria-label={`Add ${item.name}`} onClick={() => changeFlowQuantity(setSelectedAddOns, item.id, 1)} className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#815633] text-lg font-bold text-white">+</button>
+                          </div>
+                        );
+                      })}
+                    </div>}
+                  </div>
+                  <div>
+                    <h3 className="mb-2 text-sm font-black text-gray-900">Special instructions</h3>
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {['No onions', 'Less spicy', 'Extra sauce', 'Sauce on the side', 'No utensils'].map(request => {
+                        const selected = selectedQuickRequests.includes(request);
+                        return <button key={request} type="button" onClick={() => setSelectedQuickRequests(previous => selected ? previous.filter(value => value !== request) : [...previous, request])} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${selected ? 'border-[#815633] bg-[#815633] text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-[#815633]'}`}>{request}</button>;
+                      })}
+                    </div>
+                    <textarea value={specialRequests} onChange={event => setSpecialRequests(event.target.value)} maxLength={500} rows={3} placeholder="Other requests (optional)" className="w-full resize-y rounded-xl border border-gray-200 px-3 py-3 text-sm outline-none focus:border-[#815633]" />
+                  </div>
+                  <div className="flex justify-between border-t border-gray-200 pt-3 text-sm font-black"><span>Current subtotal</span><span className="text-[#815633]">{formatMoney(summaryTotal)}</span></div>
+                </div>
+              )}
+
+              {orderFlowStep === 4 && (
+                <div className="space-y-4">
+                  <div className="grid gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2">
+                    <p><span className="font-bold text-gray-500">Customer:</span> <span className="font-black text-gray-900">{customerName.trim() || 'Walk-in Customer'}</span></p>
+                    <p><span className="font-bold text-gray-500">Order type:</span> <span className="font-black text-gray-900">{orderType}</span></p>
+                  </div>
+                  <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 px-4">
+                    {summaryItems.map(item => <div key={item.id} className="flex items-center justify-between gap-4 py-3 text-sm"><span className="min-w-0"><span className="font-bold text-gray-400">{item.qty}× </span><span className="font-bold text-gray-900">{item.name}</span>{item.type && <span className="ml-2 text-[10px] font-bold uppercase text-gray-400">{item.type}</span>}</span><span className="shrink-0 font-bold">{formatMoney(item.price * item.qty)}</span></div>)}
+                    {summaryItems.length === 0 && <p className="py-4 text-sm text-gray-500">Your order is empty.</p>}
+                  </div>
+                  {combineNotes(orderNotes, getFlowNotes()) && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm"><span className="font-bold">Special instructions:</span> {combineNotes(orderNotes, getFlowNotes())}</p>}
+                  <div className="flex justify-between border-t border-gray-200 pt-3 text-lg font-black"><span>Grand total</span><span className="text-[#815633]">{formatMoney(summaryTotal)}</span></div>
+                </div>
+              )}
+            </div>
+
+            <footer className="flex flex-wrap justify-between gap-2 border-t border-gray-100 bg-gray-50 p-4">
+              {orderFlowStep === 1 && <>
+                <button type="button" onClick={resetOrderFlow} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Cancel</button>
+                <button type="button" onClick={() => setOrderFlowStep(availableDrinks.length ? 2 : 3)} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B]">Next</button>
+              </>}
+              {orderFlowStep === 2 && <>
+                <button type="button" onClick={() => setOrderFlowStep(1)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Back</button>
+                <button type="button" onClick={() => { setSelectedDrinks({}); setOrderFlowStep(3); }} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Skip drinks</button>
+                <button type="button" onClick={() => setOrderFlowStep(3)} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B]">Next</button>
+              </>}
+              {orderFlowStep === 3 && <>
+                <button type="button" onClick={() => setOrderFlowStep(availableDrinks.length ? 2 : 1)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Back</button>
+                <button type="button" onClick={() => setOrderFlowStep(4)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Skip</button>
+                <button type="button" onClick={() => setOrderFlowStep(4)} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B]">Add to order</button>
+              </>}
+              {orderFlowStep === 4 && <>
+                <button type="button" onClick={() => activeProduct ? setOrderFlowStep(3) : resetOrderFlow()} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Back</button>
+                <button type="button" onClick={addFlowToCart} className="rounded-lg border border-[#815633] px-4 py-2.5 text-sm font-bold text-[#815633] hover:bg-[#FBFAF4]">Order more</button>
+                <button type="button" disabled={!summaryItems.length} onClick={continueToPayment} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-50">Proceed to checkout</button>
+              </>}
+            </footer>
+          </section>
+        </div>
+      )}
+
       {isPaymentOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
           <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl">
@@ -330,19 +577,19 @@ export default function CashierPOS({ branch, onBack }) {
               ) : (
                 <div className="space-y-3">
                   <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-center">
-                    <p className="text-sm font-black text-blue-900">GCash merchant</p>
-                    <p className="mt-1 text-sm font-bold text-blue-800">Ruchell Quesada</p>
-                    <p className="text-xs font-semibold text-blue-700">0997 131 2386</p>
-                    <p className="mt-2 text-sm font-black text-blue-900">Collect {formatMoney(subtotal)}</p>
+                    <p className="text-sm font-black text-blue-900">GCash payment</p>
+                    <p className="mt-1 text-sm font-bold text-blue-800">Amount paid: {formatMoney(subtotal)}</p>
+                    <p className="mt-1 text-xs font-medium text-blue-700">Verify payment through your branch&apos;s approved GCash process before confirming.</p>
                   </div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">GCash reference number
-                    <input type="text" required value={gcashRef} onChange={event => setGcashRef(event.target.value)} placeholder="Enter reference after verifying payment" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
-                    <span className="mt-2 block text-xs font-medium normal-case tracking-normal text-gray-500">Verify that the payment was received before completing this sale.</span>
+                    <input type="text" required inputMode="numeric" pattern="[0-9]{13}" maxLength={13} value={gcashRef} onChange={event => setGcashRef(event.target.value.replace(/\D/g, '').slice(0, 13))} placeholder="13-digit reference number" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
+                    {gcashRef.length !== 13 && <span role="status" className="mt-2 block text-xs font-semibold normal-case tracking-normal text-amber-700">Enter exactly 13 digits ({gcashRef.length}/13).</span>}
+                    {gcashRef.length === 13 && <span className="mt-2 block text-xs font-semibold normal-case tracking-normal text-green-700">13-digit reference entered. Payment still requires cashier verification.</span>}
                   </label>
                 </div>
               )}
               {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-              <button type="submit" disabled={isSubmitting} className="w-full rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-wait disabled:opacity-60">{isSubmitting ? 'Saving sale...' : 'Confirm sale & print receipt'}</button>
+              <button type="submit" disabled={isSubmitting || (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashRef)) || (paymentMethod === 'Cash' && Number(cashTendered) < subtotal)} className="w-full rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Saving sale...' : 'Confirm sale & print receipt'}</button>
             </form>
           </div>
         </div>
@@ -352,21 +599,24 @@ export default function CashierPOS({ branch, onBack }) {
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
           <div className="flex max-h-[92vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 p-4">
-              <h2 className="font-black text-gray-900">Sale saved · O-{String(receipt.id).padStart(4, '0')}</h2>
+              <div className="min-w-0"><h2 className="truncate font-black uppercase text-gray-900">{receipt.customerName}</h2><p className="text-xs font-bold text-gray-500">Order #O-{String(receipt.id).padStart(4, '0')}</p></div>
               <button type="button" aria-label="Close receipt" onClick={() => setReceipt(null)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
             </div>
             <div ref={printRef} className="overflow-y-auto p-5 font-mono text-xs text-gray-900">
               <div className="center text-center"><p className="text-base font-black">3K KITCHEN</p><p>{receipt.branch}</p><p>SALES RECEIPT</p></div>
               <div className="rule my-3 border-t border-dashed border-gray-600" />
-              <p>Order #: O-{String(receipt.id).padStart(4, '0')}</p><p>Date: {receipt.createdAt}</p><p>Type: {receipt.orderType}</p><p>Customer: {receipt.customerName}</p>
+              <p className="bold">Customer: {receipt.customerName}</p><p>Order #: O-{String(receipt.id).padStart(4, '0')}</p><p>Date: {receipt.createdAt}</p><p>Type: {receipt.orderType}</p>
               <div className="rule my-3 border-t border-dashed border-gray-600" />
-              {receipt.items.map(item => <div key={item.id} className="row my-1 flex justify-between gap-2"><span>{item.qty}x {item.name}</span><span>{formatMoney(item.price * item.qty)}</span></div>)}
+              {receipt.items.map(item => <div key={item.id} className="row my-1 flex justify-between gap-2"><span>{item.qty}x {item.type ? `${item.type}: ` : ''}{item.name}</span><span>{formatMoney(item.price * item.qty)}</span></div>)}
               <div className="rule my-3 border-t border-dashed border-gray-600" />
-              <div className="row bold flex justify-between text-sm font-black"><span>TOTAL</span><span>{formatMoney(receipt.subtotal)}</span></div>
+              <div className="row flex justify-between"><span>Vatable sales</span><span>{formatMoney(receipt.vatableSales)}</span></div>
+              <div className="row flex justify-between"><span>VAT (12%)</span><span>{formatMoney(receipt.vatAmount)}</span></div>
+              <div className="row bold flex justify-between text-sm font-black"><span>GRAND TOTAL</span><span>{formatMoney(receipt.subtotal)}</span></div>
               <div className="rule my-3 border-t border-dashed border-gray-600" />
-              <p>Payment: {receipt.paymentMethod}</p>
-              {receipt.paymentMethod === 'Cash' && <><p>Cash tendered: {formatMoney(receipt.cashTendered)}</p><p>Change: {formatMoney(receipt.change)}</p></>}
-              {receipt.notes && <p className="mt-2 break-words">Notes: {receipt.notes}</p>}
+              <p>Payment method: {receipt.paymentMethod}</p><p>Payment status: PAID</p>
+              {receipt.paymentMethod === 'Cash' && <><p>Cash tendered: {formatMoney(receipt.cashTendered)}</p><p>Change given: {formatMoney(receipt.change)}</p></>}
+              {receipt.paymentMethod === 'GCash' && <><p>GCash reference: {receipt.gcashReference}</p><p>Amount paid: {formatMoney(receipt.amountPaid)}</p></>}
+              {receipt.notes && <p className="mt-2 break-words">Special instructions: {receipt.notes}</p>}
               <p className="mt-5 text-center font-bold">Thank you for dining with us!</p>
             </div>
             <div className="flex gap-3 border-t border-gray-100 p-4">
