@@ -565,7 +565,7 @@ export default function Kiosk() {
                 className={`flex-1 rounded-2xl py-4 font-black text-base shadow-md transition-all duration-300 uppercase tracking-wide md:text-lg
                    ${cart.length > 0 && !checkoutLoading && customerName.trim() ? 'bg-[#815633] hover:bg-[#62432B] text-white hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
               >
-                {checkoutLoading ? 'Processing...' : 'Send to Kitchen'}
+                {checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}
               </button>
             </div>
           </div>
