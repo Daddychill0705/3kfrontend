@@ -55,7 +55,7 @@ export default function Header() {
         />
       )}
 
-      <nav className={`absolute top-full right-0 z-[65] flex w-[min(86vw,320px)] flex-col items-stretch gap-3 rounded-bl-2xl border border-gray-200 bg-white p-4 shadow-2xl transition-all duration-300 ease-out md:static md:w-auto md:flex-row md:items-center md:gap-12 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:opacity-100 md:translate-x-0 md:pointer-events-auto ${mobileMenuOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-[calc(100%+1rem)] opacity-0 pointer-events-none'}`}>
+      <nav className={`absolute top-full right-0 z-[65] flex w-[min(76vw,300px)] flex-col items-stretch gap-3 rounded-bl-2xl border border-gray-200 bg-white p-4 shadow-2xl transition-all duration-300 ease-out md:static md:w-auto md:flex-row md:items-center md:gap-12 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:opacity-100 md:translate-x-0 md:pointer-events-auto ${mobileMenuOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-[calc(100%+1rem)] opacity-0 pointer-events-none'}`}>
         <Link to="/kiosk" onClick={() => setMobileMenuOpen(false)} className="w-full sm:hidden mb-1">
           <button className="w-full bg-gradient-to-r from-[#E6D4B8] to-[#C9A77C] text-[#815633] border border-[#815633] px-4 py-2 rounded-lg font-black text-sm tracking-wider shadow-sm flex items-center justify-center gap-2">
             <span className="text-base">🍔</span> ENTER KIOSK UI

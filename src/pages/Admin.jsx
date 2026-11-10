@@ -318,7 +318,7 @@ export default function Admin() {
         <div className="fixed inset-0 bg-black/40 z-40 md:hidden transition-opacity" onClick={() => setIsSidebarOpen(false)} />
       )}
       
-      <aside className={`fixed md:static inset-y-0 right-0 left-auto z-50 md:z-auto transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'} w-[min(78vw,320px)] md:w-64 bg-white flex flex-col shadow-lg border-l md:border-l-0 md:border-r border-[#C9A77C]/30 shrink-0`}>
+      <aside className={`fixed md:static inset-y-0 right-0 left-auto z-50 md:z-auto transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'} w-[min(72vw,300px)] md:w-64 bg-white flex flex-col shadow-lg border-l md:border-l-0 md:border-r border-[#C9A77C]/30 shrink-0`}>
         <div className="p-6 border-b border-gray-100">
           <button className="md:hidden absolute top-4 right-4 text-gray-400" onClick={() => setIsSidebarOpen(false)}>✕</button>
           <h2 className="text-xl font-black text-gray-900">Super admin</h2>

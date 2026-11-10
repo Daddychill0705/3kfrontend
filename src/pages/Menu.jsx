@@ -111,13 +111,15 @@ export default function Menu() {
         
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 lg:gap-8">
           {filteredItems.map(item => (
-            <div className={`bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 flex flex-col border border-transparent ${item.is_sold_out ? 'opacity-60 grayscale' : 'hover:-translate-y-1.5 hover:shadow-xl hover:border-[#C9A77C]'}`} key={item.id}>
+            <div className={`bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-sm sm:shadow-md sm:transition-all sm:duration-300 flex flex-col border border-transparent ${item.is_sold_out ? 'opacity-60 grayscale' : 'sm:hover:-translate-y-1.5 sm:hover:shadow-xl sm:hover:border-[#C9A77C]'}`} key={item.id}>
               
               <div className="h-28 sm:h-[220px] bg-[#E6D4B8]/30 flex items-center justify-center relative overflow-hidden">
                 <img 
                   src={item.image_url?.startsWith('http') ? item.image_url : (item.image_url?.startsWith('/') ? item.image_url : `${API_URL}${item.image_url}`)} 
                   alt={item.name} 
-                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover sm:transition-transform sm:duration-500 sm:hover:scale-110"
                   onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="text-6xl opacity-40">🍽️</div>'; }}
                 />
                 <div className="absolute top-2 left-2 max-w-[calc(100%-1rem)] truncate bg-white/90 backdrop-blur-sm px-2 sm:px-3 py-1 rounded-full text-[9px] sm:text-xs font-bold text-[#815633] shadow-sm">

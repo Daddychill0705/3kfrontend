@@ -100,6 +100,19 @@
   }
 }
 
+@media (max-width: 767px) {
+  body,
+  .bg-3k-bg,
+  [class~="bg-[#F5EFE3]"],
+  .wood-wall-surface {
+    background-attachment: scroll;
+    background-image:
+      repeating-linear-gradient(180deg, transparent 0 84px, rgb(91 58 29 / 10%) 85px 87px, rgb(255 255 255 / 12%) 88px 90px, transparent 91px 174px),
+      linear-gradient(135deg, #F4E7D2, #E4CFB0 48%, #EAD9BF);
+    background-size: 100% 174px, 100% 100%;
+  }
+}
+
 /* Custom Scrollbar for sidebars and menus */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
