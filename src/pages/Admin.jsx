@@ -434,7 +434,7 @@ export default function Admin() {
     { id: 'Menu', name: 'Menu' },
     { id: 'Branches', name: 'Branches' },
     { id: 'Accounts', name: 'Accounts & Access' },
-    { id: 'Riders', name: 'Riders' }
+    { id: 'Riders', name: 'Rider Accounts' }
   ];
 
   return (
@@ -980,9 +980,27 @@ export default function Admin() {
           {/* ACCOUNTS & ACCESS MODULE */}
           {activeModule === 'Accounts' && (
             <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
-              <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                <p className="text-sm font-bold text-gray-600">Manage dashboard admins and branch cashiers.</p>
-                <button onClick={() => { setNewAccountAdminPassword(''); setShowAddStaff(true); }} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ New Account</button>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-orange-200 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-wider text-orange-700">POS / Cashier</p>
+                  <p className="mt-1 text-2xl font-black text-gray-900">{staff.filter(account => account.role === 'cashier').length}</p>
+                  <p className="mt-1 text-xs text-gray-500">Staff accounts for POS and cashier access.</p>
+                </div>
+                <div className="rounded-xl border border-purple-200 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-wider text-purple-700">Admin</p>
+                  <p className="mt-1 text-2xl font-black text-gray-900">{staff.filter(account => account.role === 'admin').length}</p>
+                  <p className="mt-1 text-xs text-gray-500">Accounts with admin dashboard access.</p>
+                </div>
+                <button type="button" onClick={() => setActiveModule('Riders')} className="rounded-xl border border-blue-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-400 hover:bg-blue-50/40">
+                  <p className="text-xs font-black uppercase tracking-wider text-blue-700">Rider Accounts</p>
+                  <p className="mt-1 text-2xl font-black text-gray-900">{riders.length}</p>
+                  <p className="mt-1 text-xs font-bold text-blue-700">Manage rider logins →</p>
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <p className="text-sm font-bold text-gray-600">Create and manage Admin and POS/Cashier staff accounts. Rider accounts are managed separately.</p>
+                <button onClick={() => { setNewAccountAdminPassword(''); setShowAddStaff(true); }} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ New Admin / POS Account</button>
               </div>
 
               {/* Add Staff Modal */}
@@ -1000,8 +1018,8 @@ export default function Admin() {
                   <div>
                     <label className="block text-sm font-bold mb-2">Role</label>
                     <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer">
-                      <option value="cashier">Cashier</option>
-                      <option value="admin">Super Admin</option>
+                      <option value="cashier">POS / Cashier Staff</option>
+                      <option value="admin">Admin</option>
                     </select>
                   </div>
                   
@@ -1038,8 +1056,8 @@ export default function Admin() {
                     <div>
                       <label className="block text-sm font-bold mb-2">Role</label>
                       <select value={editingStaff.role} onChange={e => setEditingStaff({...editingStaff, role: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer">
-                        <option value="cashier">Cashier</option>
-                        <option value="admin">Super Admin</option>
+                        <option value="cashier">POS / Cashier Staff</option>
+                        <option value="admin">Admin</option>
                       </select>
                     </div>
 
@@ -1088,7 +1106,7 @@ export default function Admin() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${member.role === 'admin' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-orange-50 text-orange-700 border border-orange-200'} mr-4`}>
-                          {member.role}
+                          {member.role === 'cashier' ? 'POS / CASHIER' : 'ADMIN'}
                         </span>
                         
                         {/* Edit and Delete Buttons */}
@@ -1110,7 +1128,7 @@ export default function Admin() {
           {activeModule === 'Riders' && (
             <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
               <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                <p className="text-sm font-bold text-gray-600">Manage delivery personnel.</p>
+                <p className="text-sm font-bold text-gray-600">Create and manage rider login accounts and delivery access.</p>
                 <button onClick={() => setShowAddRider(true)} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ New Rider</button>
               </div>
 
