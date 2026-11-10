@@ -444,19 +444,19 @@ export default function Admin() {
       )}
       
       <aside className={`fixed md:static inset-y-0 right-0 left-auto z-50 md:z-auto transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'} w-[min(82vw,320px)] md:w-64 bg-[#FBFAF4] flex flex-col overflow-hidden rounded-l-2xl md:rounded-none shadow-xl md:shadow-lg border-l md:border-l-0 md:border-r border-[#C9A77C]/30 shrink-0`}>
-        <div className="p-5 md:p-6 border-b border-[#C9A77C]/15">
-          <button aria-label="Close navigation" className="md:hidden absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-[#F1E7D7] hover:text-[#4a3b32]" onClick={() => setIsSidebarOpen(false)}>✕</button>
-          <h2 className="text-xl font-black text-gray-900">Super admin</h2>
+        <div className="p-4 md:p-6 border-b border-[#C9A77C]/15">
+          <button aria-label="Close navigation" className="md:hidden absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-[#F1E7D7] hover:text-[#4a3b32]" onClick={() => setIsSidebarOpen(false)}>✕</button>
+          <h2 className="text-base md:text-xl font-black text-gray-900">Super admin</h2>
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen System</span>
         </div>
         
         <div className="flex-1 overflow-y-auto py-4 hide-scrollbar">
-          <ul className="space-y-1.5 md:space-y-1">
+          <ul className="space-y-0 md:space-y-1">
             {modules.map((module) => (
               <li key={module.id}>
                 <button
                   onClick={() => { setActiveModule(module.id); setIsSidebarOpen(false); }}
-                  className={`w-full text-left px-6 py-3 text-sm font-bold transition-all duration-300 ${activeModule === module.id ? 'bg-[#4a3b32] text-white rounded-l-full ml-4 md:rounded-l-none md:ml-0 md:rounded-r-full md:mr-4' : 'text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50'}`}
+                  className={`w-full text-left px-4 py-2 text-xs md:px-6 md:py-3 md:text-sm font-bold transition-all duration-300 ${activeModule === module.id ? 'bg-[#4a3b32] text-white rounded-l-full ml-2 px-2 md:rounded-l-none md:ml-0 md:px-6 md:rounded-r-full md:mr-4' : 'text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50'}`}
                 >
                   {module.name}
                 </button>
@@ -464,12 +464,12 @@ export default function Admin() {
             ))}
             
             <li className="mt-4 border-t border-gray-100 pt-4">
-              <Link to="/cashier" className="w-full block text-left px-6 py-3 text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
+              <Link to="/cashier" className="w-full block text-left px-4 py-2 text-xs md:px-6 md:py-3 md:text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
                   ↪ Open Cashier System
               </Link>
             </li>
             <li>
-              <Link to="/driver" className="w-full block text-left px-6 py-3 text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
+              <Link to="/driver" className="w-full block text-left px-4 py-2 text-xs md:px-6 md:py-3 md:text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
                   ↪ Open Driver System
               </Link>
             </li>

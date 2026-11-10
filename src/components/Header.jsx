@@ -27,9 +27,9 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white px-4 md:px-8 py-3 md:py-4 flex justify-between items-center shadow-sm sticky top-0 z-50">
+    <header className="bg-white px-4 md:px-8 py-2 md:py-4 flex justify-between items-center shadow-sm sticky top-0 z-50">
       <div className="flex items-center gap-6">
-        <Link to="/home" className="text-[1.8rem] font-bold text-[#815633] tracking-[2px] no-underline hover:text-[#62432B] transition-colors">
+        <Link to="/home" className="text-[1.25rem] md:text-[1.8rem] font-bold text-[#815633] tracking-[2px] no-underline hover:text-[#62432B] transition-colors">
           3K <span className="text-gray-400 font-light tracking-[0.5px] ml-1">K<span className="inline-flex h-[1em] w-[0.5em] translate-y-[0.12em] items-center align-baseline" aria-hidden="true"><svg viewBox="0 0 18 32" className="h-full w-full" fill="none"><path d="M3 2v8c0 3.8 2.4 6.2 6 6.2s6-2.4 6-6.2V2M6 2v8M9 2v8M12 2v8M9 16.2V30" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>TCHEN</span>
         </Link>
         <Link to="/kiosk" className={`${canAccessKiosk ? 'hidden sm:block' : 'hidden'}`}>
@@ -58,32 +58,32 @@ export default function Header() {
         />
       )}
 
-      <nav className={`absolute top-full right-0 z-[65] flex w-[min(88vw,360px)] flex-col items-stretch justify-start gap-1 rounded-l-2xl border border-[#C9A77C]/30 bg-[#FBFAF4] p-5 shadow-2xl transition-all duration-300 ease-out md:static md:w-auto md:flex-row md:items-center md:justify-start md:gap-12 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:opacity-100 md:translate-x-0 md:pointer-events-auto ${mobileMenuOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-[calc(100%+1rem)] opacity-0 pointer-events-none'}`}>
+      <nav className={`absolute top-full right-0 z-[65] flex w-[min(88vw,360px)] flex-col items-stretch justify-start gap-0 rounded-l-lg border border-[#C9A77C]/30 bg-[#FBFAF4] p-3 shadow-2xl transition-all duration-300 ease-out md:static md:w-auto md:flex-row md:items-center md:justify-start md:gap-12 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:opacity-100 md:translate-x-0 md:pointer-events-auto ${mobileMenuOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-[calc(100%+1rem)] opacity-0 pointer-events-none'}`}>
         <Link to="/kiosk" onClick={() => setMobileMenuOpen(false)} className={`${canAccessKiosk ? 'w-full sm:hidden mb-1' : 'hidden'}`}>
-          <button className="w-full bg-gradient-to-r from-[#E6D4B8] to-[#C9A77C] text-[#815633] border border-[#815633] px-4 py-2 rounded-lg font-black text-sm tracking-wider shadow-sm flex items-center justify-center gap-2">
-            <span className="text-base">🍔</span> ENTER KIOSK UI
+          <button className="w-full bg-gradient-to-r from-[#E6D4B8] to-[#C9A77C] text-[#815633] border border-[#815633] px-3 py-1.5 rounded-md font-black text-[11px] md:text-sm tracking-wider shadow-sm flex items-center justify-center gap-2">
+            <span className="text-sm md:text-base">🍔</span> ENTER KIOSK UI
           </button>
         </Link>
         
-        <Link to="/home" onClick={() => setMobileMenuOpen(false)} className={`w-full px-2 py-1.5 text-left md:w-auto md:px-0 md:py-0 md:text-center text-base font-medium ${isActive('/home')}`}>Home</Link>
+        <Link to="/home" onClick={() => setMobileMenuOpen(false)} className={`w-full px-1.5 py-0.5 text-left text-xs md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/home')}`}>Home</Link>
         {canBrowseCustomerPages && (
-          <Link to="/menu" onClick={() => setMobileMenuOpen(false)} className={`w-full px-2 py-1.5 text-left md:w-auto md:px-0 md:py-0 md:text-center text-base font-medium ${isActive('/menu')}`}>Menu</Link>
+          <Link to="/menu" onClick={() => setMobileMenuOpen(false)} className={`w-full px-1.5 py-0.5 text-left text-xs md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/menu')}`}>Menu</Link>
         )}
         
         {canBrowseCustomerPages ? (
           <>
-            <Link to="/cart" onClick={() => setMobileMenuOpen(false)} className={`w-full px-2 py-1.5 text-left md:w-auto md:px-0 md:py-0 md:text-center text-base font-medium ${isActive('/cart')}`}>Cart ({cartCount})</Link>
-            <Link to="/order" onClick={() => setMobileMenuOpen(false)} className={`w-full px-2 py-1.5 text-left md:w-auto md:px-0 md:py-0 md:text-center text-base font-medium ${isActive('/order')}`}>Orders</Link>
-            <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className={`w-full px-2 py-1.5 text-left md:w-auto md:px-0 md:py-0 md:text-center text-base font-medium ${isActive('/profile')}`}>Profile</Link>
-            <button onClick={handleLogout} className="w-full px-2 py-1.5 text-left md:w-auto md:px-0 md:py-0 md:text-center text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300">Logout</button>
+            <Link to="/cart" onClick={() => setMobileMenuOpen(false)} className={`w-full px-1.5 py-0.5 text-left text-xs md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/cart')}`}>Cart ({cartCount})</Link>
+            <Link to="/order" onClick={() => setMobileMenuOpen(false)} className={`w-full px-1.5 py-0.5 text-left text-xs md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/order')}`}>Orders</Link>
+            <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className={`w-full px-1.5 py-0.5 text-left text-xs md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/profile')}`}>Profile</Link>
+            <button onClick={handleLogout} className="w-full px-1.5 py-0.5 text-left text-xs md:w-auto md:px-0 md:py-0 md:text-center md:text-base text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300">Logout</button>
           </>
         ) : (
           <>
-            <Link to="/about" onClick={() => setMobileMenuOpen(false)} className={`w-full px-2 py-1.5 text-left md:w-auto md:px-0 md:py-0 md:text-center text-base font-medium ${isActive('/about')}`}>About</Link>
-            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className={`w-full px-2 py-1.5 text-left md:w-auto md:px-0 md:py-0 md:text-center text-base font-medium ${isActive('/contact')}`}>Contact</Link>
+            <Link to="/about" onClick={() => setMobileMenuOpen(false)} className={`w-full px-1.5 py-0.5 text-left text-xs md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/about')}`}>About</Link>
+            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className={`w-full px-1.5 py-0.5 text-left text-xs md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/contact')}`}>Contact</Link>
             {!user && (
               <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="w-full md:w-auto mt-2 md:mt-0">
-                <button className="border-[1.5px] border-[#4A3422] px-6 py-2 rounded-md cursor-pointer text-sm font-semibold transition-all duration-300 bg-transparent text-[#4A3422] hover:bg-[#C9A77C] hover:border-[#C9A77C] hover:text-white w-full md:w-auto">
+                <button className="border-[1.5px] border-[#4A3422] px-4 py-1.5 md:px-6 md:py-2 rounded-md cursor-pointer text-[11px] md:text-sm font-semibold transition-all duration-300 bg-transparent text-[#4A3422] hover:bg-[#C9A77C] hover:border-[#C9A77C] hover:text-white w-full md:w-auto">
                   Sign In
                 </button>
               </Link>
