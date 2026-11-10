@@ -191,6 +191,14 @@ export default function CashierPOS({ branch, onBack }) {
     setIsPaymentOpen(true);
   };
 
+  const returnToOrderSummary = () => {
+    setIsPaymentOpen(false);
+    setActiveProduct(null);
+    setOrderFlowStep(4);
+    setError('');
+    setIsOrderFlowOpen(true);
+  };
+
   const completeSale = async event => {
     event.preventDefault();
     if (isSubmitting || cart.length === 0 || !orderType) return;
@@ -595,7 +603,10 @@ export default function CashierPOS({ branch, onBack }) {
                 </div>
               )}
               {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-              <button type="submit" disabled={isSubmitting || (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashRef)) || (paymentMethod === 'Cash' && Number(cashTendered) < subtotal)} className="w-full rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Saving sale...' : 'Confirm sale'}</button>
+              <div className="flex gap-3">
+                <button type="button" onClick={returnToOrderSummary} disabled={isSubmitting} className="flex-1 rounded-xl border border-gray-200 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60">Back</button>
+                <button type="submit" disabled={isSubmitting || (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashRef)) || (paymentMethod === 'Cash' && Number(cashTendered) < subtotal)} className="flex-[2] rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Saving sale...' : 'Confirm sale'}</button>
+              </div>
             </form>
           </div>
         </div>
