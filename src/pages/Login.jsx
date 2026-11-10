@@ -35,7 +35,6 @@ export default function Login() {
     <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[calc(100vh-80px)] bg-3k-bg">
       <div className="flex flex-col justify-center items-center py-10 px-4 sm:px-6 lg:order-1 order-2 lg:border-r border-[#C9A77C]/20 z-10">
         <div className="relative isolate w-full max-w-[440px] rounded-2xl border border-[#C9A77C]/35 bg-[#FBFAF4] p-5 sm:p-7 lg:p-9 shadow-[0_18px_55px_rgba(74,52,34,0.14)] before:content-[''] before:absolute before:inset-4 before:-z-10 before:rounded-3xl before:bg-[#815633]/20 before:blur-2xl">
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Welcome Back</h1>
           <p className="text-sm text-gray-600 mb-7 leading-relaxed font-medium">
             Sign in to your account to continue ordering delicious Filipino comfort food.
           </p>
