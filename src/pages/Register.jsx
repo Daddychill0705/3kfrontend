@@ -108,9 +108,9 @@ export default function Register() {
               />
               <p className="text-gray-600 font-medium leading-relaxed">
                 I have read and agree to the{' '}
-                <Link to="/terms" className="text-3k-red font-bold underline underline-offset-2 hover:text-3k-red-hover">Terms and Conditions</Link>
+                <Link to="/terms" target="_blank" rel="noreferrer" className="text-3k-red font-bold underline underline-offset-2 hover:text-3k-red-hover">Terms and Conditions</Link>
                 {' '}and{' '}
-                <Link to="/privacy" className="text-3k-red font-bold underline underline-offset-2 hover:text-3k-red-hover">Privacy Policy</Link>.
+                <Link to="/privacy" target="_blank" rel="noreferrer" className="text-3k-red font-bold underline underline-offset-2 hover:text-3k-red-hover">Privacy Policy</Link>.
               </p>
             </div>
             
