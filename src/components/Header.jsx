@@ -58,32 +58,32 @@ export default function Header() {
         />
       )}
 
-      <nav className={`fixed inset-y-0 right-0 z-[65] flex w-[min(82vw,320px)] flex-col items-stretch justify-start gap-1 overflow-y-auto rounded-l-2xl border-l border-[#C9A77C]/30 bg-[#FBFAF4] px-4 pb-5 pt-16 shadow-2xl transition-transform duration-300 ease-out md:static md:inset-auto md:w-auto md:flex-row md:items-center md:justify-start md:gap-12 md:overflow-visible md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:translate-x-0 md:pointer-events-auto ${mobileMenuOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'}`}>
+      <nav className={`fixed inset-y-0 right-0 z-[65] flex w-[min(82vw,320px)] flex-col items-stretch justify-start gap-1 overflow-y-auto rounded-l-2xl border-l border-[#C9A77C]/30 bg-[#FBFAF4] px-4 pb-5 pt-[30vh] shadow-2xl transition-transform duration-300 ease-out md:static md:inset-auto md:w-auto md:flex-row md:items-center md:justify-start md:gap-12 md:overflow-visible md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:translate-x-0 md:pointer-events-auto ${mobileMenuOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'}`}>
         <Link to="/kiosk" onClick={() => setMobileMenuOpen(false)} className={`${canAccessKiosk ? 'w-full sm:hidden mb-1' : 'hidden'}`}>
-          <button className="w-full bg-gradient-to-r from-[#E6D4B8] to-[#C9A77C] text-[#815633] border border-[#815633] px-4 py-2 rounded-md font-black text-xs md:text-sm tracking-wider shadow-sm flex items-center justify-center gap-2">
+          <button className="min-h-12 w-full bg-gradient-to-r from-[#E6D4B8] to-[#C9A77C] text-[#815633] border border-[#815633] px-4 py-3 rounded-md font-black text-sm md:min-h-0 md:py-2 md:text-sm tracking-wider shadow-sm flex items-center justify-center gap-2">
             <span className="text-sm md:text-base">🍔</span> ENTER KIOSK UI
           </button>
         </Link>
         
-        <Link to="/home" onClick={() => setMobileMenuOpen(false)} className={`w-full px-4 py-2 text-left text-sm md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/home')}`}>Home</Link>
+        <Link to="/home" onClick={() => setMobileMenuOpen(false)} className={`min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/home')}`}>Home</Link>
         {canBrowseCustomerPages && (
-          <Link to="/menu" onClick={() => setMobileMenuOpen(false)} className={`w-full px-4 py-2 text-left text-sm md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/menu')}`}>Menu</Link>
+          <Link to="/menu" onClick={() => setMobileMenuOpen(false)} className={`min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/menu')}`}>Menu</Link>
         )}
         
         {canBrowseCustomerPages ? (
           <>
-            <Link to="/cart" onClick={() => setMobileMenuOpen(false)} className={`w-full px-4 py-2 text-left text-sm md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/cart')}`}>Cart ({cartCount})</Link>
-            <Link to="/order" onClick={() => setMobileMenuOpen(false)} className={`w-full px-4 py-2 text-left text-sm md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/order')}`}>Orders</Link>
-            <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className={`w-full px-4 py-2 text-left text-sm md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/profile')}`}>Profile</Link>
-            <button onClick={handleLogout} className="w-full px-4 py-2 text-left text-sm md:w-auto md:px-0 md:py-0 md:text-center md:text-base text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300">Logout</button>
+            <Link to="/cart" onClick={() => setMobileMenuOpen(false)} className={`min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/cart')}`}>Cart ({cartCount})</Link>
+            <Link to="/order" onClick={() => setMobileMenuOpen(false)} className={`min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/order')}`}>Orders</Link>
+            <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className={`min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/profile')}`}>Profile</Link>
+            <button onClick={handleLogout} className="min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300">Logout</button>
           </>
         ) : (
           <>
-            <Link to="/about" onClick={() => setMobileMenuOpen(false)} className={`w-full px-4 py-2 text-left text-sm md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/about')}`}>About</Link>
-            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className={`w-full px-4 py-2 text-left text-sm md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/contact')}`}>Contact</Link>
+            <Link to="/about" onClick={() => setMobileMenuOpen(false)} className={`min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/about')}`}>About</Link>
+            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className={`min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/contact')}`}>Contact</Link>
             {!user && (
-              <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="w-full md:w-auto mt-2 md:mt-0">
-                <button className="border-[1.5px] border-[#4A3422] px-6 py-2 rounded-md cursor-pointer text-sm font-semibold transition-all duration-300 bg-transparent text-[#4A3422] hover:bg-[#C9A77C] hover:border-[#C9A77C] hover:text-white w-full md:w-auto">
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="w-full md:w-auto mt-4 md:mt-0">
+                <button className="min-h-12 border-[1.5px] border-[#4A3422] px-6 py-3 rounded-md cursor-pointer text-base md:min-h-0 md:py-2 md:text-sm font-semibold transition-all duration-300 bg-transparent text-[#4A3422] hover:bg-[#C9A77C] hover:border-[#C9A77C] hover:text-white w-full md:w-auto">
                   Sign In
                 </button>
               </Link>
@@ -91,7 +91,7 @@ export default function Header() {
             {isGuest && (
               <button
                 onClick={handleLogout}
-                className="w-full md:w-auto text-center text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300"
+                className="min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300"
               >
                 Log out
               </button>
