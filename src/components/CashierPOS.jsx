@@ -334,6 +334,7 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
     setIsOrderTypeSelectionOpen(true);
   };
 
+  const canReturnToCashier = ['admin', 'cashier'].includes(cashierUser?.role);
   const formatMoney = money;
 
   return (
@@ -349,7 +350,7 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
         <div className="flex items-center gap-2">
           <span className="hidden rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700 sm:inline-flex">Counter sale</span>
           <button type="button" onClick={() => setIsCartOpen(true)} className="rounded-lg border border-[#C9A77C]/50 bg-white px-4 py-2 text-sm font-bold text-[#815633] shadow-sm hover:bg-[#FBFAF4]">View Cart <span className="ml-1 rounded-full bg-[#815633] px-2 py-0.5 text-xs text-white">{cartCount}</span></button>
-          <button type="button" onClick={() => { setCashierAccessError(''); setCashierPassword(''); setIsCashierAccessOpen(true); }} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50">🔒 Cashier</button>
+          {canReturnToCashier && <button type="button" onClick={() => { setCashierAccessError(''); setCashierPassword(''); setIsCashierAccessOpen(true); }} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50">🔒 Cashier</button>}
         </div>
       </header>
 
