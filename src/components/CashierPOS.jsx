@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const money = amount => `₱${Number(amount || 0).toFixed(2)}`;
 
@@ -8,6 +8,7 @@ export default function CashierPOS({ branch, onBack }) {
   const [menuLoading, setMenuLoading] = useState(true);
   const [menuError, setMenuError] = useState('');
   const [cart, setCart] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [orderType, setOrderType] = useState('Dine-in');
   const [customerName, setCustomerName] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -28,7 +29,6 @@ export default function CashierPOS({ branch, onBack }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [receipt, setReceipt] = useState(null);
-  const printRef = useRef(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -67,6 +67,7 @@ export default function CashierPOS({ branch, onBack }) {
     return matchesCategory && matchesSearch;
   }), [menuItems, activeCategory, searchQuery]);
   const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.qty, 0), [cart]);
+  const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.qty, 0), [cart]);
   const vatableSales = subtotal / 1.12;
   const vatAmount = subtotal - vatableSales;
   const changeDue = Math.max(0, Number(cashTendered || 0) - subtotal);
@@ -165,6 +166,7 @@ export default function CashierPOS({ branch, onBack }) {
 
   const openPayment = () => {
     if (!cart.length) return;
+    setIsCartOpen(false);
     setError('');
     setActiveProduct(null);
     setOrderFlowStep(4);
@@ -172,6 +174,10 @@ export default function CashierPOS({ branch, onBack }) {
   };
 
   const continueToPayment = () => {
+    if (!customerName.trim()) {
+      setError('Enter the customer name or calling name to continue.');
+      return;
+    }
     const itemsForCheckout = buildCart(cart, selectedFlowItems);
     const totalForCheckout = itemsForCheckout.reduce((sum, item) => sum + item.price * item.qty, 0);
     if (!itemsForCheckout.length) return;
@@ -186,6 +192,10 @@ export default function CashierPOS({ branch, onBack }) {
   const completeSale = async event => {
     event.preventDefault();
     if (isSubmitting || cart.length === 0) return;
+    if (!customerName.trim()) {
+      setError('Enter the customer name or calling name to complete this sale.');
+      return;
+    }
     if (paymentMethod === 'Cash' && Number(cashTendered) < subtotal) {
       setError('Cash tendered must cover the total amount.');
       return;
@@ -218,7 +228,7 @@ export default function CashierPOS({ branch, onBack }) {
           paymentMethod,
           notes,
           receipt_url: null,
-          customerName: customerName.trim() || 'Walk-in Customer',
+          customerName: customerName.trim(),
           gcashReference: paymentMethod === 'GCash' ? gcashRef : null,
           cashTendered: paymentMethod === 'Cash' ? tendered : null
         })
@@ -243,7 +253,7 @@ export default function CashierPOS({ branch, onBack }) {
       setReceipt({
         id: result.orderId,
         branch,
-        customerName: customerName.trim() || 'Walk-in Customer',
+        customerName: customerName.trim(),
         orderType,
         items: cart.map(item => ({ ...item })),
         subtotal,
@@ -271,20 +281,17 @@ export default function CashierPOS({ branch, onBack }) {
     }
   };
 
-  const printReceipt = () => {
-    if (!printRef.current) return;
-    const printWindow = window.open('', '_blank', 'width=420,height=680');
-    if (!printWindow) {
-      setError('Allow pop-ups to print the receipt.');
-      return;
-    }
-    printWindow.document.write(`<!doctype html><html><head><title>3K Kitchen Receipt</title><style>
-      body{font:12px/1.45 monospace;color:#111;padding:18px;max-width:360px;margin:auto}.center{text-align:center}.row{display:flex;justify-content:space-between;gap:12px;margin:5px 0}.rule{border-top:1px dashed #222;margin:10px 0}.bold{font-weight:bold}
-      </style></head><body>${printRef.current.innerHTML}</body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+  const startNewOrder = () => {
+    setReceipt(null);
+    setCart([]);
+    setCustomerName('');
+    setOrderNotes('');
+    setOrderType('Dine-in');
+    setPaymentMethod('Cash');
+    setCashTendered('');
+    setGcashRef('');
+    setError('');
+    setIsCartOpen(false);
   };
 
   const formatMoney = money;
@@ -301,11 +308,12 @@ export default function CashierPOS({ branch, onBack }) {
         </div>
         <div className="flex items-center gap-2">
           <span className="hidden rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700 sm:inline-flex">Counter sale</span>
+          <button type="button" onClick={() => setIsCartOpen(true)} className="rounded-lg border border-[#C9A77C]/50 bg-white px-4 py-2 text-sm font-bold text-[#815633] shadow-sm hover:bg-[#FBFAF4]">View Cart <span className="ml-1 rounded-full bg-[#815633] px-2 py-0.5 text-xs text-white">{cartCount}</span></button>
           <button type="button" onClick={onBack} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50">Back to orders</button>
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
         <section className="flex min-h-[55vh] min-w-0 flex-col p-4 sm:p-6 lg:min-h-0">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row">
             <label className="relative min-w-0 flex-1">
@@ -355,18 +363,20 @@ export default function CashierPOS({ branch, onBack }) {
           </div>
         </section>
 
-        <aside className="flex min-h-[480px] min-w-0 flex-col border-t border-gray-200 bg-white shadow-xl lg:min-h-0 lg:border-l lg:border-t-0">
+        {isCartOpen && <div className="fixed inset-0 z-[70] bg-black/50" onMouseDown={event => { if (event.target === event.currentTarget) setIsCartOpen(false); }}>
+        <aside role="dialog" aria-modal="true" aria-labelledby="cart-title" className="absolute inset-y-0 right-0 flex w-full max-w-[440px] min-w-0 flex-col border-l border-gray-200 bg-white shadow-2xl">
           <div className="space-y-3 border-b border-gray-100 bg-gray-50/70 p-4">
             <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gray-600"><span className="text-lg text-[#815633]">▣</span> Current order summary</h2>
+              <h2 id="cart-title" className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gray-600"><span className="text-lg text-[#815633]">▣</span> Current order summary</h2>
+              <button type="button" aria-label="Close cart" onClick={() => setIsCartOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
               <button type="button" onClick={() => setCart([])} disabled={!cart.length} className="text-xs font-bold text-red-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40">Clear all</button>
             </div>
             <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
               {['Dine-in', 'Take-out'].map(type => <button key={type} type="button" onClick={() => setOrderType(type)} className={`rounded-lg py-2 text-sm font-bold transition ${orderType === type ? 'bg-[#815633] text-white shadow-sm' : 'text-gray-600 hover:bg-white'}`}>{type}</button>)}
             </div>
             <label className="block text-xs font-bold text-gray-600">
-              Customer Name / Calling Name
-              <input value={customerName} onChange={event => setCustomerName(event.target.value)} placeholder="Walk-in Customer" maxLength={255} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
+              Customer Name / Calling Name <span className="text-red-600">*</span>
+              <input required value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Enter customer name" maxLength={255} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
             </label>
           </div>
 
@@ -409,6 +419,7 @@ export default function CashierPOS({ branch, onBack }) {
             </button>
           </div>
         </aside>
+        </div>}
       </div>
 
       {isOrderFlowOpen && (
@@ -507,8 +518,14 @@ export default function CashierPOS({ branch, onBack }) {
 
               {orderFlowStep === 4 && (
                 <div className="space-y-4">
+                  <label className="block text-xs font-bold text-gray-600">
+                    Customer Name / Calling Name <span className="text-red-600">*</span>
+                    <input required value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Enter customer name" maxLength={255} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
+                  </label>
+                  {!customerName.trim() && <p className="text-xs font-semibold text-red-600">A customer name is required before checkout.</p>}
+                  {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
                   <div className="grid gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2">
-                    <p><span className="font-bold text-gray-500">Customer:</span> <span className="font-black text-gray-900">{customerName.trim() || 'Walk-in Customer'}</span></p>
+                    <p><span className="font-bold text-gray-500">Customer:</span> <span className="font-black text-gray-900">{customerName.trim()}</span></p>
                     <p><span className="font-bold text-gray-500">Order type:</span> <span className="font-black text-gray-900">{orderType}</span></p>
                   </div>
                   <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 px-4">
@@ -539,7 +556,7 @@ export default function CashierPOS({ branch, onBack }) {
               {orderFlowStep === 4 && <>
                 <button type="button" onClick={() => activeProduct ? setOrderFlowStep(3) : resetOrderFlow()} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Back</button>
                 <button type="button" onClick={addFlowToCart} className="rounded-lg border border-[#815633] px-4 py-2.5 text-sm font-bold text-[#815633] hover:bg-[#FBFAF4]">Order more</button>
-                <button type="button" disabled={!summaryItems.length} onClick={continueToPayment} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-50">Proceed to checkout</button>
+                <button type="button" disabled={!summaryItems.length || !customerName.trim()} onClick={continueToPayment} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-50">Proceed to checkout</button>
               </>}
             </footer>
           </section>
@@ -589,7 +606,7 @@ export default function CashierPOS({ branch, onBack }) {
                 </div>
               )}
               {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-              <button type="submit" disabled={isSubmitting || (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashRef)) || (paymentMethod === 'Cash' && Number(cashTendered) < subtotal)} className="w-full rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Saving sale...' : 'Confirm sale & print receipt'}</button>
+              <button type="submit" disabled={isSubmitting || (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashRef)) || (paymentMethod === 'Cash' && Number(cashTendered) < subtotal)} className="w-full rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Saving sale...' : 'Confirm sale'}</button>
             </form>
           </div>
         </div>
@@ -602,7 +619,7 @@ export default function CashierPOS({ branch, onBack }) {
               <div className="min-w-0"><h2 className="truncate font-black uppercase text-gray-900">{receipt.customerName}</h2><p className="text-xs font-bold text-gray-500">Order #O-{String(receipt.id).padStart(4, '0')}</p></div>
               <button type="button" aria-label="Close receipt" onClick={() => setReceipt(null)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
             </div>
-            <div ref={printRef} className="overflow-y-auto p-5 font-mono text-xs text-gray-900">
+            <div className="overflow-y-auto p-5 font-mono text-xs text-gray-900">
               <div className="center text-center"><p className="text-base font-black">3K KITCHEN</p><p>{receipt.branch}</p><p>SALES RECEIPT</p></div>
               <div className="rule my-3 border-t border-dashed border-gray-600" />
               <p className="bold">Customer: {receipt.customerName}</p><p>Order #: O-{String(receipt.id).padStart(4, '0')}</p><p>Date: {receipt.createdAt}</p><p>Type: {receipt.orderType}</p>
@@ -619,9 +636,8 @@ export default function CashierPOS({ branch, onBack }) {
               {receipt.notes && <p className="mt-2 break-words">Special instructions: {receipt.notes}</p>}
               <p className="mt-5 text-center font-bold">Thank you for dining with us!</p>
             </div>
-            <div className="flex gap-3 border-t border-gray-100 p-4">
-              <button type="button" onClick={printReceipt} className="flex-1 rounded-xl bg-[#815633] py-3 font-bold text-white hover:bg-[#62432B]">Print receipt</button>
-              <button type="button" onClick={() => setReceipt(null)} className="flex-1 rounded-xl border border-gray-200 py-3 font-bold text-gray-700 hover:bg-gray-50">New sale</button>
+            <div className="border-t border-gray-100 p-4">
+              <button type="button" onClick={startNewOrder} className="w-full rounded-xl bg-[#815633] py-3 font-bold text-white hover:bg-[#62432B]">New Order</button>
             </div>
             {receipt.status !== 'Confirmed' && <p className="px-4 pb-3 text-center text-xs font-medium text-amber-700">Sale saved and paid; confirm the order from the queue before sending it to the kitchen.</p>}
           </div>
