@@ -88,6 +88,14 @@ export default function Header() {
                 </button>
               </Link>
             )}
+            {isGuest && (
+              <button
+                onClick={handleLogout}
+                className="w-full md:w-auto text-center text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300"
+              >
+                Log out
+              </button>
+            )}
           </>
         )}
       </nav>
