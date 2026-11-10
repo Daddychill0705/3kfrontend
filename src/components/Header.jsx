@@ -30,7 +30,7 @@ export default function Header() {
     <header className="bg-white px-4 md:px-8 py-3 md:py-4 flex justify-between items-center shadow-sm sticky top-0 z-50">
       <div className="flex items-center gap-6">
         <Link to="/home" className="text-[1.8rem] font-bold text-[#815633] tracking-[2px] no-underline hover:text-[#62432B] transition-colors">
-          3K <span className="text-gray-400 font-light tracking-[0.5px] ml-1">KITCHEN</span>
+          3K <span className="text-gray-400 font-light tracking-[0.5px] ml-1">K<span className="inline-flex h-[1em] w-[0.5em] translate-y-[0.12em] items-center align-baseline" aria-hidden="true"><svg viewBox="0 0 18 32" className="h-full w-full" fill="none"><path d="M3 2v8c0 3.8 2.4 6.2 6 6.2s6-2.4 6-6.2V2M6 2v8M9 2v8M12 2v8M9 16.2V30" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>TCHEN</span>
         </Link>
         <Link to="/kiosk" className={`${canAccessKiosk ? 'hidden sm:block' : 'hidden'}`}>
           <button className="bg-gradient-to-r from-[#E6D4B8] to-[#C9A77C] text-[#815633] border border-[#815633] px-4 py-1.5 rounded-full font-black text-xs tracking-wider shadow-sm hover:shadow-md hover:scale-105 transition-all flex items-center gap-2">
