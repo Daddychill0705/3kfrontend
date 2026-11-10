@@ -80,8 +80,9 @@ export default function Menu() {
     <div className="bg-3k-bg min-h-screen pb-16 relative">
       {/* Floating Notification */}
       {notification && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-xl font-bold text-sm z-50 animate-fade-in flex items-center gap-2">
-          <span>🔔</span> {notification}
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 w-[calc(100vw-1.5rem)] max-w-[360px] bg-gray-900 text-white px-4 sm:px-6 py-3 rounded-2xl shadow-xl font-bold text-sm z-50 animate-fade-in flex items-center justify-center gap-2 text-center leading-snug">
+          <span className="shrink-0">🔔</span>
+          <span className="min-w-0 break-words">{notification}</span>
         </div>
       )}
 
