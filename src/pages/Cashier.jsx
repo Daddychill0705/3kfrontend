@@ -435,6 +435,13 @@ export default function Cashier() {
             + New POS Sale
           </button>
           <button
+            type="button"
+            onClick={() => navigate('/kiosk')}
+            className="rounded-lg border border-[#C9A77C]/50 bg-white px-4 py-2 text-sm font-bold text-[#815633] shadow-sm transition hover:bg-[#FBFAF4]"
+          >
+            Open Kiosk
+          </button>
+          <button
             onClick={() => {
               logout();
               navigate('/login');

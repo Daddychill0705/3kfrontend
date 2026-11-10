@@ -72,17 +72,9 @@ export default function Login() {
             </button>
           </form>
           
-          <div className="space-y-4">
-            <p className="text-center text-sm text-gray-600 font-medium">
-              Don&apos;t have an account? <Link to="/register" className="text-3k-red font-black hover:text-3k-red-hover transition-colors">Create one</Link>
-            </p>
-            <div className="border-t border-[#C9A77C]/25 pt-4 text-center">
-              <p className="mb-2 text-xs font-medium text-gray-500">For walk-in orders</p>
-              <Link to="/kiosk" className="inline-flex rounded-lg border border-[#815633]/40 px-4 py-2 text-sm font-bold text-[#815633] transition hover:bg-[#E6D4B8]/30">
-                Open Kiosk
-              </Link>
-            </div>
-          </div>
+          <p className="text-center text-sm text-gray-600 font-medium">
+            Don&apos;t have an account? <Link to="/register" className="text-3k-red font-black hover:text-3k-red-hover transition-colors">Create one</Link>
+          </p>
         </div>
       </div>
       

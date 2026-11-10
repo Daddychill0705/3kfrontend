@@ -473,6 +473,11 @@ export default function Admin() {
                   ↪ Open Driver System
               </Link>
             </li>
+            <li>
+              <Link to="/kiosk" className="w-full block text-left px-4 py-2 text-xs md:px-6 md:py-3 md:text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
+                  ↪ Open Kiosk
+              </Link>
+            </li>
           </ul>
         </div>
       </aside>
