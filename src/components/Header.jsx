@@ -55,27 +55,27 @@ export default function Header() {
         />
       )}
 
-      <nav className={`absolute top-full right-0 z-[65] flex w-[min(76vw,300px)] flex-col items-stretch gap-3 rounded-bl-2xl border border-gray-200 bg-white p-4 shadow-2xl transition-all duration-300 ease-out md:static md:w-auto md:flex-row md:items-center md:gap-12 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:opacity-100 md:translate-x-0 md:pointer-events-auto ${mobileMenuOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-[calc(100%+1rem)] opacity-0 pointer-events-none'}`}>
+      <nav className={`absolute top-full right-0 z-[65] flex w-[min(82vw,320px)] min-h-[50vh] flex-col items-center justify-center gap-3 rounded-bl-2xl border border-gray-200 bg-white p-5 shadow-2xl transition-all duration-300 ease-out md:static md:min-h-0 md:w-auto md:flex-row md:items-center md:justify-start md:gap-12 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:opacity-100 md:translate-x-0 md:pointer-events-auto ${mobileMenuOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-[calc(100%+1rem)] opacity-0 pointer-events-none'}`}>
         <Link to="/kiosk" onClick={() => setMobileMenuOpen(false)} className="w-full sm:hidden mb-1">
           <button className="w-full bg-gradient-to-r from-[#E6D4B8] to-[#C9A77C] text-[#815633] border border-[#815633] px-4 py-2 rounded-lg font-black text-sm tracking-wider shadow-sm flex items-center justify-center gap-2">
             <span className="text-base">🍔</span> ENTER KIOSK UI
           </button>
         </Link>
         
-        <Link to="/home" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/home')}`}>Home</Link>
-        <Link to="/menu" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/menu')}`}>Menu</Link>
+        <Link to="/home" onClick={() => setMobileMenuOpen(false)} className={`w-full text-center md:w-auto text-base font-medium ${isActive('/home')}`}>Home</Link>
+        <Link to="/menu" onClick={() => setMobileMenuOpen(false)} className={`w-full text-center md:w-auto text-base font-medium ${isActive('/menu')}`}>Menu</Link>
         
         {user ? (
           <>
-            <Link to="/cart" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/cart')}`}>Cart ({cartCount})</Link>
-            <Link to="/order" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/order')}`}>Orders</Link>
-            <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/profile')}`}>Profile</Link>
-            <button onClick={handleLogout} className="w-full md:w-auto text-left md:text-center text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300">Logout</button>
+            <Link to="/cart" onClick={() => setMobileMenuOpen(false)} className={`w-full text-center md:w-auto text-base font-medium ${isActive('/cart')}`}>Cart ({cartCount})</Link>
+            <Link to="/order" onClick={() => setMobileMenuOpen(false)} className={`w-full text-center md:w-auto text-base font-medium ${isActive('/order')}`}>Orders</Link>
+            <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className={`w-full text-center md:w-auto text-base font-medium ${isActive('/profile')}`}>Profile</Link>
+            <button onClick={handleLogout} className="w-full md:w-auto text-center md:text-center text-gray-600 hover:text-[#62432B] font-medium cursor-pointer transition-colors duration-300">Logout</button>
           </>
         ) : (
           <>
-            <Link to="/about" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/about')}`}>About</Link>
-            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className={`w-full md:w-auto text-base font-medium ${isActive('/contact')}`}>Contact</Link>
+            <Link to="/about" onClick={() => setMobileMenuOpen(false)} className={`w-full text-center md:w-auto text-base font-medium ${isActive('/about')}`}>About</Link>
+            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className={`w-full text-center md:w-auto text-base font-medium ${isActive('/contact')}`}>Contact</Link>
             <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="w-full md:w-auto">
               <button className="border-[1.5px] border-gray-800 px-6 py-2 rounded-md cursor-pointer text-sm font-semibold transition-all duration-300 bg-transparent text-gray-800 hover:bg-[#C9A77C] hover:border-[#C9A77C] hover:text-white w-full md:w-auto mt-2 md:mt-0">
                 Sign In
