@@ -29,20 +29,6 @@ export function AuthProvider({ children }) {
     return data.user; 
   };
 
-  const loginAsGuest = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/guest`, { method: 'POST' });
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-      }
-    } catch (error) {
-      console.error("Guest login failed", error);
-    }
-  };
-
   const updateUserData = (newData) => {
     const updatedUser = { ...user, ...newData };
     setUser(updatedUser);
@@ -56,7 +42,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, loginAsGuest, logout, updateUserData }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUserData }}>
       {children}
     </AuthContext.Provider>
   );

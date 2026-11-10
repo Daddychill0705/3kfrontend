@@ -4,7 +4,7 @@ import logoImg from '../assets/logo.jpg';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
-  const { login, loginAsGuest } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,11 +24,6 @@ export default function Login() {
     } catch (err) {
       setError(err.message || 'Invalid email or password');
     }
-  };
-
-  const handleGuestLogin = () => {
-    loginAsGuest();
-    navigate('/home');
   };
 
   return (
@@ -75,17 +70,19 @@ export default function Login() {
             <button type="submit" className="w-full bg-3k-red text-white font-bold py-3 rounded-lg shadow-md hover:bg-3k-red-hover hover:-translate-y-1 transition-all duration-300 mb-4">
               Sign In
             </button>
-            <button 
-              type="button" 
-              onClick={handleGuestLogin}
-              className="w-full bg-[#E6D4B8]/30 text-[#815633] font-bold py-3 rounded-lg border border-[#815633]/50 hover:bg-[#E6D4B8]/60 hover:-translate-y-1 transition-all duration-300 mb-6">
-              Continue as Guest
-            </button>
           </form>
           
-          <p className="text-center text-sm text-gray-600 font-medium">
-            Don't have an account? <Link to="/register" className="text-3k-red font-black hover:text-3k-red-hover transition-colors">Create one</Link>
-          </p>
+          <div className="space-y-4">
+            <p className="text-center text-sm text-gray-600 font-medium">
+              Don&apos;t have an account? <Link to="/register" className="text-3k-red font-black hover:text-3k-red-hover transition-colors">Create one</Link>
+            </p>
+            <div className="border-t border-[#C9A77C]/25 pt-4 text-center">
+              <p className="mb-2 text-xs font-medium text-gray-500">For walk-in orders</p>
+              <Link to="/kiosk" className="inline-flex rounded-lg border border-[#815633]/40 px-4 py-2 text-sm font-bold text-[#815633] transition hover:bg-[#E6D4B8]/30">
+                Open Kiosk
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
       
