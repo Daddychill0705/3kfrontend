@@ -2,6 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const ADMIN_PAGE_SIZE = 20;
+
+function AdminPagination({ page, itemCount, onPageChange }) {
+  const pageCount = Math.ceil(itemCount / ADMIN_PAGE_SIZE);
+  if (pageCount <= 1) return null;
+
+  const firstItem = (page - 1) * ADMIN_PAGE_SIZE + 1;
+  const lastItem = Math.min(page * ADMIN_PAGE_SIZE, itemCount);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-white px-4 py-3">
+      <p className="text-xs font-medium text-gray-500">Showing {firstItem}–{lastItem} of {itemCount}</p>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => onPageChange(page - 1)} disabled={page <= 1} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
+        <span className="min-w-16 text-center text-xs font-bold text-gray-600">Page {page} of {pageCount}</span>
+        <button type="button" onClick={() => onPageChange(page + 1)} disabled={page >= pageCount} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const [activeModule, setActiveModule] = useState('Sales');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -13,6 +34,10 @@ export default function Admin() {
   const [staff, setStaff] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
+  const [paymentSearch, setPaymentSearch] = useState('');
+  const [paymentPage, setPaymentPage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [activityPage, setActivityPage] = useState(1);
   
   // Product States
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -296,6 +321,14 @@ export default function Admin() {
   const activeOrdersList = filteredOrders.filter(o => !['Completed', 'Cancelled'].includes(o.status));
   const completedOrders = filteredOrders.filter(o => o.status === 'Completed');
   const historyOrdersList = filteredOrders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
+  const visibleHistoryOrders = historyOrdersList.slice((historyPage - 1) * ADMIN_PAGE_SIZE, historyPage * ADMIN_PAGE_SIZE);
+  const searchedPaymentOrders = completedOrders.filter(order => {
+    const search = paymentSearch.trim().toLowerCase();
+    if (!search) return true;
+    return `${order.customerName || ''} ${order.email || ''}`.toLowerCase().includes(search);
+  });
+  const visiblePaymentOrders = searchedPaymentOrders.slice((paymentPage - 1) * ADMIN_PAGE_SIZE, paymentPage * ADMIN_PAGE_SIZE);
+  const visibleActivityLogs = activityLogs.slice((activityPage - 1) * ADMIN_PAGE_SIZE, activityPage * ADMIN_PAGE_SIZE);
 
   const totalRevenue = completedOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || order.total || 0), 0);
 
@@ -361,7 +394,11 @@ export default function Admin() {
           <div className="flex items-center gap-4">
             <select 
               value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
+              onChange={(e) => {
+                setSelectedBranch(e.target.value);
+                setPaymentPage(1);
+                setHistoryPage(1);
+              }}
               className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none hidden sm:block cursor-pointer"
             >
               <option>All branches</option>
@@ -513,7 +550,7 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {historyOrdersList.map((order, i) => (
+                    {visibleHistoryOrders.map((order, i) => (
                       <tr key={i} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <p className="font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</p>
@@ -545,48 +582,56 @@ export default function Admin() {
                   </tbody>
                 </table>
               </div>
+                <AdminPagination page={historyPage} itemCount={historyOrdersList.length} onPageChange={setHistoryPage} />
             </div>
           )}
 
           {/* PAYMENT LOGS MODULE */}
           {activeModule === 'Payment Logs' && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in flex flex-col">
-              <div className="p-4 border-b border-gray-100 flex gap-4 bg-gray-50">
+              <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50">
                   <h2 className="font-bold text-gray-700">Payment Transactions (Completed Orders)</h2>
+                  <input
+                    type="search"
+                    value={paymentSearch}
+                    onChange={event => {
+                      setPaymentSearch(event.target.value);
+                      setPaymentPage(1);
+                    }}
+                    placeholder="Search customer name or email"
+                    aria-label="Search payment logs by customer name or email"
+                    className="w-full sm:max-w-sm rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#815633]"
+                  />
               </div>
               <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm min-w-[900px]">
+                  <table className="w-full text-left text-sm min-w-[700px]">
                       <thead className="bg-[#E6D4B8]/20">
                           <tr>
                               <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Order ID</th>
                               <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Customer</th>
                               <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Method</th>
                               <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Amount</th>
-                              <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Receipt</th>
                           </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                          {completedOrders.map(order => (
+                          {visiblePaymentOrders.map(order => (
                               <tr key={order.id} className="hover:bg-gray-50">
                                   <td className="px-6 py-4 font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</td>
-                                  <td className="px-6 py-4 font-bold text-gray-900">{order.customerName}</td>
+                                  <td className="px-6 py-4 font-bold text-gray-900">
+                                    <span className="block">{order.customerName || 'Unknown customer'}</span>
+                                    {order.email && <span className="mt-0.5 block text-xs font-medium text-gray-500">{order.email}</span>}
+                                  </td>
                                   <td className="px-6 py-4 font-bold text-gray-700">{order.payment_method}</td>
                                   <td className="px-6 py-4 font-black text-[#815633]">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</td>
-                                  <td className="px-6 py-4">
-                                      {order.gcash_receipt_url ? (
-                                          <a href={order.gcash_receipt_url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline font-bold text-xs">View Receipt</a>
-                                      ) : (
-                                          <span className="text-gray-400 text-xs font-bold">N/A</span>
-                                      )}
-                                  </td>
                               </tr>
                           ))}
-                          {completedOrders.length === 0 && (
-                              <tr><td colSpan="5" className="text-center py-8 text-gray-400 font-bold">No completed payments found.</td></tr>
+                          {searchedPaymentOrders.length === 0 && (
+                              <tr><td colSpan="4" className="text-center py-8 text-gray-400 font-bold">{paymentSearch ? 'No matching customer payments found.' : 'No completed payments found.'}</td></tr>
                           )}
                       </tbody>
                   </table>
               </div>
+              <AdminPagination page={paymentPage} itemCount={searchedPaymentOrders.length} onPageChange={setPaymentPage} />
             </div>
           )}
 
@@ -607,7 +652,7 @@ export default function Admin() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {activityLogs.map((log, i) => (
+                            {visibleActivityLogs.map((log, i) => (
                                 <tr key={i} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 text-xs font-bold text-gray-500">{new Date(log.created_at).toLocaleString()}</td>
                                     <td className="px-6 py-4 font-bold text-gray-900">{log.user_name}</td>
@@ -623,6 +668,7 @@ export default function Admin() {
                         </tbody>
                     </table>
                 </div>
+                <AdminPagination page={activityPage} itemCount={activityLogs.length} onPageChange={setActivityPage} />
             </div>
           )}
 
