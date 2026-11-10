@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
 
 export default function Kiosk() {
@@ -25,9 +24,24 @@ export default function Kiosk() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
   
-  const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  useEffect(() => {
+    const syncFullscreenState = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch (error) {
+      console.error('Fullscreen mode could not be changed:', error);
+    }
+  };
 
   const categories = [
     { id: 'ALL', icon: '🍽️', label: 'All' },
@@ -219,8 +233,8 @@ export default function Kiosk() {
   if (!orderType) {
     return (
       <div className="min-h-screen bg-[#F5EFE3] flex flex-col items-center justify-center p-4 font-sans relative">
-        <button onClick={() => navigate('/home')} className="absolute top-8 left-8 text-sm font-bold text-gray-400 hover:text-gray-900 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm transition-all">
-          ← Back to website
+                <button type="button" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} className="absolute left-8 top-8 rounded-lg border border-gray-200/60 bg-white/50 px-3 py-2 text-lg text-gray-500 opacity-25 shadow-sm transition hover:bg-white hover:text-gray-900 hover:opacity-100 focus-visible:opacity-100">
+          ⛶
         </button>
         
         <div className="absolute top-8 right-8 flex items-center gap-3">
