@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
-export default function BestSellers({ showForVisitors = false }) {
+export default function BestSellers() {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export default function BestSellers({ showForVisitors = false }) {
   const isGuest = user?.role === 'guest' || user?.email === 'guest@3kkitchen.local';
 
   useEffect(() => {
-    if (isGuest || (!user && !showForVisitors)) return;
+    if (!user || isGuest) return;
 
     let isCurrent = true;
     fetch(`${API_URL}/api/menu/best-sellers`)
@@ -24,7 +24,7 @@ export default function BestSellers({ showForVisitors = false }) {
       .catch(error => console.error('Failed to load best sellers:', error));
 
     return () => { isCurrent = false; };
-  }, [API_URL, isGuest, showForVisitors, user]);
+  }, [API_URL, isGuest, user]);
 
   useEffect(() => {
     if (!notification) return undefined;
@@ -32,7 +32,7 @@ export default function BestSellers({ showForVisitors = false }) {
     return () => window.clearTimeout(timeoutId);
   }, [notification]);
 
-  if (isGuest || (!user && !showForVisitors) || items.length === 0) return null;
+  if (!user || isGuest || items.length === 0) return null;
 
   const imageSource = item => {
     const imageUrl = item.image_url || '/img/default-food.jpg';
@@ -42,21 +42,11 @@ export default function BestSellers({ showForVisitors = false }) {
   };
 
   const buyNow = item => {
-    if (!user) {
-      setNotification('Sign in above to order from our best sellers.');
-      document.getElementById('email')?.focus();
-      return;
-    }
     addToCart({ ...item, qty: 1 });
     navigate('/checkout');
   };
 
   const addBestSellerToCart = item => {
-    if (!user) {
-      setNotification('Sign in above to add this item to your cart.');
-      document.getElementById('email')?.focus();
-      return;
-    }
     addToCart({ ...item, qty: 1 });
     setNotification(`${item.name} added to your cart.`);
   };
@@ -74,9 +64,7 @@ export default function BestSellers({ showForVisitors = false }) {
             <p className="mb-1 text-xs font-black uppercase tracking-[0.18em] text-[#815633]">Customer favorites</p>
             <h2 id="best-sellers-title" className="text-2xl font-black text-gray-900 sm:text-3xl">Our 3 Best Sellers</h2>
           </div>
-          {user && (
-            <Link to="/menu" className="text-sm font-bold text-[#815633] underline-offset-4 hover:underline">View full menu</Link>
-          )}
+          <Link to="/menu" className="text-sm font-bold text-[#815633] underline-offset-4 hover:underline">View full menu</Link>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
