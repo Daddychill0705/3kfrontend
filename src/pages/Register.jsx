@@ -15,6 +15,9 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState('details');
+  const [otp, setOtp] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -29,18 +32,20 @@ export default function Register() {
     if (formData.password !== formData.confirmPassword) {
       return setError('Passwords do not match');
     }
+    if (!termsAccepted) return setError('Please agree to the Terms and Conditions and Privacy Policy.');
 
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/register`, {
+      const response = await fetch(`${API_URL}/api/register/request-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           firstname: formData.firstname,
           lastname: formData.lastname,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          termsAccepted
         })
       });
 
@@ -50,8 +55,28 @@ export default function Register() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      alert('Account created successfully! Please sign in.');
-      navigate('/login');
+      setStage('verify');
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/register/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, otp })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not verify the code.');
+      navigate('/login', { state: { message: 'Your account is verified. You can now sign in.' } });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -63,14 +88,20 @@ export default function Register() {
     <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[calc(100vh-80px)] bg-3k-bg">
       <div className="bg-white flex flex-col justify-center items-center py-12 px-6 lg:order-1 order-2 border-r border-[#C9A77C]/20 shadow-xl z-10">
         <div className="w-full max-w-[450px]">
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Create Account</h1>
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">{stage === 'verify' ? 'Verify Your Email' : 'Create Account'}</h1>
           <p className="text-sm text-gray-600 mb-8 leading-relaxed font-medium">
-            Sign up to start ordering your favorite Filipino dishes.
+            {stage === 'verify' ? `Enter the 6-digit code sent to ${formData.email}.` : 'Sign up to start ordering your favorite Filipino dishes.'}
           </p>
           
           {error && <p className="text-red-500 text-sm mb-4 font-bold">{error}</p>}
           
-          <form onSubmit={handleRegister}>
+          <form onSubmit={stage === 'verify' ? handleVerifyOtp : handleRegister}>
+            {stage === 'verify' ? (
+              <div className="mb-6">
+                <label htmlFor="registration-otp" className="block text-sm font-bold text-gray-800 mb-2">Email verification code</label>
+                <input id="registration-otp" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={otp} onChange={event => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required placeholder="6-digit code" className="w-full px-4 py-3 border border-gray-300 rounded-lg tracking-[0.3em] focus:outline-none focus:border-[#815633]" />
+              </div>
+            ) : <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label htmlFor="firstname" className="block text-sm font-bold text-gray-800 mb-2">First Name</label>
@@ -103,6 +134,8 @@ export default function Register() {
                 type="checkbox"
                 id="terms"
                 required
+                checked={termsAccepted}
+                onChange={event => setTermsAccepted(event.target.checked)}
                 aria-label="I agree to the Terms and Conditions and Privacy Policy"
                 className="mt-1 w-4 h-4 cursor-pointer accent-3k-red shrink-0"
               />
@@ -113,11 +146,14 @@ export default function Register() {
                 <Link to="/privacy" target="_blank" rel="noreferrer" className="text-3k-red font-bold underline underline-offset-2 hover:text-3k-red-hover">Privacy Policy</Link>.
               </p>
             </div>
+            </>}
             
             <button type="submit" disabled={loading} className="w-full bg-3k-red text-white font-bold py-3 rounded-lg shadow-md hover:bg-3k-red-hover transition-all mb-6">
-              {loading ? 'Creating...' : 'Create Account'}
+              {loading ? (stage === 'verify' ? 'Verifying...' : 'Sending code...') : (stage === 'verify' ? 'Verify and Create Account' : 'Send Verification Code')}
             </button>
           </form>
+
+          {stage === 'verify' && <button type="button" onClick={() => { setStage('details'); setOtp(''); setError(''); }} className="mb-5 w-full text-sm font-bold text-[#815633] hover:underline">Back to account details</button>}
 
           <p className="text-center text-sm text-gray-600 font-medium">
             Already have an account? <Link to="/login" className="text-3k-red font-black hover:text-3k-red-hover transition-colors">Sign in</Link>

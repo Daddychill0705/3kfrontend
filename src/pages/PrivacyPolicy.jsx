@@ -13,19 +13,20 @@ const sections = [
     paragraphs: [
       'When you create an account, we collect your first name, last name, email address, and password. Passwords are stored as password hashes rather than readable passwords. If you later add profile information, this may include your phone number and date of birth.',
       'If you submit an account recovery request, we collect the name and email on the account, registered phone number, optional date of birth, the new email address you can access, and any additional verification details you provide. Authorized administrators review these details to decide whether to approve the email change and password reset.',
-      'When you place an order, we process the items and quantities ordered, order total, selected branch, order type, delivery address and contact number when provided, notes, and payment method. For GCash orders, you may upload a receipt image for payment verification. Order-related chat messages are also stored so the customer, cashier, and rider can coordinate the order.'
+      'When you place an order, we process the items and quantities ordered, order total, selected branch, order type, delivery address and contact number when provided, notes, and payment method. For GCash orders, you may upload a receipt image for payment verification. Order-related chat messages are also stored so the customer, cashier, and rider can coordinate the order.',
+      'When an account signs in, we use the connection IP address to send a security email with the IP and an approximate city/region/country. Approximate location is derived from the IP address and may be inaccurate; we do not use device GPS for this email. We send verification codes, account notices, password-reset messages, online-order confirmations, and new-order alerts to authorized staff by email.'
     ]
   },
   {
     title: '3. How we use information',
     paragraphs: [
-      'We use this information to create and secure your account, review account recovery requests, send approved password reset links or recovery decision notices, accept and prepare orders, verify payments, arrange pick-up or delivery, coordinate with the cashier or rider, respond to support requests, and maintain the operation and security of the service.'
+      'We use this information to create and secure your account, verify your email, review account recovery requests, send password-reset codes and account notices, alert you to account sign-ins, send online-order confirmations and staff order alerts, accept and prepare orders, verify payments, arrange pick-up or delivery, coordinate with the cashier or rider, respond to support requests, and maintain the operation and security of the service.'
     ]
   },
   {
     title: '4. Who may receive information',
     paragraphs: [
-      'Order details are made available to authorized 3K Kitchen staff who need them to prepare, confirm, or deliver the order. Account recovery details are available only to administrators reviewing the request. Delivery details may be shared with the assigned rider. We also use service providers to host the website and database, and Brevo to send password reset and recovery decision emails; uploaded GCash receipt images are handled by Cloudinary. These providers process information to support the service and under their own service terms.'
+      'Order details are made available to authorized 3K Kitchen staff who need them to prepare, confirm, or deliver the order. Account recovery details are available only to administrators reviewing the request. Delivery details may be shared with the assigned rider. We also use service providers to host the website and database, Brevo to send account and order emails, and an IP geolocation provider to estimate sign-in location from an IP address; uploaded GCash receipt images are handled by Cloudinary. These providers process information to support the service and under their own service terms.'
     ]
   },
   {

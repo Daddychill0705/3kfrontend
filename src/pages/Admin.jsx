@@ -271,15 +271,18 @@ export default function Admin() {
   const handleAddRider = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_URL}/api/register`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/riders`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ ...newRider, role: 'rider' })
       });
       if (response.ok) {
         setShowAddRider(false);
-        const token = localStorage.getItem('token');
         const res = await fetch(`${API_URL}/api/admin/riders`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setRiders(await res.json());
+      } else {
+        const result = await response.json().catch(() => ({}));
+        alert(result.error || 'Failed to add rider.');
       }
     } catch (error) { alert('Failed to add rider'); }
   };
