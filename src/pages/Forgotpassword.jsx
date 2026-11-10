@@ -77,8 +77,8 @@ export default function ForgotPassword() {
             </button>
           </form>
 
-          <div className="mb-6 border-t border-[#C9A77C]/25 pt-5">
-            <button type="button" onClick={() => { setShowRecoveryForm(open => !open); setRecoveryError(''); setRecoveryMessage(''); }} aria-expanded={showRecoveryForm} className="text-sm font-bold text-[#815633] underline decoration-[#C9A77C] underline-offset-4 hover:text-[#62432B]">
+          <div className="mb-6 border-t border-[#C9A77C]/25 pt-5 text-center">
+            <button type="button" onClick={() => { setShowRecoveryForm(open => !open); setRecoveryError(''); setRecoveryMessage(''); }} aria-expanded={showRecoveryForm} className="text-center text-sm font-bold text-[#815633] underline decoration-[#C9A77C] underline-offset-4 hover:text-[#62432B]">
               I don&apos;t have access to this account
             </button>
             {showRecoveryForm && (
