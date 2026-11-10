@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
-export default function BestSellers() {
+export default function BestSellers({ showForVisitors = false }) {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export default function BestSellers() {
   const isGuest = user?.role === 'guest' || user?.email === 'guest@3kkitchen.local';
 
   useEffect(() => {
-    if (!user || isGuest) return;
+    if (isGuest || (!user && !showForVisitors)) return;
 
     let isCurrent = true;
     fetch(`${API_URL}/api/menu/best-sellers`)
@@ -24,7 +24,7 @@ export default function BestSellers() {
       .catch(error => console.error('Failed to load best sellers:', error));
 
     return () => { isCurrent = false; };
-  }, [API_URL, isGuest, user]);
+  }, [API_URL, isGuest, showForVisitors, user]);
 
   useEffect(() => {
     if (!notification) return undefined;
@@ -32,7 +32,7 @@ export default function BestSellers() {
     return () => window.clearTimeout(timeoutId);
   }, [notification]);
 
-  if (!user || isGuest || items.length === 0) return null;
+  if (isGuest || (!user && !showForVisitors) || items.length === 0) return null;
 
   const imageSource = item => {
     const imageUrl = item.image_url || '/img/default-food.jpg';
@@ -42,8 +42,23 @@ export default function BestSellers() {
   };
 
   const buyNow = item => {
+    if (!user) {
+      setNotification('Sign in above to order from our best sellers.');
+      document.getElementById('email')?.focus();
+      return;
+    }
     addToCart({ ...item, qty: 1 });
     navigate('/checkout');
+  };
+
+  const addBestSellerToCart = item => {
+    if (!user) {
+      setNotification('Sign in above to add this item to your cart.');
+      document.getElementById('email')?.focus();
+      return;
+    }
+    addToCart({ ...item, qty: 1 });
+    setNotification(`${item.name} added to your cart.`);
   };
 
   return (
@@ -59,7 +74,9 @@ export default function BestSellers() {
             <p className="mb-1 text-xs font-black uppercase tracking-[0.18em] text-[#815633]">Customer favorites</p>
             <h2 id="best-sellers-title" className="text-2xl font-black text-gray-900 sm:text-3xl">Our 3 Best Sellers</h2>
           </div>
-          <Link to="/menu" className="text-sm font-bold text-[#815633] underline-offset-4 hover:underline">View full menu</Link>
+          {user && (
+            <Link to="/menu" className="text-sm font-bold text-[#815633] underline-offset-4 hover:underline">View full menu</Link>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -74,7 +91,9 @@ export default function BestSellers() {
                   className="h-full w-full object-cover"
                   onError={event => { event.currentTarget.src = `${API_URL}/img/default-food.jpg`; }}
                 />
-                <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-black text-[#815633] shadow">#{index + 1} Best Seller</span>
+                <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-black text-[#815633] shadow">
+                  {Number(item.total_sold) > 0 ? `#${index + 1} Best Seller` : 'Popular Pick'}
+                </span>
               </div>
               <div className="flex flex-1 flex-col p-4">
                 <p className="mb-1 text-xs font-bold uppercase tracking-wide text-gray-500">{item.category}</p>
@@ -83,10 +102,7 @@ export default function BestSellers() {
                 <div className="mt-auto flex gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      addToCart({ ...item, qty: 1 });
-                      setNotification(`${item.name} added to your cart.`);
-                    }}
+                    onClick={() => addBestSellerToCart(item)}
                     className="flex-1 rounded-lg border border-[#815633] px-3 py-2.5 text-sm font-bold text-[#815633] transition-colors hover:bg-[#815633] hover:text-white"
                   >
                     Add to Cart

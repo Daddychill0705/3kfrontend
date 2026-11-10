@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
 import { useAuth } from '../context/AuthContext';
+import BestSellers from '../components/BestSellers';
 
 export default function Login() {
   const { login, loginAsGuest } = useAuth();
@@ -32,6 +33,7 @@ export default function Login() {
   };
 
   return (
+    <>
     <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[calc(100vh-80px)] bg-3k-bg">
       <div className="bg-white flex flex-col justify-center items-center py-12 px-6 lg:order-1 order-2 border-r border-[#C9A77C]/20 shadow-xl z-10">
         <div className="w-full max-w-[400px]">
@@ -102,5 +104,7 @@ export default function Login() {
         </div>
       </div>
     </div>
+    <BestSellers showForVisitors />
+    </>
   );
 }
