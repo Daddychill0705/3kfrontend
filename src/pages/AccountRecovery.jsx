@@ -1,19 +1,18 @@
 ﻿import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const INITIAL_FORM = { accountName: '', accountEmail: '', registeredPhone: '', registeredDob: '', newEmail: '', accountDetails: '' };
 
 export default function AccountRecovery() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const navigate = useNavigate();
   const [form, setForm] = useState(INITIAL_FORM);
-  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async event => {
     event.preventDefault();
     setIsSubmitting(true);
-    setMessage('');
     setError('');
     try {
       const response = await fetch(`${API_URL}/api/account-recovery`, {
@@ -23,8 +22,10 @@ export default function AccountRecovery() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Could not submit the recovery request.');
-      setMessage(result.message || 'Your request was sent for admin review.');
-      setForm(INITIAL_FORM);
+      navigate('/forgot-password', {
+        replace: true,
+        state: { accountRecoveryMessage: result.message || 'Your request was sent for admin review.' }
+      });
     } catch (requestError) {
       setError(requestError.message || 'Could not submit the recovery request. Please try again.');
     } finally {
@@ -42,7 +43,6 @@ export default function AccountRecovery() {
         <h1 className="text-2xl font-black text-gray-900 sm:text-3xl">Account Recovery</h1>
         <p className="mt-2 text-sm leading-relaxed text-gray-600">If you can&apos;t access your account email, send these details for admin review. An admin will compare them with the account information before deciding.</p>
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-900">Never enter your password or payment information here. If approved, the reset link will be sent to the new email address you provide.</p>
-        {message && <p role="status" className="mt-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">{message}</p>}
         {error && <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
 
         <form onSubmit={submit} className="mt-6 space-y-4">

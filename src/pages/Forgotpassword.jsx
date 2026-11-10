@@ -1,9 +1,10 @@
 ﻿import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
 
 export default function ForgotPassword() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -36,6 +37,7 @@ export default function ForgotPassword() {
         <div className="w-full max-w-[400px]">
           <h1 className="mb-2 text-3xl font-extrabold text-gray-900">Forgot Password</h1>
           <p className="mb-8 text-sm font-medium leading-relaxed text-gray-600">Enter your email address and we&apos;ll send you a link to reset your password.</p>
+          {location.state?.accountRecoveryMessage && <p role="status" className="mb-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">{location.state.accountRecoveryMessage}</p>}
           {message && <p role="status" className="mb-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">{message}</p>}
           {error && <p role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
           <form onSubmit={submit}>
