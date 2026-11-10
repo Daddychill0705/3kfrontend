@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 
 const ADMIN_PAGE_SIZE = 20;
@@ -27,6 +28,7 @@ export default function Admin() {
   const [activeModule, setActiveModule] = useState('Sales');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState('All branches');
+  const [salesPeriod, setSalesPeriod] = useState('today');
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -106,6 +108,26 @@ export default function Admin() {
     };
     fetchData();
   }, [user, navigate, API_URL]);
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') return undefined;
+
+    const socket = io(API_URL);
+    const refreshSalesOrders = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/admin/orders`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) setOrders(await response.json());
+      } catch (error) {
+        console.error('Failed to refresh sales data', error);
+      }
+    };
+
+    socket.on('dashboard_refresh', refreshSalesOrders);
+    return () => socket.disconnect();
+  }, [user, API_URL]);
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
@@ -346,6 +368,52 @@ export default function Admin() {
   const filteredOrders = selectedBranch === 'All branches' ? orders : orders.filter(o => o.branch === selectedBranch);
   const activeOrdersList = filteredOrders.filter(o => !['Completed', 'Cancelled'].includes(o.status));
   const completedOrders = filteredOrders.filter(o => o.status === 'Completed');
+  const salesRangeDays = salesPeriod === 'today' ? 1 : salesPeriod === '7days' ? 7 : 30;
+  const currentSalesDate = new Date();
+  const salesStartDate = new Date(currentSalesDate.getFullYear(), currentSalesDate.getMonth(), currentSalesDate.getDate() - salesRangeDays + 1);
+  const salesOrders = completedOrders.filter(order => {
+    const orderDate = new Date(order.created_at);
+    return Number.isFinite(orderDate.getTime()) && orderDate >= salesStartDate && orderDate <= currentSalesDate;
+  });
+  const salesRevenue = salesOrders.reduce((sum, order) => sum + Number(order.total_amount || order.total || 0), 0);
+  const salesItemCount = salesOrders.reduce((sum, order) => sum + (order.itemsData?.reduce((itemSum, item) => itemSum + Number(item.qty || 0), 0) || 0), 0);
+  const chartPointCount = salesPeriod === 'today' ? 12 : salesRangeDays;
+  const salesChartPoints = Array.from({ length: chartPointCount }, (_, index) => {
+    let pointDate;
+    let pointOrders;
+
+    if (salesPeriod === 'today') {
+      const hourStart = index * 2;
+      pointDate = new Date(currentSalesDate.getFullYear(), currentSalesDate.getMonth(), currentSalesDate.getDate(), hourStart);
+      pointOrders = salesOrders.filter(order => {
+        const orderDate = new Date(order.created_at);
+        return orderDate.getHours() >= hourStart && orderDate.getHours() < hourStart + 2;
+      });
+    } else {
+      pointDate = new Date(salesStartDate.getFullYear(), salesStartDate.getMonth(), salesStartDate.getDate() + index);
+      const pointDateKey = `${pointDate.getFullYear()}-${pointDate.getMonth()}-${pointDate.getDate()}`;
+      pointOrders = salesOrders.filter(order => {
+        const orderDate = new Date(order.created_at);
+        return `${orderDate.getFullYear()}-${orderDate.getMonth()}-${orderDate.getDate()}` === pointDateKey;
+      });
+    }
+
+    return {
+      date: pointDate,
+      orders: pointOrders.length,
+      sales: pointOrders.reduce((sum, order) => sum + Number(order.total_amount || order.total || 0), 0)
+    };
+  });
+  const maxDailySales = Math.max(...salesChartPoints.map(point => point.sales), 0);
+  const gcashOrders = salesOrders.filter(order => String(order.payment_method || '').toLowerCase().includes('gcash'));
+  const cashOrders = salesOrders.filter(order => /cash/i.test(order.payment_method || ''));
+  const gcashSales = gcashOrders.reduce((sum, order) => sum + Number(order.total_amount || order.total || 0), 0);
+  const cashSales = cashOrders.reduce((sum, order) => sum + Number(order.total_amount || order.total || 0), 0);
+  const paymentTotal = gcashSales + cashSales;
+  const onlineOrders = salesOrders.filter(order => ['Delivery', 'Pick-up'].includes(order.order_type));
+  const inStoreOrders = salesOrders.filter(order => ['Dine-in', 'Take-out'].includes(order.order_type));
+  const onlineSales = onlineOrders.reduce((sum, order) => sum + Number(order.total_amount || order.total || 0), 0);
+  const inStoreSales = inStoreOrders.reduce((sum, order) => sum + Number(order.total_amount || order.total || 0), 0);
   const historyOrdersList = filteredOrders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
   const visibleHistoryOrders = historyOrdersList.slice((historyPage - 1) * ADMIN_PAGE_SIZE, historyPage * ADMIN_PAGE_SIZE);
   const searchedPaymentOrders = completedOrders.filter(order => {
@@ -355,8 +423,6 @@ export default function Admin() {
   });
   const visiblePaymentOrders = searchedPaymentOrders.slice((paymentPage - 1) * ADMIN_PAGE_SIZE, paymentPage * ADMIN_PAGE_SIZE);
   const visibleActivityLogs = activityLogs.slice((activityPage - 1) * ADMIN_PAGE_SIZE, activityPage * ADMIN_PAGE_SIZE);
-
-  const totalRevenue = completedOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || order.total || 0), 0);
 
   const modules = [
     { id: 'Sales', name: 'Sales' },
@@ -440,57 +506,111 @@ export default function Admin() {
           {/* SALES MODULE */}
           {activeModule === 'Sales' && (
             <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
-              <div className="flex gap-4 mb-6">
-                <button className="px-4 py-1.5 rounded-full text-sm font-bold bg-[#4a3b32] text-white">Today</button>
-                <button className="px-4 py-1.5 rounded-full text-sm font-bold text-gray-500 hover:bg-gray-100">7 days</button>
-                <button className="px-4 py-1.5 rounded-full text-sm font-bold text-gray-500 hover:bg-gray-100">30 days</button>
+              <div className="flex flex-wrap gap-2 sm:gap-4 mb-6" role="group" aria-label="Sales date range">
+                {[
+                  ['today', 'Today'],
+                  ['7days', '7 days'],
+                  ['30days', '30 days']
+                ].map(([period, label]) => (
+                  <button
+                    key={period}
+                    type="button"
+                    onClick={() => setSalesPeriod(period)}
+                    aria-pressed={salesPeriod === period}
+                    className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors ${salesPeriod === period ? 'bg-[#4a3b32] text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Sales</h3>
-                  <p className="text-2xl font-black text-gray-900">₱{totalRevenue.toFixed(2)}</p>
+                  <p className="text-2xl font-black text-gray-900">₱{salesRevenue.toFixed(2)}</p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Orders</h3>
-                  <p className="text-2xl font-black text-gray-900">{completedOrders.length}</p>
+                  <p className="text-2xl font-black text-gray-900">{salesOrders.length}</p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Average Order</h3>
-                  <p className="text-2xl font-black text-gray-900">₱{completedOrders.length > 0 ? (totalRevenue / completedOrders.length).toFixed(2) : '0.00'}</p>
+                  <p className="text-2xl font-black text-gray-900">₱{salesOrders.length > 0 ? (salesRevenue / salesOrders.length).toFixed(2) : '0.00'}</p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Items Sold</h3>
-                  <p className="text-2xl font-black text-gray-900">{completedOrders.reduce((sum, order) => sum + (order.itemsData?.reduce((s, i) => s + i.qty, 0) || 0), 0)}</p>
+                  <p className="text-2xl font-black text-gray-900">{salesItemCount}</p>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 h-64 flex flex-col justify-between">
-                <h3 className="text-sm font-bold text-gray-600 mb-4">Sales per day</h3>
-                <div className="flex-1 flex items-end justify-around gap-2 px-4 pb-2 border-b border-gray-100">
-                  {[10, 0, 0, 0, 0, 0, 100].map((h, i) => (
-                    <div key={i} className="w-full max-w-[40px] bg-red-600/80 rounded-t-sm transition-all" style={{ height: `${h}%` }}></div>
-                  ))}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                <div className="mb-5 flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">{salesPeriod === 'today' ? 'Sales by hour' : 'Sales per day'}</h3>
+                    <p className="mt-1 text-xs font-medium text-gray-500">
+                      {salesPeriod === 'today' ? 'Today, in 2-hour intervals' : salesPeriod === '7days' ? 'Daily totals for the last 7 days' : 'Daily totals for the last 30 days'}
+                    </p>
+                  </div>
+                  <p className="text-xs font-bold text-[#815633]">Peak: {String.fromCharCode(8369)}{maxDailySales.toFixed(2)}</p>
                 </div>
-                <div className="flex justify-around mt-2 text-[10px] font-bold text-gray-400">
-                  <span>Oct 7</span><span>Oct 8</span><span>Oct 9</span><span>Oct 10</span><span>Oct 11</span><span>Oct 12</span><span>Oct 13</span>
+                <div className="overflow-x-auto pb-1">
+                  <div className={`flex h-56 min-w-[560px] items-end gap-1 border-b border-gray-100 px-1 sm:min-w-0 ${salesPeriod === '30days' ? 'sm:gap-1' : 'sm:gap-3'}`}>
+                    {salesChartPoints.map((point, index) => {
+                      const isLabeled = salesPeriod !== '30days' || index % 5 === 0 || index === salesChartPoints.length - 1;
+                      const label = salesPeriod === 'today'
+                        ? point.date.toLocaleTimeString([], { hour: 'numeric' }).replace(' ', '').toLowerCase()
+                        : point.date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                      const barHeight = maxDailySales > 0 && point.sales > 0 ? Math.max((point.sales / maxDailySales) * 100, 3) : 0;
+
+                      return (
+                        <div key={point.date.toISOString()} className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end">
+                          <span className="mb-1 hidden whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-[10px] font-bold text-white group-hover:block">
+                            {label}: {String.fromCharCode(8369)}{point.sales.toFixed(2)} · {point.orders} orders
+                          </span>
+                          <div className="flex h-[80%] w-full items-end justify-center">
+                            <div
+                              title={`${label}: ${String.fromCharCode(8369)}${point.sales.toFixed(2)} (${point.orders} orders)`}
+                              aria-label={`${label}: ${String.fromCharCode(8369)}${point.sales.toFixed(2)}, ${point.orders} completed orders`}
+                              className={`w-full max-w-10 rounded-t-sm bg-red-600/85 transition-all duration-300 ${point.sales > 0 ? 'group-hover:bg-red-700' : ''}`}
+                              style={{ height: `${barHeight}%` }}
+                            />
+                          </div>
+                          <span className="mt-2 h-4 whitespace-nowrap text-[9px] font-bold text-gray-500 sm:text-[10px]">
+                            {isLabeled ? label : ''}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
+                {salesOrders.length === 0 && <p className="mt-3 text-center text-xs font-medium text-gray-400">No completed sales for this period.</p>}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                   <h3 className="text-sm font-bold text-gray-900 mb-6">Cash vs GCash</h3>
-                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden mb-2">
-                    <div className="h-full bg-red-600 w-[100%]"></div>
+                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden mb-4">
+                    <div className="h-full bg-red-600 transition-all duration-300" style={{ width: `${paymentTotal > 0 ? (gcashSales / paymentTotal) * 100 : 0}%` }}></div>
                   </div>
-                  <div className="flex justify-between text-xs font-bold text-gray-500">
-                    <span>🔴 GCash • 2 orders • 100%</span>
-                    <span className="text-gray-900">₱810.00</span>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-bold">
+                    <span className="text-gray-600">GCash · {gcashOrders.length} orders</span>
+                    <span className="text-right text-gray-900">{String.fromCharCode(8369)}{gcashSales.toFixed(2)}</span>
+                    <span className="text-gray-600">Cash / COD · {cashOrders.length} orders</span>
+                    <span className="text-right text-gray-900">{String.fromCharCode(8369)}{cashSales.toFixed(2)}</span>
                   </div>
+                  {paymentTotal === 0 && <p className="mt-3 text-xs text-gray-400">No payment totals for this period.</p>}
                 </div>
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-sm font-bold text-gray-900 mb-6">By channel</h3>
-                  <div className="flex justify-between text-sm font-bold border-b border-gray-100 pb-2">
-                    <span className="text-gray-800">Online</span>
-                    <span className="text-gray-500">₱810.00 <span className="font-medium text-xs ml-2">2 orders</span></span>
-                  </div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-5">Sales by channel</h3>
+                  {[
+                    { label: 'Online', orders: onlineOrders, sales: onlineSales },
+                    { label: 'In-store', orders: inStoreOrders, sales: inStoreSales }
+                  ].map(channel => (
+                    <div key={channel.label} className="flex justify-between gap-3 border-b border-gray-100 py-3 text-sm last:border-0">
+                      <div>
+                        <p className="font-bold text-gray-800">{channel.label}</p>
+                        <p className="mt-0.5 text-xs font-medium text-gray-500">{channel.orders.length} completed orders</p>
+                      </div>
+                      <p className="font-bold text-gray-700">{String.fromCharCode(8369)}{channel.sales.toFixed(2)}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
