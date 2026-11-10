@@ -1070,7 +1070,8 @@ export default function Admin() {
               )}
 
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="divide-y divide-gray-100 p-2">
+                <div className="overflow-x-auto touch-pan-x">
+                <div className="min-w-[560px] divide-y divide-gray-100 p-2">
                   {staff.map(member => (
                     <div key={member.id} className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-4">
@@ -1099,6 +1100,7 @@ export default function Admin() {
                     </div>
                   ))}
                   {staff.length === 0 && <p className="text-center text-gray-500 py-6 font-bold">No staff accounts found.</p>}
+                </div>
                 </div>
               </div>
             </div>
@@ -1150,7 +1152,8 @@ export default function Admin() {
               )}
 
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="divide-y divide-gray-100 p-2">
+                <div className="overflow-x-auto touch-pan-x">
+                <div className="min-w-[520px] divide-y divide-gray-100 p-2">
                   {riders.map(rider => (
                     <div key={rider.id} className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-4">
@@ -1172,6 +1175,7 @@ export default function Admin() {
                     </div>
                   ))}
                   {riders.length === 0 && <p className="text-center text-gray-500 py-6 font-bold">No riders registered.</p>}
+                </div>
                 </div>
               </div>
             </div>
