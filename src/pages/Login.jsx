@@ -84,21 +84,6 @@ export default function Login() {
             </button>
           </form>
           
-          <div className="flex items-center mb-6 gap-4">
-            <div className="flex-1 h-px bg-gray-200"></div>
-            <span className="text-sm text-gray-400 font-bold">OR</span>
-            <div className="flex-1 h-px bg-gray-200"></div>
-          </div>
-          
-          <div className="flex gap-4 mb-8">
-            <button className="flex-1 py-3 border border-gray-300 rounded-lg bg-white cursor-pointer text-sm font-bold transition-all duration-300 hover:border-[#815633] hover:bg-[#E6D4B8]/20 hover:text-[#815633] flex items-center justify-center gap-2">
-              Google
-            </button>
-            <button className="flex-1 py-3 border border-gray-300 rounded-lg bg-white cursor-pointer text-sm font-bold transition-all duration-300 hover:border-[#815633] hover:bg-[#E6D4B8]/20 hover:text-[#815633] flex items-center justify-center gap-2">
-              Facebook
-            </button>
-          </div>
-          
           <p className="text-center text-sm text-gray-600 font-medium">
             Don't have an account? <Link to="/register" className="text-3k-red font-black hover:text-3k-red-hover transition-colors">Create one</Link>
           </p>
