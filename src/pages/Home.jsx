@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import BestSellers from '../components/BestSellers';
+import BilaoShowcase from '../components/BilaoShowcase';
 
 const currentBranchKey = (branchName) => {
   const name = String(branchName || '').toLowerCase();
@@ -158,6 +159,7 @@ export default function Home() {
         </div>
 
       </div>
+      <BilaoShowcase />
       <BestSellers />
     </div>
   );
