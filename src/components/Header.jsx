@@ -10,7 +10,7 @@ export default function Header() {
   const { cartCount } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isGuest = user?.role === 'guest' || user?.email === 'guest@3kkitchen.local';
-  const canAccessKiosk = !user;
+  const canAccessKiosk = isGuest;
   const canBrowseCustomerPages = Boolean(user) && !isGuest;
 
   useEffect(() => {
