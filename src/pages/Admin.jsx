@@ -59,8 +59,12 @@ export default function Admin() {
   // Staff States
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [newStaff, setNewStaff] = useState({ firstname: '', lastname: '', email: '', password: '', role: 'cashier', branch: '' });
+  const [newAccountAdminPassword, setNewAccountAdminPassword] = useState('');
   const [editingStaff, setEditingStaff] = useState(null);
   const [editStaffPass, setEditStaffPass] = useState('');
+  const [editStaffAdminPassword, setEditStaffAdminPassword] = useState('');
+  const [pendingAdminDeletion, setPendingAdminDeletion] = useState(null);
+  const [adminDeletePassword, setAdminDeletePassword] = useState('');
 
   // Customer Profile State
   const [viewCustomer, setViewCustomer] = useState(null);
@@ -275,13 +279,18 @@ export default function Admin() {
       const response = await fetch(`${API_URL}/api/admin/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(newStaff)
+        body: JSON.stringify({ ...newStaff, adminPassword: newAccountAdminPassword })
       });
       if (response.ok) {
         setShowAddStaff(false);
+        setNewAccountAdminPassword('');
+        setNewStaff({ firstname: '', lastname: '', email: '', password: '', role: 'cashier', branch: '' });
         const res = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setStaff(await res.json());
-      } else alert('Failed to add account. Email may already exist.');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.error || 'Failed to add account. Email may already exist.');
+      }
     } catch (error) { alert('Failed to add account'); }
   };
 
@@ -289,30 +298,47 @@ export default function Admin() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const payload = { ...editingStaff, password: editStaffPass };
+      const payload = { ...editingStaff, password: editStaffPass, adminPassword: editStaffAdminPassword };
       const response = await fetch(`${API_URL}/api/admin/users/${editingStaff.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
       if (response.ok) {
-        setEditingStaff(null); setEditStaffPass('');
+        setEditingStaff(null); setEditStaffPass(''); setEditStaffAdminPassword('');
         const res = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setStaff(await res.json());
-      } else alert('Failed to update account.');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.error || 'Failed to update account.');
+      }
     } catch (error) { alert('Failed to update account'); }
   };
 
-  const deleteStaff = async (id) => {
-    if (!window.confirm('Delete this account permanently?')) return;
+  const deleteStaff = async (id, adminPassword) => {
+    const targetAccount = [...staff, ...riders].find(account => Number(account.id) === Number(id));
+    if (targetAccount?.role === 'admin' && adminPassword === undefined) {
+      setAdminDeletePassword('');
+      setPendingAdminDeletion(targetAccount);
+      return;
+    }
+    if (targetAccount?.role !== 'admin' && !window.confirm('Delete this account permanently?')) return;
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
-        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ adminPassword })
       });
       if (response.ok) {
         setStaff(staff.filter(s => s.id !== id));
         setRiders(riders.filter(s => s.id !== id));
+        setPendingAdminDeletion(null);
+        setAdminDeletePassword('');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.error || 'Failed to delete account.');
+        if (targetAccount?.role === 'admin') setAdminDeletePassword('');
       }
     } catch (error) { console.error('Failed to delete account', error); }
   };
@@ -836,7 +862,7 @@ export default function Admin() {
             <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
               <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                 <p className="text-sm font-bold text-gray-600">Manage dashboard admins and branch cashiers.</p>
-                <button onClick={() => setShowAddStaff(true)} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ New Account</button>
+                <button onClick={() => { setNewAccountAdminPassword(''); setShowAddStaff(true); }} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ New Account</button>
               </div>
 
               {/* Add Staff Modal */}
@@ -846,6 +872,11 @@ export default function Admin() {
                   <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={newStaff.lastname} onChange={e => setNewStaff({...newStaff, lastname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
                   <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
                   <div><label className="block text-sm font-bold mb-2">Password</label><input type="password" required value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-bold mb-2">Confirm your current admin password</label>
+                    <input type="password" required autoComplete="current-password" value={newAccountAdminPassword} onChange={e => setNewAccountAdminPassword(e.target.value)} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-[#815633]" />
+                    <p className="mt-1 text-xs text-gray-500">Required to authorize creating a dashboard account.</p>
+                  </div>
                   <div>
                     <label className="block text-sm font-bold mb-2">Role</label>
                     <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer">
@@ -864,7 +895,7 @@ export default function Admin() {
                     </div>
                   )}
                   <div className="sm:col-span-2 flex justify-end gap-4 mt-2">
-                    <button type="button" onClick={() => setShowAddStaff(false)} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
+                    <button type="button" onClick={() => { setShowAddStaff(false); setNewAccountAdminPassword(''); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
                     <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Account</button>
                   </div>
                 </form>
@@ -874,7 +905,7 @@ export default function Admin() {
               {editingStaff && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                   <form onSubmit={handleEditStaff} className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-6 relative">
-                    <button type="button" onClick={() => { setEditingStaff(null); setEditStaffPass(''); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
+                    <button type="button" onClick={() => { setEditingStaff(null); setEditStaffPass(''); setEditStaffAdminPassword(''); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
                     <h2 className="text-xl font-black text-gray-900 mb-2 sm:col-span-2">Edit Staff Account</h2>
                     
                     <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={editingStaff.firstname} onChange={e => setEditingStaff({...editingStaff, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
@@ -891,6 +922,14 @@ export default function Admin() {
                         <option value="admin">Super Admin</option>
                       </select>
                     </div>
+
+                    {editingStaff.role === 'admin' && (
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-bold mb-2">Confirm your current admin password</label>
+                        <input type="password" required autoComplete="current-password" value={editStaffAdminPassword} onChange={e => setEditStaffAdminPassword(e.target.value)} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-[#815633]" />
+                        <p className="mt-1 text-xs text-gray-500">Required to save an admin account or grant admin access.</p>
+                      </div>
+                    )}
                     
                     {editingStaff.role === 'cashier' && (
                       <div>
@@ -903,7 +942,7 @@ export default function Admin() {
                     )}
                     
                     <div className="sm:col-span-2 flex justify-end gap-4 mt-4">
-                      <button type="button" onClick={() => { setEditingStaff(null); setEditStaffPass(''); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
+                      <button type="button" onClick={() => { setEditingStaff(null); setEditStaffPass(''); setEditStaffAdminPassword(''); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
                       <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Changes</button>
                     </div>
                   </form>
@@ -932,7 +971,7 @@ export default function Admin() {
                         </span>
                         
                         {/* Edit and Delete Buttons */}
-                        <button onClick={() => setEditingStaff(member)} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50">Edit</button>
+                        <button onClick={() => { setEditStaffPass(''); setEditStaffAdminPassword(''); setEditingStaff(member); }} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50">Edit</button>
                         {user.email !== member.email && (
                           <button onClick={() => deleteStaff(member.id)} className="text-red-400 bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-100">Delete</button>
                         )}
@@ -1059,6 +1098,38 @@ export default function Admin() {
                </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {pendingAdminDeletion && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <form
+            onSubmit={event => {
+              event.preventDefault();
+              deleteStaff(pendingAdminDeletion.id, adminDeletePassword);
+            }}
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <h2 className="text-xl font-black text-gray-900">Confirm admin deletion</h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              You are deleting <strong>{pendingAdminDeletion.firstname} {pendingAdminDeletion.lastname}</strong>. Enter your current admin password to authorize this action.
+            </p>
+            <label htmlFor="admin-delete-password" className="mt-5 block text-sm font-bold text-gray-700">Current admin password</label>
+            <input
+              id="admin-delete-password"
+              type="password"
+              autoComplete="current-password"
+              required
+              autoFocus
+              value={adminDeletePassword}
+              onChange={event => setAdminDeletePassword(event.target.value)}
+              className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#815633]"
+            />
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" onClick={() => { setPendingAdminDeletion(null); setAdminDeletePassword(''); }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button type="submit" disabled={!adminDeletePassword} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">Delete admin</button>
+            </div>
+          </form>
         </div>
       )}
     </div>
