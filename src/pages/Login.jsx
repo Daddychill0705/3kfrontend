@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const { login } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,6 +34,8 @@ export default function Login() {
           <p className="text-sm text-gray-600 mb-7 leading-relaxed font-medium">
             Sign in so you can start ordering!
           </p>
+
+          {location.state?.message && <p role="status" className="mb-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">{location.state.message}</p>}
           
           {error && <p className="text-red-500 text-sm mb-4 font-bold">{error}</p>}
           

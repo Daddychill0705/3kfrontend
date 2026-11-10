@@ -18,6 +18,7 @@ import Register from './pages/Register';
 const Terms = lazy(() => import('./pages/Terms'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 import ForgotPassword from './pages/Forgotpassword';
+import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import Kiosk from './pages/Kiosk'; 
@@ -87,6 +88,7 @@ function App() {
               <Route path="/terms" element={<Suspense fallback={<div className="min-h-screen bg-3k-bg" />}><Terms /></Suspense>} />
               <Route path="/privacy" element={<Suspense fallback={<div className="min-h-screen bg-3k-bg" />}><PrivacyPolicy /></Suspense>} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/profile" element={
                 <AuthWrapper allowedRoles={['customer', 'admin', 'cashier', 'rider']} guestRedirectTo="/home">
                   <Profile />
