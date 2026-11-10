@@ -36,6 +36,12 @@ export default function Admin() {
   const [staff, setStaff] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
+  const [accountRecoveryRequests, setAccountRecoveryRequests] = useState([]);
+  const [pendingRecoveryReview, setPendingRecoveryReview] = useState(null);
+  const [recoveryAdminPassword, setRecoveryAdminPassword] = useState('');
+  const [recoveryReviewNote, setRecoveryReviewNote] = useState('');
+  const [recoveryReviewError, setRecoveryReviewError] = useState('');
+  const [isReviewingRecovery, setIsReviewingRecovery] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState('');
   const [paymentPage, setPaymentPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
@@ -85,14 +91,15 @@ export default function Admin() {
         const token = localStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}` };
         
-        const [ordersRes, menuRes, branchRes, riderRes, staffRes, logRes, customersRes] = await Promise.all([
+        const [ordersRes, menuRes, branchRes, riderRes, staffRes, logRes, customersRes, recoveryRes] = await Promise.all([
           fetch(`${API_URL}/api/admin/orders`, { headers }),
           fetch(`${API_URL}/api/menu`),
           fetch(`${API_URL}/api/branches`),
           fetch(`${API_URL}/api/admin/riders`, { headers }),
           fetch(`${API_URL}/api/admin/users`, { headers }),
           fetch(`${API_URL}/api/admin/activity-logs`, { headers }),
-          fetch(`${API_URL}/api/admin/customers`, { headers })
+          fetch(`${API_URL}/api/admin/customers`, { headers }),
+          fetch(`${API_URL}/api/admin/account-recovery`, { headers })
         ]);
         
         if (ordersRes.ok) setOrders(await ordersRes.json());
@@ -102,6 +109,7 @@ export default function Admin() {
         if (staffRes.ok) setStaff(await staffRes.json());
         if (logRes.ok) setActivityLogs(await logRes.json());
         if (customersRes.ok) setCustomers(await customersRes.json());
+        if (recoveryRes.ok) setAccountRecoveryRequests(await recoveryRes.json());
       } catch (error) {
         console.error('Failed to fetch admin data', error);
       }
@@ -337,6 +345,37 @@ export default function Admin() {
     } catch (error) { alert('Failed to update account'); }
   };
 
+  const submitRecoveryDecision = async event => {
+    event.preventDefault();
+    if (!pendingRecoveryReview || !recoveryAdminPassword || isReviewingRecovery) return;
+    setIsReviewingRecovery(true);
+    setRecoveryReviewError('');
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/account-recovery/${pendingRecoveryReview.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          decision: pendingRecoveryReview.decision,
+          adminPassword: recoveryAdminPassword,
+          reviewNote: recoveryReviewNote
+        })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not review this recovery request.');
+      const refreshed = await fetch(`${API_URL}/api/admin/account-recovery`, { headers: { Authorization: `Bearer ${token}` } });
+      if (refreshed.ok) setAccountRecoveryRequests(await refreshed.json());
+      setPendingRecoveryReview(null);
+      setRecoveryAdminPassword('');
+      setRecoveryReviewNote('');
+      alert(result.message || 'Recovery request reviewed and email notification sent.');
+    } catch (error) {
+      setRecoveryReviewError(error.message || 'Could not review this recovery request.');
+    } finally {
+      setIsReviewingRecovery(false);
+    }
+  };
+
   const deleteStaff = async (id, adminPassword) => {
     const targetAccount = [...staff, ...riders].find(account => Number(account.id) === Number(id));
     if (targetAccount?.role === 'admin' && adminPassword === undefined) {
@@ -434,6 +473,7 @@ export default function Admin() {
     { id: 'Menu', name: 'Menu' },
     { id: 'Branches', name: 'Branches' },
     { id: 'Accounts', name: 'Accounts & Access' },
+    { id: 'Account Recovery', name: `Account Recovery${accountRecoveryRequests.some(request => request.status === 'Pending') ? ' •' : ''}` },
     { id: 'Riders', name: 'Rider Accounts' }
   ];
 
@@ -1129,6 +1169,53 @@ export default function Admin() {
             </div>
           )}
 
+          {activeModule === 'Account Recovery' && (
+            <div className="mx-auto max-w-5xl space-y-5 animate-fade-in">
+              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <h2 className="font-black text-gray-900">Account recovery requests</h2>
+                <p className="mt-1 text-sm text-gray-600">Compare the submitted information with the existing account before deciding. Approval changes the account email and sends a password reset link to the new address. Your admin password is required for every decision.</p>
+              </div>
+              {accountRecoveryRequests.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm font-semibold text-gray-500">No recovery requests yet.</div>
+              ) : accountRecoveryRequests.map(request => (
+                <article key={request.id} className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                  <header className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 pb-3">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Request #{request.id}</p>
+                      <h3 className="mt-1 text-lg font-black text-gray-900">{request.account_name}</h3>
+                      <p className="text-xs text-gray-500">Submitted {new Date(request.created_at).toLocaleString()}</p>
+                    </div>
+                    <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${request.status === 'Pending' ? 'border-amber-200 bg-amber-50 text-amber-700' : request.status === 'Approved' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>{request.status}</span>
+                  </header>
+                  <div className="grid gap-3 text-sm sm:grid-cols-2">
+                    <p><span className="block text-xs font-bold uppercase text-gray-400">Account email</span><span className="font-semibold text-gray-800">{request.account_email}</span></p>
+                    <p><span className="block text-xs font-bold uppercase text-gray-400">Requested new email</span><span className="font-semibold text-gray-800">{request.new_email}</span></p>
+                    <p><span className="block text-xs font-bold uppercase text-gray-400">Registered phone</span><span className="font-semibold text-gray-800">{request.registered_phone}</span></p>
+                    <p><span className="block text-xs font-bold uppercase text-gray-400">Registered birth date</span><span className="font-semibold text-gray-800">{request.registered_dob || 'Not provided'}</span></p>
+                  </div>
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+                    <p className="text-xs font-black uppercase tracking-wider text-blue-800">Existing account details for comparison</p>
+                    {request.matched_account_id ? <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                      <p><span className="block text-xs font-bold text-blue-700/70">Account name</span><span className="font-semibold text-gray-800">{request.matched_firstname} {request.matched_lastname}</span></p>
+                      <p><span className="block text-xs font-bold text-blue-700/70">Account email</span><span className="font-semibold text-gray-800">{request.account_email}</span></p>
+                      <p><span className="block text-xs font-bold text-blue-700/70">Phone on account</span><span className="font-semibold text-gray-800">{request.matched_phone || 'Not set'}</span></p>
+                      <p><span className="block text-xs font-bold text-blue-700/70">Birth date on account</span><span className="font-semibold text-gray-800">{request.matched_dob || 'Not set'}</span></p>
+                    </div> : <p className="mt-2 text-sm font-semibold text-red-700">No account currently matches this email. Approval is unavailable until the account can be identified.</p>}
+                  </div>
+                  <div className="rounded-xl bg-[#FBFAF4] p-3">
+                    <p className="text-xs font-bold uppercase text-gray-400">Additional verification details</p>
+                    <p className="mt-1 whitespace-pre-wrap break-words text-sm text-gray-700">{request.account_details || 'None provided'}</p>
+                  </div>
+                  {request.review_note && <p className="text-sm text-gray-600"><span className="font-bold">Admin note:</span> {request.review_note}</p>}
+                  {request.status === 'Pending' && <div className="flex flex-wrap justify-end gap-2">
+                    <button type="button" onClick={() => { setPendingRecoveryReview({ ...request, decision: 'Denied' }); setRecoveryAdminPassword(''); setRecoveryReviewNote(''); setRecoveryReviewError(''); }} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50">Deny</button>
+                    <button type="button" disabled={!request.matched_account_id} onClick={() => { setPendingRecoveryReview({ ...request, decision: 'Approved' }); setRecoveryAdminPassword(''); setRecoveryReviewNote(''); setRecoveryReviewError(''); }} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40">Approve & send reset link</button>
+                  </div>}
+                </article>
+              ))}
+            </div>
+          )}
+
           {/* RIDERS MODULE */}
           {activeModule === 'Riders' && (
             <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
@@ -1245,6 +1332,31 @@ export default function Admin() {
                </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {pendingRecoveryReview && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+          <form onSubmit={submitRecoveryDecision} className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
+            <header>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#815633]">Account recovery review</p>
+              <h2 className="mt-1 text-xl font-black text-gray-900">{pendingRecoveryReview.decision} request for {pendingRecoveryReview.account_name}</h2>
+              <p className="mt-2 text-sm text-gray-600">{pendingRecoveryReview.decision === 'Approved' ? `The account email will change to ${pendingRecoveryReview.new_email} and a reset link will be sent there.` : `A denial email will be sent to ${pendingRecoveryReview.new_email}.`}</p>
+            </header>
+            {pendingRecoveryReview.decision === 'Denied' && <label className="block text-sm font-bold text-gray-700">Reason to include in the email <span className="font-normal text-gray-400">(optional)</span>
+              <textarea maxLength={1000} rows={3} value={recoveryReviewNote} onChange={event => setRecoveryReviewNote(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium outline-none focus:border-[#815633]" />
+            </label>}
+            <label className="block text-sm font-bold text-gray-700">Confirm your admin password
+              <input type="password" required autoComplete="current-password" value={recoveryAdminPassword} onChange={event => setRecoveryAdminPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium outline-none focus:border-[#815633]" />
+            </label>
+            {recoveryReviewError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{recoveryReviewError}</p>}
+            <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+              <button type="button" disabled={isReviewingRecovery} onClick={() => setPendingRecoveryReview(null)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-60">Cancel</button>
+              <button type="submit" disabled={isReviewingRecovery || !recoveryAdminPassword} className={`rounded-lg px-4 py-2.5 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60 ${pendingRecoveryReview.decision === 'Approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
+                {isReviewingRecovery ? 'Sending email...' : `Confirm ${pendingRecoveryReview.decision}`}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
