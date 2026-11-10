@@ -380,7 +380,6 @@ export default function CashierPOS({ branch, onBack }) {
             <div className="flex items-center justify-between">
               <h2 id="cart-title" className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gray-600"><span className="text-lg text-[#815633]">▣</span> Current order summary</h2>
               <button type="button" aria-label="Close cart" onClick={() => setIsCartOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
-              <button type="button" onClick={() => setCart([])} disabled={!cart.length} className="text-xs font-bold text-red-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40">Clear all</button>
             </div>
           </div>
 
@@ -411,9 +410,12 @@ export default function CashierPOS({ branch, onBack }) {
             <div className="flex justify-between text-xs font-bold text-gray-600"><span>Vatable sales</span><span>{formatMoney(vatableSales)}</span></div>
             <div className="flex justify-between text-xs font-bold text-gray-600"><span>VAT (12%)</span><span>{formatMoney(vatAmount)}</span></div>
             <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-black text-gray-900"><span>Grand total</span><span className="text-xl text-[#815633]">{formatMoney(subtotal)}</span></div>
-            <button type="button" onClick={openPayment} disabled={!cart.length || isSubmitting} className="mt-2 w-full rounded-xl bg-[#815633] py-3.5 text-sm font-black uppercase tracking-wider text-white shadow-md transition hover:bg-[#62432B] disabled:cursor-not-allowed disabled:bg-gray-300">
-              Process payment
-            </button>
+            <div className="mt-2 flex gap-2">
+              <button type="button" onClick={() => setCart([])} disabled={!cart.length || isSubmitting} className="shrink-0 rounded-xl border border-red-200 bg-white px-4 py-3.5 text-sm font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">Clear all</button>
+              <button type="button" onClick={openPayment} disabled={!cart.length || isSubmitting} className="flex-1 rounded-xl bg-[#815633] py-3.5 text-sm font-black uppercase tracking-wider text-white shadow-md transition hover:bg-[#62432B] disabled:cursor-not-allowed disabled:bg-gray-300">
+                Process payment
+              </button>
+            </div>
           </div>
         </aside>
         </div>}
