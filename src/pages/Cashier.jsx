@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry';
+
+const CashierPOS = lazy(() => import('../components/CashierPOS'));
 
 export default function Cashier() {
   const { user, logout } = useAuth();
@@ -25,6 +27,7 @@ export default function Cashier() {
   // Filter States
   const [activeTab, setActiveTab] = useState('Active');
   const [orderTypeFilter, setOrderTypeFilter] = useState('All'); // 'All', 'Dine-in', 'Take-out', 'Online'
+  const [isPosOpen, setIsPosOpen] = useState(false);
 
   const [socket, setSocket] = useState(null);
   const [chatLogs, setChatLogs] = useState([]);
@@ -310,6 +313,14 @@ export default function Cashier() {
   };
 
   // Main cashier dashboard
+  if (isPosOpen) {
+    return (
+      <Suspense fallback={<div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#F5EFE3] font-bold text-[#815633]">Loading POS...</div>}>
+        <CashierPOS branch={activeBranch} onBack={() => setIsPosOpen(false)} />
+      </Suspense>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-[#F5EFE3] font-sans">
       <div className="w-[420px] bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-10 shrink-0">
@@ -404,6 +415,14 @@ export default function Cashier() {
                </span>
              )}
           </div>
+          <button
+            type="button"
+            onClick={() => setIsPosOpen(true)}
+            disabled={!activeBranch}
+            className="rounded-lg bg-[#815633] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            + New POS Sale
+          </button>
           <button
             onClick={() => {
               logout();
