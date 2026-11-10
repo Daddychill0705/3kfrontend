@@ -74,17 +74,21 @@ function App() {
             {/* Standard User Experience with Header and Footer */}
             <Route element={<MainLayout />}>
               <Route path="/home" element={<Home />} />
-              <Route path="/cart" element={<Cart />} />
+              <Route path="/cart" element={
+                <AuthWrapper allowedRoles={['customer', 'admin', 'cashier', 'rider']} guestRedirectTo="/home">
+                  <Cart />
+                </AuthWrapper>
+              } />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/profile" element={
-                <AuthWrapper allowedRoles={['customer', 'admin', 'cashier', 'rider', 'guest']}>
+                <AuthWrapper allowedRoles={['customer', 'admin', 'cashier', 'rider']} guestRedirectTo="/home">
                   <Profile />
                 </AuthWrapper>
               } />
               <Route path="/checkout" element={
-                <AuthWrapper allowedRoles={['customer', 'admin', 'guest']}>
+                <AuthWrapper allowedRoles={['customer', 'admin']}>
                   <Checkout />
                 </AuthWrapper>
               } />
@@ -92,11 +96,15 @@ function App() {
             
             {/* User Experience with Header, No Footer */}
             <Route element={<NoFooterLayout />}>
-              <Route path="/menu" element={<Menu />} />
+              <Route path="/menu" element={
+                <AuthWrapper allowedRoles={['customer', 'admin', 'cashier', 'rider']} guestRedirectTo="/home">
+                  <Menu />
+                </AuthWrapper>
+              } />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/order" element={
-                <AuthWrapper allowedRoles={['customer', 'admin', 'guest']}>
+                <AuthWrapper allowedRoles={['customer', 'admin']}>
                   <Order />
                 </AuthWrapper>
               } />

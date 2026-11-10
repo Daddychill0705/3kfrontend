@@ -2,13 +2,17 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-export default function AuthWrapper({ children, allowedRoles }) {
+export default function AuthWrapper({ children, allowedRoles, guestRedirectTo }) {
   const { user } = useAuth();
   const location = useLocation();
 
   if (!user) {
-    // Not logged in: Redirect to login page
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to={guestRedirectTo || '/login'} state={{ from: location }} replace />;
+  }
+
+  const isGuestMode = user.role === 'guest' || user.email === 'guest@3kkitchen.local';
+  if (isGuestMode && !allowedRoles?.includes('guest')) {
+    return <Navigate to={guestRedirectTo || '/home'} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
