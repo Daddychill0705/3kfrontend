@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import BestSellers from '../components/BestSellers';
 
 const currentBranchKey = (branchName) => {
   const name = String(branchName || '').toLowerCase();
@@ -52,7 +53,7 @@ export default function Home() {
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Loading branches...</div>;
 
   return (
-    <div className="bg-[#F5EFE3] min-h-[calc(100vh-80px)] flex items-center py-12">
+    <div className="bg-[#F5EFE3] min-h-[calc(100vh-80px)] flex flex-col items-center gap-12 py-12">
       <div className="max-w-[1400px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 px-6 md:px-12">
         
         <div className="flex flex-col justify-center">
@@ -157,6 +158,7 @@ export default function Home() {
         </div>
 
       </div>
+      <BestSellers />
     </div>
   );
 }
