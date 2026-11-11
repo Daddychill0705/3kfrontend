@@ -89,6 +89,8 @@ function App() {
               <Route path="/terms" element={<Suspense fallback={<div className="min-h-screen bg-3k-bg" />}><Terms /></Suspense>} />
               <Route path="/privacy" element={<Suspense fallback={<div className="min-h-screen bg-3k-bg" />}><PrivacyPolicy /></Suspense>} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/forgot-password/verify" element={<ForgotPassword />} />
+              <Route path="/forgot-password/new-password" element={<ForgotPassword />} />
               <Route path="/account-recovery" element={<AccountRecovery />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/profile" element={
