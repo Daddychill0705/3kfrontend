@@ -174,6 +174,52 @@
   to { stroke-dashoffset: 0; }
 }
 
+/* Shared wood-and-cream polish for every admin dashboard section. */
+.admin-dashboard-shell > header {
+  border-bottom-color: rgb(201 167 124 / 45%);
+  background-image: linear-gradient(105deg, #fffdf8, #f7eddd 72%, #fffdf8);
+}
+
+.admin-page-title {
+  position: relative;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 80%);
+}
+
+.admin-dashboard-content [class~="bg-white"][class~="rounded-2xl"][class~="border-gray-200"] {
+  border-color: rgb(201 167 124 / 36%);
+  background-image: linear-gradient(100deg, #815633, #c9a77c 55%, #e9d7bb);
+  background-position: top;
+  background-repeat: no-repeat;
+  background-size: 100% 3px;
+  box-shadow: 0 6px 18px rgb(83 57 34 / 8%);
+}
+
+.admin-dashboard-content [class~="bg-white"][class~="rounded-xl"][class~="border-gray-200"] {
+  border-color: rgb(201 167 124 / 35%);
+  box-shadow: 0 4px 13px rgb(83 57 34 / 7%);
+}
+
+.admin-dashboard-content thead {
+  background-image: linear-gradient(90deg, #f4e7d2, #fbf7ef 58%, #f4e7d2);
+}
+
+.admin-dashboard-content tbody tr:hover {
+  background-color: rgb(244 231 210 / 42%);
+}
+
+.admin-dashboard-content input:not([type="checkbox"]),
+.admin-dashboard-content select,
+.admin-dashboard-content textarea {
+  border-color: rgb(201 167 124 / 50%);
+}
+
+.admin-dashboard-content input:not([type="checkbox"]):focus,
+.admin-dashboard-content select:focus,
+.admin-dashboard-content textarea:focus {
+  border-color: #815633;
+  box-shadow: 0 0 0 3px rgb(129 86 51 / 12%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .kiosk-success-overlay,
   .kiosk-success-card,

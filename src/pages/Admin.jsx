@@ -571,11 +571,11 @@ export default function Admin() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden z-10 relative">
+      <main className="admin-dashboard-shell relative z-10 flex flex-1 flex-col overflow-hidden">
         <header className="flex justify-between items-center p-4 md:px-6 lg:px-8 border-b border-gray-200 bg-white shadow-sm shrink-0">
           <div className="flex items-center gap-3">
             <button className="md:hidden p-2 -ml-2 text-gray-600" onClick={() => setIsSidebarOpen(true)}>☰</button>
-            <h1 className="text-2xl font-black text-gray-900 truncate">{activeModule}</h1>
+            <h1 className="admin-page-title truncate text-2xl font-black text-gray-900">{activeModule}</h1>
           </div>
           <div className="flex items-center gap-4">
             <select 
@@ -595,7 +595,7 @@ export default function Admin() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <div className="admin-dashboard-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           
           {/* SALES MODULE */}
           {activeModule === 'Sales' && (
