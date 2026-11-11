@@ -89,9 +89,26 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
   }, [API_URL]);
 
   const categories = useMemo(() => {
-    const otherCategories = [...new Set(menuItems.map(item => item.category).filter(Boolean))]
-      .filter(category => String(category).trim().toLowerCase() !== 'drinks');
-    return ['All', ...otherCategories, 'Drinks'];
+    const preferredOrder = [
+      '3k Ala-Carte',
+      '3k Budget Meals',
+      '3k Originals',
+      '3k Sets/Extras',
+      '3k Specials',
+      'Rice and Extras',
+      'Drinks'
+    ];
+    const available = [...new Set(menuItems.map(item => item.category).filter(Boolean))];
+    const normalize = category => String(category).trim().toLowerCase();
+    const categoryByName = new Map(available.map(category => [normalize(category), category]));
+    const ordered = preferredOrder
+      .map(category => categoryByName.get(normalize(category)) || (category === 'Drinks' ? category : null))
+      .filter(Boolean);
+    const orderedNames = new Set(ordered.map(normalize));
+    const remaining = available
+      .filter(category => !orderedNames.has(normalize(category)))
+      .sort((left, right) => left.localeCompare(right));
+    return ['All', ...ordered, ...remaining];
   }, [menuItems]);
   const posMenuItems = useMemo(() => {
     const menuDrinks = menuItems.filter(item => String(item.category || '').trim().toLowerCase() === 'drinks');
