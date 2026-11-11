@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -9,12 +10,13 @@ export default function Contact() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSignedIn = Boolean(user && user.role !== 'guest' && user.email !== 'guest@3kkitchen.local');
 
   const handleSubmit = async event => {
     event.preventDefault();
     const token = localStorage.getItem('token');
-    if (!token) {
-      showToast('Please sign in before sending us a message.', 'error');
+    if (!token || !isSignedIn) {
+      showToast('Please sign in with your account before sending us a message.', 'error');
       return;
     }
     if (!subject.trim() || !message.trim()) {
@@ -94,13 +96,19 @@ export default function Contact() {
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-[#C9A77C]/30">
             <h2 className="text-2xl font-bold text-gray-900 mb-8">Send us a Message</h2>
             <form onSubmit={handleSubmit}>
+              {!isSignedIn && (
+                <div className="mb-6 rounded-lg border border-[#C9A77C]/50 bg-[#F8F1E6] p-4 text-sm leading-6 text-[#65472E]">
+                  You can view this page anytime. Sign in with a registered account before sending your message.{' '}
+                  <Link to="/login" className="font-bold text-[#815633] underline underline-offset-2 hover:text-[#5F3D20]">Sign in</Link>
+                </div>
+              )}
               <div className="mb-6">
                 <label htmlFor="name" className="block text-sm font-bold text-gray-800 mb-2">Full Name</label>
-                <input type="text" id="name" value={fullName} readOnly className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-medium" />
+                <input type="text" id="name" value={isSignedIn ? fullName : ''} placeholder={isSignedIn ? '' : 'Sign in to use your account details'} readOnly className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-medium" />
               </div>
               <div className="mb-6">
                 <label htmlFor="email" className="block text-sm font-bold text-gray-800 mb-2">Email Address</label>
-                <input type="email" id="email" value={email} readOnly className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-medium" />
+                <input type="email" id="email" value={isSignedIn ? email : ''} placeholder={isSignedIn ? '' : 'Sign in to use your account email'} readOnly className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-medium" />
               </div>
               <div className="mb-6">
                 <label htmlFor="subject" className="block text-sm font-bold text-gray-800 mb-2">Subject</label>
@@ -110,7 +118,7 @@ export default function Contact() {
                 <label htmlFor="message" className="block text-sm font-bold text-gray-800 mb-2">Message</label>
                 <textarea id="message" value={message} onChange={event => setMessage(event.target.value)} placeholder="Tell us how we can help you..." required rows="4" maxLength={5000} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633] focus:ring-2 focus:ring-[#815633]/20 transition-all resize-y font-medium"></textarea>
               </div>
-              <button type="submit" disabled={isSubmitting} className="w-full bg-3k-red text-white font-bold py-3 rounded-lg shadow-md hover:bg-3k-red-hover hover:-translate-y-1 transition-all duration-300 disabled:cursor-wait disabled:opacity-60">
+              <button type="submit" disabled={!isSignedIn || isSubmitting} className="w-full bg-3k-red text-white font-bold py-3 rounded-lg shadow-md hover:bg-3k-red-hover hover:-translate-y-1 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60">
                 {isSubmitting ? 'Sending...' : 'Send Message'}
               </button>
             </form>
