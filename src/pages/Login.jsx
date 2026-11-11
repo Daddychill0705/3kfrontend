@@ -91,7 +91,7 @@ export default function Login() {
           <p className="text-lg text-gray-800 font-medium leading-relaxed mb-8">
             Experience the taste of the Philippines with our handcrafted dishes.
           </p>
-          <div className="w-[300px] h-[300px] bg-[radial-gradient(ellipse_at_50%_50%,#C9A77C,#E6D4B8)] rounded-full flex justify-center items-center mx-auto shadow-xl animate-[bounce_3s_ease-in-out_infinite] border-4 border-white/20">
+          <div className="w-[300px] h-[300px] bg-[radial-gradient(ellipse_at_50%_50%,#C9A77C,#E6D4B8)] rounded-full flex justify-center items-center mx-auto shadow-xl border-4 border-white/20">
             <img src={logoImg} alt="3K Kitchen Logo" className="max-w-[300px] h-auto drop-shadow-md rounded-full" />
           </div>
         </div>

@@ -159,7 +159,7 @@ export default function Register() {
       <div className="relative z-10 bg-gradient-to-br from-[#E6D4B8] to-[#C9A77C] flex-col justify-center items-center p-12 overflow-hidden hidden lg:flex lg:order-2">
         <div className="text-center z-10">
           <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Join Our Community</h2>
-          <div className="w-[300px] h-[300px] bg-[radial-gradient(ellipse_at_50%_50%,#C9A77C,#E6D4B8)] rounded-full flex justify-center items-center mx-auto shadow-xl animate-[bounce_3s_ease-in-out_infinite] border-4 border-white/20">
+          <div className="w-[300px] h-[300px] bg-[radial-gradient(ellipse_at_50%_50%,#C9A77C,#E6D4B8)] rounded-full flex justify-center items-center mx-auto shadow-xl border-4 border-white/20">
             <img src={logoImg} alt="3K Kitchen Logo" className="max-w-[300px] h-auto drop-shadow-md rounded-full" />
           </div>
         </div>
