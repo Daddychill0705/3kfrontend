@@ -134,7 +134,7 @@
 
 .welcome-script {
   color: #f2e5d2;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(18px, 3vw, 34px);
   font-style: italic;
   letter-spacing: 0.12em;
@@ -144,7 +144,7 @@
 .welcome-chalkboard h1 {
   margin: 8px 0 0;
   color: #fffaf1;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(48px, 12vw, 154px);
   font-weight: 700;
   letter-spacing: clamp(0.04em, 1vw, 0.14em);
@@ -162,7 +162,7 @@
 .welcome-chalkboard p {
   margin: 12px 0 0;
   color: #ead9bf;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(12px, 1.8vw, 18px);
   letter-spacing: 0.16em;
   text-transform: uppercase;
