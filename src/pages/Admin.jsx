@@ -675,7 +675,7 @@ export default function Admin() {
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto py-4 hide-scrollbar">
+        <div className="min-h-0 flex-1 overflow-y-auto py-4 hide-scrollbar">
           <p className="px-5 pb-2 text-[9px] font-black uppercase tracking-[0.2em] text-[#c3a784]/65">Manage your kitchen</p>
           <ul className="space-y-1 px-2">
             {navigationGroups.map(group => {
@@ -701,23 +701,15 @@ export default function Admin() {
               );
             })}
             
-            <li className="mt-5 border-t border-white/10 pt-4">
-              <p className="px-3 pb-2 text-[9px] font-black uppercase tracking-[0.2em] text-[#c3a784]/65">Quick access</p>
-              <Link to="/cashier" className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[#e7dccd]/80 transition hover:bg-white/[0.07] hover:text-white md:px-4 md:py-3 md:text-[13px]">
-                  ↪ Open Cashier System
-              </Link>
-            </li>
-            <li>
-              <Link to="/driver" className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[#e7dccd]/80 transition hover:bg-white/[0.07] hover:text-white md:px-4 md:py-3 md:text-[13px]">
-                  ↪ Open Driver System
-              </Link>
-            </li>
-            <li>
-              <Link to="/kiosk" className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[#e7dccd]/80 transition hover:bg-white/[0.07] hover:text-white md:px-4 md:py-3 md:text-[13px]">
-                  ↪ Open Kiosk
-              </Link>
-            </li>
           </ul>
+        </div>
+        <div className="shrink-0 border-t border-white/10 bg-black/10 px-2 py-3 md:py-4">
+          <p className="px-3 pb-2 text-[9px] font-black uppercase tracking-[0.2em] text-[#c3a784]/65">Quick access</p>
+          <div className="space-y-1">
+            <Link to="/cashier" className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[#e7dccd]/80 transition hover:bg-white/[0.07] hover:text-white md:px-4 md:py-3 md:text-[13px]">&#8618; Open Cashier System</Link>
+            <Link to="/driver" className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[#e7dccd]/80 transition hover:bg-white/[0.07] hover:text-white md:px-4 md:py-3 md:text-[13px]">&#8618; Open Driver System</Link>
+            <Link to="/kiosk" className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[#e7dccd]/80 transition hover:bg-white/[0.07] hover:text-white md:px-4 md:py-3 md:text-[13px]">&#8618; Open Kiosk</Link>
+          </div>
         </div>
       </aside>
 
