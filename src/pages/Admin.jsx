@@ -1320,11 +1320,15 @@ export default function Admin() {
                 </div>
               </div>
               {showAddBranch && (
-                <form onSubmit={handleAddBranch} className="grid grid-cols-1 gap-6 rounded-2xl border border-[#C9A77C]/35 bg-[#fffdf8] p-6 shadow-lg shadow-[#533922]/10 sm:grid-cols-2">
-                  <div><label className="block text-sm font-bold mb-2">Branch Name</label><input type="text" required value={newBranch.name} onChange={e => setNewBranch({...newBranch, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Code</label><input type="text" required value={newBranch.code} onChange={e => setNewBranch({...newBranch, code: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div className="sm:col-span-2 flex justify-end gap-4"><button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Branch</button></div>
-                </form>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="presentation">
+                  <form onSubmit={handleAddBranch} role="dialog" aria-modal="true" aria-labelledby="add-branch-title" className="relative grid max-h-[90vh] w-full max-w-2xl grid-cols-1 gap-6 overflow-y-auto rounded-2xl border border-[#C9A77C]/35 bg-[#fffdf8] p-6 shadow-2xl sm:grid-cols-2 sm:p-8">
+                    <button type="button" onClick={() => setShowAddBranch(false)} aria-label="Close new branch form" className="absolute right-4 top-3 text-2xl font-bold text-gray-400 hover:text-gray-800">×</button>
+                    <div className="border-b border-[#C9A77C]/25 pb-4 sm:col-span-2"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#a06d3f]">Branch directory</p><h2 id="add-branch-title" className="mt-1 text-xl font-black text-[#33251b]">Add a branch</h2></div>
+                    <div><label className="mb-2 block text-sm font-bold">Branch Name</label><input type="text" required value={newBranch.name} onChange={e => setNewBranch({...newBranch, name: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Code</label><input type="text" required value={newBranch.code} onChange={e => setNewBranch({...newBranch, code: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div className="flex justify-end gap-3 border-t border-[#C9A77C]/25 pt-4 sm:col-span-2"><button type="button" onClick={() => setShowAddBranch(false)} className="rounded-lg border border-[#9c7957] px-5 py-2 font-bold text-[#705b46] hover:bg-[#f7eddd]">Cancel</button><button type="submit" className="rounded-lg bg-red-600 px-6 py-2 font-bold text-white shadow-sm hover:bg-red-700">Save Branch</button></div>
+                  </form>
+                </div>
               )}
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 {branches.map(branch => (
@@ -1409,38 +1413,41 @@ export default function Admin() {
 
               {/* Add Staff Modal */}
               {showAddStaff && (
-                <form onSubmit={handleAddStaff} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={newStaff.firstname} onChange={e => setNewStaff({...newStaff, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={newStaff.lastname} onChange={e => setNewStaff({...newStaff, lastname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Password</label><input type="password" required value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-bold mb-2">Confirm your current admin password</label>
-                    <input type="password" required autoComplete="current-password" value={newAccountAdminPassword} onChange={e => setNewAccountAdminPassword(e.target.value)} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-[#815633]" />
-                    <p className="mt-1 text-xs text-gray-500">Required to authorize creating a dashboard account.</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold mb-2">Role</label>
-                    <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer">
-                      <option value="cashier">POS / Cashier Staff</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-                  
-                  {newStaff.role === 'cashier' && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="presentation">
+                  <form onSubmit={handleAddStaff} role="dialog" aria-modal="true" aria-labelledby="add-staff-title" className="relative grid max-h-[90vh] w-full max-w-3xl grid-cols-1 gap-5 overflow-y-auto rounded-2xl border border-[#C9A77C]/35 bg-[#fffdf8] p-6 shadow-2xl sm:grid-cols-2 sm:gap-6 sm:p-8">
+                    <button type="button" onClick={() => { setShowAddStaff(false); setNewAccountAdminPassword(''); }} aria-label="Close new account form" className="absolute right-4 top-3 text-2xl font-bold text-gray-400 hover:text-gray-800">×</button>
+                    <div className="border-b border-[#C9A77C]/25 pb-4 sm:col-span-2"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#a06d3f]">Accounts &amp; access</p><h2 id="add-staff-title" className="mt-1 text-xl font-black text-[#33251b]">Create dashboard account</h2></div>
+                    <div><label className="mb-2 block text-sm font-bold">First Name</label><input type="text" required value={newStaff.firstname} onChange={e => setNewStaff({...newStaff, firstname: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Last Name</label><input type="text" required value={newStaff.lastname} onChange={e => setNewStaff({...newStaff, lastname: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Email Username</label><input type="email" required value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Password</label><input type="password" required value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div className="sm:col-span-2">
+                      <label className="mb-2 block text-sm font-bold">Confirm your current admin password</label>
+                      <input type="password" required autoComplete="current-password" value={newAccountAdminPassword} onChange={e => setNewAccountAdminPassword(e.target.value)} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" />
+                      <p className="mt-1 text-xs text-gray-500">Required to authorize creating a dashboard account.</p>
+                    </div>
                     <div>
-                      <label className="block text-sm font-bold mb-2">Assign Branch</label>
-                      <select value={newStaff.branch} onChange={e => setNewStaff({...newStaff, branch: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer" required>
-                        <option value="">Select a branch...</option>
-                        {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                      <label className="mb-2 block text-sm font-bold">Role</label>
+                      <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633] cursor-pointer">
+                        <option value="cashier">POS / Cashier Staff</option>
+                        <option value="admin">Admin</option>
                       </select>
                     </div>
-                  )}
-                  <div className="sm:col-span-2 flex justify-end gap-4 mt-2">
-                    <button type="button" onClick={() => { setShowAddStaff(false); setNewAccountAdminPassword(''); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
-                    <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Account</button>
-                  </div>
-                </form>
+                    {newStaff.role === 'cashier' && (
+                      <div>
+                        <label className="mb-2 block text-sm font-bold">Assign Branch</label>
+                        <select value={newStaff.branch} onChange={e => setNewStaff({...newStaff, branch: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633] cursor-pointer" required>
+                          <option value="">Select a branch...</option>
+                          {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    <div className="mt-2 flex justify-end gap-3 border-t border-[#C9A77C]/25 pt-4 sm:col-span-2">
+                      <button type="button" onClick={() => { setShowAddStaff(false); setNewAccountAdminPassword(''); }} className="rounded-lg border border-[#9c7957] px-5 py-2 font-bold text-[#705b46] hover:bg-[#f7eddd]">Cancel</button>
+                      <button type="submit" className="rounded-lg bg-red-600 px-6 py-2 font-bold text-white shadow-sm hover:bg-red-700">Save Account</button>
+                    </div>
+                  </form>
+                </div>
               )}
 
               {/* Edit Staff Modal */}
@@ -1585,16 +1592,20 @@ export default function Admin() {
 
               {/* Add Rider Modal */}
               {showAddRider && (
-                <form onSubmit={handleAddRider} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={newRider.firstname} onChange={e => setNewRider({...newRider, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={newRider.lastname} onChange={e => setNewRider({...newRider, lastname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={newRider.email} onChange={e => setNewRider({...newRider, email: e.target.value})} placeholder="rider@3k.local" className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Password</label><input type="password" required value={newRider.password} onChange={e => setNewRider({...newRider, password: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div className="sm:col-span-2 flex justify-end gap-4 mt-2">
-                    <button type="button" onClick={() => setShowAddRider(false)} className="px-6 py-2 border rounded-lg font-bold text-gray-500 hover:bg-gray-50">Cancel</button>
-                    <button type="submit" className="px-6 py-2 bg-red-600 text-white rounded-lg font-bold shadow-sm">Register Rider</button>
-                  </div>
-                </form>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="presentation">
+                  <form onSubmit={handleAddRider} role="dialog" aria-modal="true" aria-labelledby="add-rider-title" className="relative grid max-h-[90vh] w-full max-w-2xl grid-cols-1 gap-5 overflow-y-auto rounded-2xl border border-[#C9A77C]/35 bg-[#fffdf8] p-6 shadow-2xl sm:grid-cols-2 sm:gap-6 sm:p-8">
+                    <button type="button" onClick={() => setShowAddRider(false)} aria-label="Close new rider form" className="absolute right-4 top-3 text-2xl font-bold text-gray-400 hover:text-gray-800">×</button>
+                    <div className="border-b border-[#C9A77C]/25 pb-4 sm:col-span-2"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#a06d3f]">Rider accounts</p><h2 id="add-rider-title" className="mt-1 text-xl font-black text-[#33251b]">Register rider</h2></div>
+                    <div><label className="mb-2 block text-sm font-bold">First Name</label><input type="text" required value={newRider.firstname} onChange={e => setNewRider({...newRider, firstname: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Last Name</label><input type="text" required value={newRider.lastname} onChange={e => setNewRider({...newRider, lastname: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Email Username</label><input type="email" required value={newRider.email} onChange={e => setNewRider({...newRider, email: e.target.value})} placeholder="rider@3k.local" className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Password</label><input type="password" required value={newRider.password} onChange={e => setNewRider({...newRider, password: e.target.value})} className="w-full rounded-lg border border-[#d8bd9c] bg-white px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div className="mt-2 flex justify-end gap-3 border-t border-[#C9A77C]/25 pt-4 sm:col-span-2">
+                      <button type="button" onClick={() => setShowAddRider(false)} className="rounded-lg border border-[#9c7957] px-5 py-2 font-bold text-[#705b46] hover:bg-[#f7eddd]">Cancel</button>
+                      <button type="submit" className="rounded-lg bg-red-600 px-6 py-2 font-bold text-white shadow-sm hover:bg-red-700">Register Rider</button>
+                    </div>
+                  </form>
+                </div>
               )}
 
               {/* Edit Rider Modal */}
