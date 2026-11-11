@@ -15,7 +15,10 @@ export default function Menu() {
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
-  const categories = ['ALL', '3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'];
+  const categories = ['ALL', ...new Set([
+    '3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras',
+    ...menuItems.map(item => item.category).filter(Boolean)
+  ])];
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {

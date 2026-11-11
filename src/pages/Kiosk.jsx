@@ -84,7 +84,7 @@ export default function Kiosk() {
     }
   };
 
-  const categories = [
+  const defaultCategories = [
     { id: 'ALL', icon: '🍽️', label: 'All' },
     { id: '3k Ala-Carte', icon: '🍗', label: 'Ala-Carte' },
     { id: '3k Originals', icon: '🥘', label: 'Originals' },
@@ -93,6 +93,13 @@ export default function Kiosk() {
     { id: 'Rice and Extras', icon: '🍚', label: 'Extras' },
     { id: '3k Sets/Extras', icon: '🥟', label: 'Sets' }
   ];
+
+  const categories = useMemo(() => {
+    const knownCategories = new Set(defaultCategories.map(category => category.id));
+    const additionalCategories = [...new Set(menuItems.map(item => item.category).filter(category => category && !knownCategories.has(category)))]
+      .map(category => ({ id: category, icon: '🍽️', label: category }));
+    return [...defaultCategories, ...additionalCategories];
+  }, [menuItems]);
 
   useEffect(() => {
     const fetchInitialData = async () => {

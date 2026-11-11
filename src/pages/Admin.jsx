@@ -6,6 +6,7 @@ import SuccessModal from '../components/SuccessModal';
 import { useToast } from '../context/ToastContext';
 
 const ADMIN_PAGE_SIZE = 20;
+const DEFAULT_MENU_CATEGORIES = ['3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'];
 
 function AdminPagination({ page, itemCount, onPageChange }) {
   const pageCount = Math.ceil(itemCount / ADMIN_PAGE_SIZE);
@@ -33,6 +34,7 @@ export default function Admin() {
   const [salesPeriod, setSalesPeriod] = useState('today');
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
+  const [menuCategories, setMenuCategories] = useState(DEFAULT_MENU_CATEGORIES);
   const [branches, setBranches] = useState([]);
   const [riders, setRiders] = useState([]);
   const [staff, setStaff] = useState([]);
@@ -51,7 +53,11 @@ export default function Admin() {
   
   // Product States
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: '', category: '3k Ala-Carte', price: '' });
+  const [showChooseProductCategory, setShowChooseProductCategory] = useState(false);
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [addCategoryForProduct, setAddCategoryForProduct] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newProduct, setNewProduct] = useState({ name: '', category: '', price: '' });
   const [productImage, setProductImage] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editImage, setEditImage] = useState(null);
@@ -95,9 +101,10 @@ export default function Admin() {
         const token = localStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}` };
         
-        const [ordersRes, menuRes, branchRes, riderRes, staffRes, logRes, customersRes, recoveryRes] = await Promise.all([
+        const [ordersRes, menuRes, categoriesRes, branchRes, riderRes, staffRes, logRes, customersRes, recoveryRes] = await Promise.all([
           fetch(`${API_URL}/api/admin/orders`, { headers }),
           fetch(`${API_URL}/api/menu`),
+          fetch(`${API_URL}/api/menu/categories`),
           fetch(`${API_URL}/api/branches`),
           fetch(`${API_URL}/api/admin/riders`, { headers }),
           fetch(`${API_URL}/api/admin/users`, { headers }),
@@ -108,6 +115,11 @@ export default function Admin() {
         
         if (ordersRes.ok) setOrders(await ordersRes.json());
         if (menuRes.ok) setMenuItems(await menuRes.json());
+        if (categoriesRes.ok) {
+          const fetchedCategories = await categoriesRes.json();
+          const names = Array.isArray(fetchedCategories) ? fetchedCategories.map(category => typeof category === 'string' ? category : category.name).filter(Boolean) : [];
+          setMenuCategories([...new Set([...DEFAULT_MENU_CATEGORIES, ...names])]);
+        }
         if (branchRes.ok) setBranches(await branchRes.json());
         if (riderRes.ok) setRiders(await riderRes.json());
         if (staffRes.ok) setStaff(await staffRes.json());
@@ -226,8 +238,51 @@ export default function Admin() {
     } catch (error) { showToast(error.message || 'Error updating product.', 'error'); }
   };
 
+  const openProductCategoryStep = () => {
+    setNewProduct({ name: '', category: '', price: '' });
+    setProductImage(null);
+    setShowChooseProductCategory(true);
+  };
+
+  const continueToNewProduct = () => {
+    if (!newProduct.category) return showToast('Please choose a category first.', 'error');
+    setShowChooseProductCategory(false);
+    setShowAddProduct(true);
+  };
+
+  const handleAddCategory = async (event) => {
+    event.preventDefault();
+    const name = newCategoryName.trim().replace(/\s+/g, ' ');
+    if (!name) return showToast('Enter a category name.', 'error');
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/menu/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Failed to add category.');
+
+      setMenuCategories(previous => [...new Set([...previous, result.name || name])]);
+      setNewCategoryName('');
+      setShowAddCategory(false);
+      if (addCategoryForProduct) {
+        setNewProduct(previous => ({ ...previous, category: result.name || name }));
+        setShowChooseProductCategory(false);
+        setShowAddProduct(true);
+      } else {
+        setSuccessMessage('New category added successfully.');
+      }
+      setAddCategoryForProduct(false);
+    } catch (error) {
+      showToast(error.message || 'Failed to add category.', 'error');
+    }
+  };
+
   const handleAddProduct = async (e) => {
     e.preventDefault();
+    if (!newProduct.category) return showToast('Please choose a category first.', 'error');
     try {
       const token = localStorage.getItem('token');
       let uploadedImageUrl = '';
@@ -961,21 +1016,49 @@ export default function Admin() {
             <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
               <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                 <p className="text-sm font-bold text-gray-600">Every branch shares one menu and price list.</p>
-                <button onClick={() => setShowAddProduct(true)} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ Product</button>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => { setAddCategoryForProduct(false); setNewCategoryName(''); setShowAddCategory(true); }} className="rounded-lg border border-[#C9A77C] bg-white px-4 py-2 text-sm font-bold text-[#815633] shadow-sm transition hover:bg-[#F5EFE3]">+ Add Category</button>
+                  <button type="button" onClick={openProductCategoryStep} className="rounded-lg bg-[#815633] px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#62432B]">+ New Product</button>
+                </div>
               </div>
 
+              {showChooseProductCategory && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                  <section className="w-full max-w-lg rounded-3xl border border-[#d8bd9c] bg-[#fffdf8] p-6 shadow-2xl sm:p-8">
+                    <div className="mb-6 flex items-start justify-between gap-4">
+                      <div><p className="text-xs font-black uppercase tracking-[0.18em] text-[#a06d3f]">Step 1 of 2</p><h2 className="mt-1 text-2xl font-black text-[#33251b]">Choose a category</h2><p className="mt-1 text-sm text-[#705b46]">Select where this product belongs before entering its details.</p></div>
+                      <button type="button" onClick={() => setShowChooseProductCategory(false)} aria-label="Close category selection" className="rounded-lg px-2 py-1 text-xl font-bold text-gray-400 hover:bg-gray-100">×</button>
+                    </div>
+                    <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
+                      {menuCategories.map(category => <button key={category} type="button" onClick={() => setNewProduct(previous => ({ ...previous, category }))} className={`rounded-xl border p-3 text-left text-sm font-bold transition ${newProduct.category === category ? 'border-[#815633] bg-[#815633] text-white shadow-md' : 'border-[#e4d3bd] bg-white text-[#5d4733] hover:border-[#b98d61] hover:bg-[#f8f0e4]'}`}>{category}</button>)}
+                    </div>
+                    <button type="button" onClick={() => { setAddCategoryForProduct(true); setNewCategoryName(''); setShowAddCategory(true); }} className="mt-3 w-full rounded-xl border border-dashed border-[#bc9368] bg-[#f8f0e4] px-4 py-3 text-sm font-extrabold text-[#815633] transition hover:bg-[#f0e2cd]">+ Create a new category</button>
+                    <div className="mt-6 flex justify-end gap-3 border-t border-[#eadcc9] pt-5"><button type="button" onClick={() => setShowChooseProductCategory(false)} className="rounded-lg border border-[#d8bd9c] px-4 py-2 text-sm font-bold text-[#705b46] hover:bg-[#f7eddd]">Cancel</button><button type="button" onClick={continueToNewProduct} disabled={!newProduct.category} className="rounded-lg bg-[#815633] px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-40">Continue</button></div>
+                  </section>
+                </div>
+              )}
+
+              {showAddCategory && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+                  <form onSubmit={handleAddCategory} className="w-full max-w-md rounded-3xl border border-[#d8bd9c] bg-[#fffdf8] p-6 shadow-2xl sm:p-8">
+                    <div className="mb-5 flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-[#a06d3f]">Menu setup</p><h2 className="mt-1 text-2xl font-black text-[#33251b]">Add category</h2><p className="mt-1 text-sm text-[#705b46]">Create a reusable category for menu products.</p></div><button type="button" onClick={() => { setShowAddCategory(false); setAddCategoryForProduct(false); }} aria-label="Close add category" className="rounded-lg px-2 py-1 text-xl font-bold text-gray-400 hover:bg-gray-100">×</button></div>
+                    <label className="mb-2 block text-sm font-bold" htmlFor="new-menu-category">Category name</label><input id="new-menu-category" type="text" maxLength={120} required autoFocus value={newCategoryName} onChange={event => setNewCategoryName(event.target.value)} placeholder="e.g. Bilao Specials" className="w-full rounded-xl border px-4 py-3 outline-none focus:border-[#815633]" />
+                    <div className="mt-6 flex justify-end gap-3 border-t border-[#eadcc9] pt-5"><button type="button" onClick={() => { setShowAddCategory(false); setAddCategoryForProduct(false); }} className="rounded-lg border border-[#d8bd9c] px-4 py-2 font-bold text-[#705b46] hover:bg-[#f7eddd]">Cancel</button><button type="submit" className="rounded-lg bg-[#815633] px-5 py-2 font-bold text-white shadow-sm hover:bg-[#62432B]">Save Category</button></div>
+                  </form>
+                </div>
+              )}
+
               {showAddProduct && (
-                <form onSubmit={handleAddProduct} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                <form onSubmit={handleAddProduct} className="grid max-h-[90vh] w-full max-w-2xl grid-cols-1 gap-5 overflow-y-auto rounded-3xl border border-[#d8bd9c] bg-[#fffdf8] p-6 shadow-2xl sm:grid-cols-2 sm:p-8">
+                  <div className="flex items-start justify-between gap-4 sm:col-span-2"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-[#a06d3f]">Step 2 of 2 · {newProduct.category}</p><h2 className="mt-1 text-2xl font-black text-[#33251b]">New product</h2><p className="mt-1 text-sm text-[#705b46]">Add the product details and save it to the shared menu.</p></div><button type="button" onClick={() => setShowAddProduct(false)} aria-label="Close new product" className="rounded-lg px-2 py-1 text-xl font-bold text-gray-400 hover:bg-gray-100">×</button></div>
                   <div><label className="block text-sm font-bold mb-2">Product Name</label><input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Category</label>
-                    <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400">
-                      {['3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'].map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
+                  <div><label className="block text-sm font-bold mb-2">Selected Category</label><div className="flex min-h-10 items-center justify-between gap-2 rounded-lg border border-[#d8bd9c] bg-[#f8f0e4] px-3 py-2 text-sm font-bold text-[#704a2d]"><span>{newProduct.category}</span><button type="button" onClick={() => { setShowAddProduct(false); setShowChooseProductCategory(true); }} className="text-xs font-extrabold text-[#815633] underline">Change</button></div></div>
                   <div><label className="block text-sm font-bold mb-2">Price (₱)</label><input type="number" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" /></div>
                   <div><label className="block text-sm font-bold mb-2">Image</label><input type="file" accept="image/*" onChange={e => setProductImage(e.target.files[0])} className="text-sm w-full pt-2" /></div>
                   <div className="sm:col-span-2 flex justify-end gap-4"><button type="button" onClick={() => setShowAddProduct(false)} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button><button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save</button></div>
                 </form>
+                </div>
               )}
               
               {editingProduct && (
@@ -989,7 +1072,7 @@ export default function Admin() {
                     </div>
                     <div><label className="block text-sm font-bold mb-2">Category</label>
                       <select value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400">
-                        {['3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'].map(c => <option key={c}>{c}</option>)}
+                        {menuCategories.map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
                     <div><label className="block text-sm font-bold mb-2">Price (₱)</label>
@@ -1007,14 +1090,13 @@ export default function Admin() {
                 </div>
               )}
 
-              {['3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'].map(category => {
+              {menuCategories.map(category => {
                 const categoryItems = menuItems.filter(item => item.category === category);
-                if (categoryItems.length === 0) return null;
                 return (
                   <div key={category} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     <h3 className="text-lg font-black text-gray-900 p-4 border-b border-gray-200 bg-gray-50/50">{category}</h3>
                     <div className="divide-y divide-gray-100 p-2">
-                      {categoryItems.map(item => (
+                      {categoryItems.length === 0 ? <p className="p-5 text-sm font-medium text-gray-500">No products in this category yet. Add a product to get started.</p> : categoryItems.map(item => (
                         <div key={item.id} className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors">
                           <div className="flex items-center gap-4">
                             <img src={item.image_url?.startsWith('http') ? item.image_url : (item.image_url?.startsWith('/') ? item.image_url : `${API_URL}${item.image_url}`)} alt={item.name} className={`w-12 h-12 rounded-full object-cover ${item.is_sold_out ? 'grayscale opacity-50' : ''}`} />
