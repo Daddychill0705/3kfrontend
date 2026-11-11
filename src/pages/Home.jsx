@@ -62,7 +62,7 @@ export default function Home() {
 
   return (
     <div className="bg-[#F5EFE3] min-h-[calc(100vh-80px)] flex flex-col items-center gap-12 py-12">
-      <div className="max-w-[1400px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 px-6 md:px-12">
+      <div className="max-w-[1400px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 px-4 sm:px-6 md:px-12">
         
         <div className="flex flex-col justify-center">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
@@ -71,11 +71,11 @@ export default function Home() {
           <h1 className="text-5xl md:text-7xl font-black text-gray-900 leading-[1.1] mb-6 tracking-tight">
             Home-style<br/>favorites, <span className="text-[#815633] italic">near you.</span>
           </h1>
-          <p className="text-lg text-gray-600 font-medium mb-10 max-w-md leading-relaxed">
+          <p className="text-lg text-gray-600 font-medium mb-10 w-full max-w-xl leading-relaxed">
             Sizzling sisig, lechon kawali, pancit and bilao from the 3K Kitchen branch closest to you. Pick it up, have it delivered, or order ahead.
           </p>
 
-          <div className="relative mb-8 max-w-md">
+          <div className="relative mb-8 w-full max-w-xl">
             <select 
               className="w-full appearance-none bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-xl shadow-sm focus:outline-none focus:border-[#815633] cursor-pointer"
               value={selectedBranch?.id || ''}
@@ -89,14 +89,14 @@ export default function Home() {
           </div>
 
           {selectedBranch && (
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm max-w-md relative overflow-hidden transition-all">
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm w-full max-w-xl relative transition-all">
               <div className="flex justify-between items-start mb-2">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Suggested Branch</p>
                 <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded ${selectedBranch.is_active ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                   {selectedBranch.is_active ? 'Open now' : 'Closed now'}
                 </span>
               </div>
-              <h3 className="text-2xl font-black text-gray-900 mb-2">{selectedBranch.name}</h3>
+              <h3 className="text-2xl font-black text-gray-900 mb-2 break-words">{selectedBranch.name}</h3>
               <p className="text-sm font-bold text-gray-500 mb-4 flex items-center gap-2">
                 🕒 {selectedBranch.opening_time || '8:00 AM'} - {selectedBranch.closing_time || '8:00 PM'}
               </p>
@@ -107,9 +107,9 @@ export default function Home() {
                 </p>
               )}
 
-              <div className="flex gap-3">
-                <Link to="/menu" className="flex-1">
-                  <button className="w-full bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-[#62432B] transition-all">
+              <div className="flex flex-col min-[420px]:flex-row gap-3">
+                <Link to="/menu" className="min-w-0 flex-1">
+                  <button className="w-full break-words bg-[#815633] text-white py-3.5 px-3 rounded-xl font-bold leading-snug shadow-md hover:bg-[#62432B] transition-all">
                     Order from {selectedBranch.name}
                   </button>
                 </Link>
