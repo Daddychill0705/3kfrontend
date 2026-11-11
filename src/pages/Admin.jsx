@@ -6,7 +6,6 @@ import SuccessModal from '../components/SuccessModal';
 import { useToast } from '../context/ToastContext';
 
 const ADMIN_PAGE_SIZE = 20;
-const DEFAULT_MENU_CATEGORIES = ['3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'];
 const ADMIN_MODULE_DESCRIPTIONS = {
   Sales: 'Review revenue, order volume, and how customers are ordering.',
   Orders: 'Keep an eye on new orders and update their progress for the team.',
@@ -46,7 +45,7 @@ export default function Admin() {
   const [salesPeriod, setSalesPeriod] = useState('today');
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
-  const [menuCategories, setMenuCategories] = useState(DEFAULT_MENU_CATEGORIES);
+  const [menuCategories, setMenuCategories] = useState([]);
   const [branches, setBranches] = useState([]);
   const [riders, setRiders] = useState([]);
   const [staff, setStaff] = useState([]);
@@ -69,6 +68,8 @@ export default function Admin() {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [addCategoryForProduct, setAddCategoryForProduct] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryToDelete, setCategoryToDelete] = useState('');
+  const [categoryDeleteReplacement, setCategoryDeleteReplacement] = useState('');
   const [newProduct, setNewProduct] = useState({ name: '', category: '', price: '' });
   const [productImage, setProductImage] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -130,7 +131,7 @@ export default function Admin() {
         if (categoriesRes.ok) {
           const fetchedCategories = await categoriesRes.json();
           const names = Array.isArray(fetchedCategories) ? fetchedCategories.map(category => typeof category === 'string' ? category : category.name).filter(Boolean) : [];
-          setMenuCategories([...new Set([...DEFAULT_MENU_CATEGORIES, ...names])]);
+          setMenuCategories([...new Set(names)]);
         }
         if (branchRes.ok) setBranches(await branchRes.json());
         if (riderRes.ok) setRiders(await riderRes.json());
@@ -289,6 +290,29 @@ export default function Admin() {
       setAddCategoryForProduct(false);
     } catch (error) {
       showToast(error.message || 'Failed to add category.', 'error');
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/menu/categories`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name: categoryToDelete, moveTo: categoryDeleteReplacement })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Failed to delete category.');
+
+      setMenuCategories(previous => previous.filter(category => category !== categoryToDelete));
+      if (result.movedTo) setMenuItems(previous => previous.map(item => item.category === categoryToDelete ? { ...item, category: result.movedTo } : item));
+      if (newProduct.category === categoryToDelete) setNewProduct(previous => ({ ...previous, category: '' }));
+      showToast(result.movedProducts ? `Category deleted. ${result.movedProducts} product${result.movedProducts === 1 ? '' : 's'} moved to ${result.movedTo}.` : 'Category deleted successfully.');
+      setCategoryToDelete('');
+      setCategoryDeleteReplacement('');
+    } catch (error) {
+      showToast(error.message || 'Failed to delete category.', 'error');
     }
   };
 
@@ -578,6 +602,7 @@ export default function Admin() {
   });
   const visiblePaymentOrders = searchedPaymentOrders.slice((paymentPage - 1) * ADMIN_PAGE_SIZE, paymentPage * ADMIN_PAGE_SIZE);
   const visibleActivityLogs = activityLogs.slice((activityPage - 1) * ADMIN_PAGE_SIZE, activityPage * ADMIN_PAGE_SIZE);
+  const productsInDeleteCategory = menuItems.filter(item => item.category === categoryToDelete);
 
   const modules = [
     { id: 'Sales', name: 'Sales' },
@@ -1056,7 +1081,14 @@ export default function Admin() {
                       <button type="button" onClick={() => setShowChooseProductCategory(false)} aria-label="Close category selection" className="rounded-lg px-2 py-1 text-xl font-bold text-gray-400 hover:bg-gray-100">×</button>
                     </div>
                     <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
-                      {menuCategories.map(category => <button key={category} type="button" onClick={() => setNewProduct(previous => ({ ...previous, category }))} className={`rounded-xl border p-3 text-left text-sm font-bold transition ${newProduct.category === category ? 'border-[#815633] bg-[#815633] text-white shadow-md' : 'border-[#e4d3bd] bg-white text-[#5d4733] hover:border-[#b98d61] hover:bg-[#f8f0e4]'}`}>{category}</button>)}
+                      {menuCategories.map(category => (
+                        <div key={category} className={`flex min-w-0 overflow-hidden rounded-xl border transition ${newProduct.category === category ? 'border-[#815633] bg-[#815633] text-white shadow-md' : 'border-[#e4d3bd] bg-white text-[#5d4733] hover:border-[#b98d61] hover:bg-[#f8f0e4]'}`}>
+                          <button type="button" onClick={() => setNewProduct(previous => ({ ...previous, category }))} className="min-w-0 flex-1 px-3 py-3 text-left text-sm font-bold">{category}</button>
+                          <button type="button" onClick={() => { setCategoryToDelete(category); setCategoryDeleteReplacement(menuCategories.find(option => option !== category) || ''); }} aria-label={`Delete ${category} category`} title="Delete category" className={`group/delete flex w-11 shrink-0 items-center justify-center border-l transition ${newProduct.category === category ? 'border-white/20 text-white/75 hover:bg-red-600 hover:text-white' : 'border-[#eee3d4] text-[#a16a59] hover:bg-red-50 hover:text-red-700'}`}>
+                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                          </button>
+                        </div>
+                      ))}
                     </div>
                     <button type="button" onClick={() => { setAddCategoryForProduct(true); setNewCategoryName(''); setShowAddCategory(true); }} className="mt-3 w-full rounded-xl border border-dashed border-[#bc9368] bg-[#f8f0e4] px-4 py-3 text-sm font-extrabold text-[#815633] transition hover:bg-[#f0e2cd]">+ Create a new category</button>
                     <div className="mt-6 flex justify-end gap-3 border-t border-[#eadcc9] pt-5"><button type="button" onClick={() => setShowChooseProductCategory(false)} className="rounded-lg border border-[#d8bd9c] px-4 py-2 text-sm font-bold text-[#705b46] hover:bg-[#f7eddd]">Cancel</button><button type="button" onClick={continueToNewProduct} disabled={!newProduct.category} className="rounded-lg bg-[#815633] px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-40">Continue</button></div>
@@ -1071,6 +1103,18 @@ export default function Admin() {
                     <label className="mb-2 block text-sm font-bold" htmlFor="new-menu-category">Category name</label><input id="new-menu-category" type="text" maxLength={120} required autoFocus value={newCategoryName} onChange={event => setNewCategoryName(event.target.value)} placeholder="e.g. Bilao Specials" className="w-full rounded-xl border px-4 py-3 outline-none focus:border-[#815633]" />
                     <div className="mt-6 flex justify-end gap-3 border-t border-[#eadcc9] pt-5"><button type="button" onClick={() => { setShowAddCategory(false); setAddCategoryForProduct(false); }} className="rounded-lg border border-[#d8bd9c] px-4 py-2 font-bold text-[#705b46] hover:bg-[#f7eddd]">Cancel</button><button type="submit" className="rounded-lg bg-[#815633] px-5 py-2 font-bold text-white shadow-sm hover:bg-[#62432B]">Save Category</button></div>
                   </form>
+                </div>
+              )}
+
+              {categoryToDelete && (
+                <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                  <section className="w-full max-w-md rounded-2xl border border-red-200 bg-[#fffdf8] p-6 shadow-2xl">
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-700"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></div>
+                    <h2 className="text-xl font-black text-[#33251b]">Delete category?</h2>
+                    <p className="mt-2 text-sm leading-relaxed text-[#705b46]"><span className="font-bold">{categoryToDelete}</span> will be removed. {productsInDeleteCategory.length ? `${productsInDeleteCategory.length} product${productsInDeleteCategory.length === 1 ? ' is' : 's are'} currently in this category; choose where to move ${productsInDeleteCategory.length === 1 ? 'it' : 'them'}.` : 'No products will be affected.'}</p>
+                    {productsInDeleteCategory.length > 0 && <label className="mt-4 block text-sm font-bold text-[#5d4733]">Move products to<select value={categoryDeleteReplacement} onChange={event => setCategoryDeleteReplacement(event.target.value)} className="mt-2 w-full rounded-lg border bg-white px-3 py-2.5 outline-none focus:border-[#815633]">{menuCategories.filter(category => category !== categoryToDelete).map(category => <option key={category} value={category}>{category}</option>)}</select></label>}
+                    <div className="mt-6 flex justify-end gap-3 border-t border-[#eadcc9] pt-5"><button type="button" onClick={() => { setCategoryToDelete(''); setCategoryDeleteReplacement(''); }} className="rounded-lg border border-[#d8bd9c] px-4 py-2 text-sm font-bold text-[#705b46] hover:bg-[#f7eddd]">Cancel</button><button type="button" onClick={handleDeleteCategory} disabled={productsInDeleteCategory.length > 0 && !categoryDeleteReplacement} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40">Delete category</button></div>
+                  </section>
                 </div>
               )}
 
