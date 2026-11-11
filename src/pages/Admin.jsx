@@ -635,6 +635,7 @@ export default function Admin() {
   const visiblePaymentOrders = searchedPaymentOrders.slice((paymentPage - 1) * ADMIN_PAGE_SIZE, paymentPage * ADMIN_PAGE_SIZE);
   const visibleActivityLogs = activityLogs.slice((activityPage - 1) * ADMIN_PAGE_SIZE, activityPage * ADMIN_PAGE_SIZE);
   const productsInDeleteCategory = menuItems.filter(item => item.category === categoryToDelete);
+  const pendingRecoveryRequests = accountRecoveryRequests.filter(request => request.status === 'Pending');
 
   const modules = [
     { id: 'Sales', name: 'Sales' },
@@ -1541,9 +1542,9 @@ export default function Admin() {
                 <h2 className="font-black text-gray-900">Account recovery requests</h2>
                 <p className="mt-1 text-sm text-gray-600">Compare the submitted information with the existing account before deciding. Approval changes the account email and sends a password reset link to the new address. Your admin password is required for every decision.</p>
               </div>
-              {accountRecoveryRequests.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm font-semibold text-gray-500">No recovery requests yet.</div>
-              ) : accountRecoveryRequests.map(request => (
+              {pendingRecoveryRequests.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm font-semibold text-gray-500">No pending recovery requests.</div>
+              ) : pendingRecoveryRequests.map(request => (
                 <article key={request.id} className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                   <header className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 pb-3">
                     <div>
