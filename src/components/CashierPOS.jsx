@@ -4,6 +4,45 @@ import { formatOrderNumber } from '../utils/orderNumber';
 
 const money = amount => `₱${Number(amount || 0).toFixed(2)}`;
 
+const defaultDrinks = ['Coke', 'Sprite', 'Royal'].flatMap((brand, brandIndex) => {
+  const color = ['#d9272e', '#159447', '#ed7c22'][brandIndex];
+  return [
+    { size: 'Small · 250 ml', price: 25 },
+    { size: 'Medium · 500 ml', price: 35 },
+    { size: 'Large · 1 L', price: 50 }
+  ].map(({ size, price }) => ({
+    id: `pos-${brand.toLowerCase()}-${size.split(' ')[0].toLowerCase()}`,
+    name: `${brand} ${size}`,
+    category: 'Drinks',
+    price,
+    brand,
+    drinkColor: color
+  }));
+});
+
+function DrinkCan({ brand, color }) {
+  return (
+    <svg viewBox="0 0 120 100" role="img" aria-label={`${brand} drink`} className="h-full w-full">
+      <defs>
+        <linearGradient id={`can-${brand}`} x1="0" x2="1">
+          <stop offset="0" stopColor="#b7b7b7" />
+          <stop offset="0.2" stopColor="#fff" />
+          <stop offset="0.8" stopColor="#e7e7e7" />
+          <stop offset="1" stopColor="#999" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="60" cy="89" rx="27" ry="5" fill="#493524" opacity=".16" />
+      <path d="M43 17h34l5 12v48l-5 10H43l-5-10V29z" fill={`url(#can-${brand})`} stroke="#aaa" />
+      <path d="M40 30h40v42H40z" fill={color} />
+      <ellipse cx="60" cy="18" rx="17" ry="4" fill="#dadada" stroke="#999" />
+      <path d="M54 17h12" stroke="#888" strokeWidth="2" />
+      <text x="60" y="52" fill="white" textAnchor="middle" fontFamily="Arial,sans-serif" fontSize={brand === 'Coke' ? '12' : '11'} fontWeight="900" fontStyle="italic">{brand}</text>
+      <text x="60" y="63" fill="white" textAnchor="middle" fontFamily="Arial,sans-serif" fontSize="5" fontWeight="700">REFRESHING</text>
+      <path d="M44 76h32" stroke="#fff" strokeOpacity=".65" strokeWidth="2" />
+    </svg>
+  );
+}
+
 export default function CashierPOS({ branch, cashierUser, onBack }) {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const { showToast } = useToast();
@@ -16,14 +55,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
   const [isOrderTypeSelectionOpen, setIsOrderTypeSelectionOpen] = useState(true);
   const [customerName, setCustomerName] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
-  const [isOrderFlowOpen, setIsOrderFlowOpen] = useState(false);
-  const [orderFlowStep, setOrderFlowStep] = useState(1);
-  const [activeProduct, setActiveProduct] = useState(null);
-  const [productQuantity, setProductQuantity] = useState(1);
-  const [selectedDrinks, setSelectedDrinks] = useState({});
-  const [selectedAddOns, setSelectedAddOns] = useState({});
-  const [specialRequests, setSpecialRequests] = useState('');
-  const [selectedQuickRequests, setSelectedQuickRequests] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -58,79 +89,32 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
     return () => { isCurrent = false; };
   }, [API_URL]);
 
-  const categories = useMemo(() => ['All', ...new Set(menuItems.map(item => item.category).filter(Boolean))], [menuItems]);
-  const availableDrinks = useMemo(() => menuItems.filter(item => {
-    const category = String(item.category || '').trim().toLowerCase();
-    return category === 'drinks' && Number(item.is_sold_out) !== 1 && item.is_sold_out !== true;
-  }), [menuItems]);
-  const availableAddOns = useMemo(() => menuItems.filter(item => {
-    const category = String(item.category || '').toLowerCase();
-    const isAddonCategory = category === 'rice and extras' || /add.?ons?|topping/.test(category);
-    return isAddonCategory && Number(item.is_sold_out) !== 1 && item.is_sold_out !== true;
-  }), [menuItems]);
-  const visibleItems = useMemo(() => menuItems.filter(item => {
-    const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
+  const categories = useMemo(() => {
+    const otherCategories = [...new Set(menuItems.map(item => item.category).filter(Boolean))]
+      .filter(category => String(category).trim().toLowerCase() !== 'drinks');
+    return ['All', ...otherCategories, 'Drinks'];
+  }, [menuItems]);
+  const posMenuItems = useMemo(() => {
+    const menuDrinks = menuItems.filter(item => String(item.category || '').trim().toLowerCase() === 'drinks');
+    const defaultMenuDrinks = defaultDrinks.filter(drink => !menuDrinks.some(item => {
+      const name = String(item.name || '').toLowerCase();
+      const sizeName = drink.size.split(' ')[0].toLowerCase();
+      const sizeTokens = sizeName === 'small' ? ['small', '250'] : sizeName === 'medium' ? ['medium', '500'] : ['large', '1000', '1l'];
+      const normalizedName = name.replace(/\s/g, '');
+      return name.includes(drink.brand.toLowerCase()) && sizeTokens.some(token => name.includes(token) || normalizedName.includes(token.replace(/\s/g, '')));
+    }));
+    return [...menuItems, ...defaultMenuDrinks];
+  }, [menuItems]);
+  const visibleItems = useMemo(() => posMenuItems.filter(item => {
+    const matchesCategory = activeCategory === 'All' || String(item.category || '').toLowerCase() === activeCategory.toLowerCase();
     const matchesSearch = String(item.name || '').toLowerCase().includes(searchQuery.toLowerCase().trim());
     return matchesCategory && matchesSearch;
-  }), [menuItems, activeCategory, searchQuery]);
+  }), [posMenuItems, activeCategory, searchQuery]);
   const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.qty, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.qty, 0), [cart]);
   const vatableSales = subtotal / 1.12;
   const vatAmount = subtotal - vatableSales;
   const changeDue = Math.max(0, Number(cashTendered || 0) - subtotal);
-
-  const changeFlowQuantity = (setter, id, delta) => {
-    setter(previous => {
-      const nextQuantity = (Number(previous[id]) || 0) + delta;
-      if (nextQuantity <= 0) {
-        const next = { ...previous };
-        delete next[id];
-        return next;
-      }
-      return { ...previous, [id]: nextQuantity };
-    });
-  };
-
-  const beginItemOrder = item => {
-    if (!orderType) return;
-    if (Number(item.is_sold_out) === 1 || item.is_sold_out === true) return;
-    setActiveProduct(item);
-    setProductQuantity(1);
-    setSelectedDrinks({});
-    setSelectedAddOns({});
-    setSpecialRequests('');
-    setSelectedQuickRequests([]);
-    setOrderFlowStep(1);
-    setIsOrderFlowOpen(true);
-  };
-
-  const selectedFlowItems = useMemo(() => {
-    if (!activeProduct) return [];
-    const selections = [
-      { item: activeProduct, qty: productQuantity, type: 'Food' },
-      ...availableDrinks.filter(item => selectedDrinks[item.id]).map(item => ({ item, qty: selectedDrinks[item.id], type: 'Drink' })),
-      ...availableAddOns.filter(item => selectedAddOns[item.id]).map(item => ({ item, qty: selectedAddOns[item.id], type: 'Add-on' }))
-    ];
-    return selections.map(({ item, qty, type }) => ({
-      id: item.id,
-      name: item.name,
-      price: Number(item.price),
-      image: item.image_url,
-      qty,
-      type
-    }));
-  }, [activeProduct, productQuantity, availableDrinks, selectedDrinks, availableAddOns, selectedAddOns]);
-
-  const summaryItems = useMemo(() => {
-    const merged = new Map();
-    [...cart, ...selectedFlowItems].forEach(item => {
-      const key = String(item.id);
-      const existing = merged.get(key);
-      merged.set(key, existing ? { ...existing, qty: existing.qty + item.qty } : { ...item });
-    });
-    return [...merged.values()];
-  }, [cart, selectedFlowItems]);
-  const summaryTotal = useMemo(() => summaryItems.reduce((sum, item) => sum + item.price * item.qty, 0), [summaryItems]);
 
   const buildCart = (existingItems, incomingItems) => {
     const merged = new Map();
@@ -142,28 +126,17 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
     return [...merged.values()];
   };
 
-  const getFlowNotes = () => [...selectedQuickRequests, specialRequests.trim()].filter(Boolean).join(', ');
-  const combineNotes = (current, addition) => [current.trim(), addition.trim()].filter(Boolean).join(' | ');
-
-  const resetOrderFlow = () => {
-    setIsOrderFlowOpen(false);
-    setOrderFlowStep(1);
-    setActiveProduct(null);
-    setProductQuantity(1);
-    setSelectedDrinks({});
-    setSelectedAddOns({});
-    setSpecialRequests('');
-    setSelectedQuickRequests([]);
-  };
-
-  const addFlowToCart = () => {
-    if (!selectedFlowItems.length) {
-      resetOrderFlow();
-      return;
-    }
-    setCart(previous => buildCart(previous, selectedFlowItems));
-    setOrderNotes(previous => combineNotes(previous, getFlowNotes()));
-    resetOrderFlow();
+  const beginItemOrder = item => {
+    if (!orderType || Number(item.is_sold_out) === 1 || item.is_sold_out === true) return;
+    const lineItem = {
+      id: item.id,
+      name: item.name,
+      price: Number(item.price),
+      image: item.image_url || null,
+      qty: 1
+    };
+    setCart(previous => buildCart(previous, [lineItem]));
+    showToast(`${item.name} added to ticket.`, 'success');
   };
 
   const updateQuantity = (id, change) => {
@@ -174,35 +147,19 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
 
   const openPayment = () => {
     if (!cart.length || !orderType) return;
-    setIsCartOpen(false);
-    setError('');
-    setActiveProduct(null);
-    setOrderFlowStep(4);
-    setIsOrderFlowOpen(true);
-  };
-
-  const continueToPayment = () => {
     if (!customerName.trim()) {
       setError('Enter the customer name or calling name to continue.');
       return;
     }
-    const itemsForCheckout = buildCart(cart, selectedFlowItems);
-    const totalForCheckout = itemsForCheckout.reduce((sum, item) => sum + item.price * item.qty, 0);
-    if (!itemsForCheckout.length) return;
-    setCart(itemsForCheckout);
-    setOrderNotes(previous => combineNotes(previous, getFlowNotes()));
-    setCashTendered(totalForCheckout.toFixed(2));
+    setIsCartOpen(false);
     setError('');
-    resetOrderFlow();
+    setCashTendered(subtotal.toFixed(2));
     setIsPaymentOpen(true);
   };
 
   const returnToOrderSummary = () => {
     setIsPaymentOpen(false);
-    setActiveProduct(null);
-    setOrderFlowStep(4);
     setError('');
-    setIsOrderFlowOpen(true);
   };
 
   const verifyCashierAccess = async event => {
@@ -384,13 +341,13 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
             ) : visibleItems.length === 0 ? (
               <div className="rounded-xl border border-dashed border-gray-300 bg-white/60 p-10 text-center text-sm font-semibold text-gray-500">No menu items found.</div>
             ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
                 {visibleItems.map(item => {
                   const soldOut = Number(item.is_sold_out) === 1 || item.is_sold_out === true;
                   return (
                     <button key={item.id} type="button" disabled={soldOut} onClick={() => beginItemOrder(item)} className={`group overflow-hidden rounded-lg border bg-white p-1.5 text-left shadow-sm transition ${soldOut ? 'cursor-not-allowed opacity-55 grayscale' : 'border-[#d8c2a4] hover:-translate-y-0.5 hover:border-[#815633] hover:shadow-md active:scale-[0.99]'}`}>
                       <div className="relative mb-1.5 h-16 overflow-hidden rounded-md bg-[#F5EFE3] sm:h-[72px]">
-                        {item.image_url && <img src={item.image_url} alt={item.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />}
+                        {item.image_url ? <img src={item.image_url} alt={item.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : item.brand ? <DrinkCan brand={item.brand} color={item.drinkColor} /> : <span className="flex h-full items-center justify-center text-2xl text-[#b99971]">3K</span>}
                         {item.category && <span className="absolute left-1 top-1 max-w-[90%] truncate rounded border border-white/70 bg-white/90 px-1.5 py-0.5 text-[8px] font-black text-gray-700 shadow-sm">{item.category}</span>}
                         {soldOut && <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs font-black tracking-widest text-white">SOLD OUT</span>}
                       </div>
@@ -440,6 +397,12 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
             ))}
           </div>
           <div className="space-y-2 border-t border-[#e4d5bf] bg-white p-4">
+            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Customer / calling name <span className="text-red-600">*</span>
+              <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Walk-in customer" maxLength={255} className="mt-1 w-full rounded-md border border-[#d8c2a4] bg-[#fbf8f1] px-3 py-2 text-xs font-semibold text-gray-800 outline-none focus:border-[#815633]" />
+            </label>
+            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Order notes
+              <textarea value={orderNotes} onChange={event => setOrderNotes(event.target.value)} maxLength={500} rows={2} placeholder="Optional kitchen notes" className="mt-1 w-full resize-y rounded-md border border-[#d8c2a4] bg-[#fbf8f1] px-3 py-2 text-xs font-medium text-gray-800 outline-none focus:border-[#815633]" />
+            </label>
             <div className="flex justify-between text-[11px] font-semibold text-gray-500"><span>Vatable sales</span><span>{formatMoney(vatableSales)}</span></div>
             <div className="flex justify-between text-[11px] font-semibold text-gray-500"><span>VAT (12%)</span><span>{formatMoney(vatAmount)}</span></div>
             <div className="flex justify-between border-t border-dashed border-[#d8c2a4] pt-2 text-xs font-black text-[#33251b]"><span>Grand total</span><span className="text-base text-[#815633]">{formatMoney(subtotal)}</span></div>
@@ -481,6 +444,12 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
           </div>
 
           <div className="space-y-2 border-t border-gray-200 bg-gray-50 p-4">
+            <label className="block text-xs font-bold text-gray-600">Customer / calling name <span className="text-red-600">*</span>
+              <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Walk-in customer" maxLength={255} className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-[#815633]" />
+            </label>
+            <label className="block text-xs font-bold text-gray-600">Order notes
+              <textarea value={orderNotes} onChange={event => setOrderNotes(event.target.value)} maxLength={500} rows={2} placeholder="Optional kitchen notes" className="mt-1 w-full resize-y rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium outline-none focus:border-[#815633]" />
+            </label>
             <div className="flex justify-between text-xs font-bold text-gray-600"><span>Vatable sales</span><span>{formatMoney(vatableSales)}</span></div>
             <div className="flex justify-between text-xs font-bold text-gray-600"><span>VAT (12%)</span><span>{formatMoney(vatAmount)}</span></div>
             <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-black text-gray-900"><span>Grand total</span><span className="text-xl text-[#815633]">{formatMoney(subtotal)}</span></div>
@@ -494,146 +463,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
         </aside>
         </div>}
       </div>
-
-      {isOrderFlowOpen && (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
-          <section role="dialog" aria-modal="true" aria-labelledby="order-flow-title" className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <header className="flex items-center justify-between border-b border-gray-100 bg-gray-50 p-4 sm:p-5">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#815633]">{orderFlowStep < 4 ? `Step ${orderFlowStep} of 4` : 'Review order'}</p>
-                <h2 id="order-flow-title" className="mt-1 text-lg font-black text-gray-900">
-                  {orderFlowStep === 1 && 'Select product and quantity'}
-                  {orderFlowStep === 2 && 'Choose drinks'}
-                  {orderFlowStep === 3 && 'Add-ons and special requests'}
-                  {orderFlowStep === 4 && 'Order summary'}
-                </h2>
-              </div>
-              <button type="button" aria-label="Cancel ordering" onClick={resetOrderFlow} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
-            </header>
-
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-              {orderFlowStep === 1 && activeProduct && (
-                <div>
-                  <div className="flex gap-4 rounded-xl border border-gray-200 bg-[#FBFAF4] p-3 sm:p-4">
-                    {activeProduct.image_url && <img src={activeProduct.image_url} alt={activeProduct.name} className="h-24 w-24 shrink-0 rounded-xl object-cover sm:h-32 sm:w-32" />}
-                    <div className="min-w-0 flex-1 self-center">
-                      <h3 className="text-base font-black text-gray-900 sm:text-lg">{activeProduct.name}</h3>
-                      <p className="mt-1 text-sm font-bold text-[#815633]">Price: {formatMoney(activeProduct.price)}</p>
-                    </div>
-                  </div>
-                  <div className="mt-5 flex items-center justify-between rounded-xl border border-gray-200 p-4">
-                    <span className="font-bold text-gray-700">Quantity</span>
-                    <div className="flex items-center gap-3">
-                      <button type="button" aria-label="Decrease product quantity" onClick={() => setProductQuantity(quantity => Math.max(1, quantity - 1))} className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-xl font-bold hover:bg-gray-50">−</button>
-                      <span className="w-8 text-center text-lg font-black">{productQuantity}</span>
-                      <button type="button" aria-label="Increase product quantity" onClick={() => setProductQuantity(quantity => quantity + 1)} className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-xl font-bold hover:bg-gray-50">+</button>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex justify-between border-t border-gray-200 pt-4 text-base font-black"><span>Subtotal</span><span className="text-[#815633]">{formatMoney(Number(activeProduct.price) * productQuantity)}</span></div>
-                </div>
-              )}
-
-              {orderFlowStep === 2 && (
-                <div className="space-y-3">
-                  {availableDrinks.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm font-medium text-gray-600">There are no drink items in the current menu. You can continue without a drink.</p>
-                  ) : availableDrinks.map(item => {
-                    const qty = Number(selectedDrinks[item.id]) || 0;
-                    return (
-                      <div key={item.id} className={`flex items-center gap-3 rounded-xl border p-3 ${qty ? 'border-[#815633] bg-[#FBFAF4]' : 'border-gray-200'}`}>
-                        {item.image_url && <img src={item.image_url} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />}
-                        <div className="min-w-0 flex-1"><p className="text-sm font-bold text-gray-900">{item.name}</p><p className="text-xs font-bold text-[#815633]">{formatMoney(item.price)}</p></div>
-                        <div className="flex items-center gap-2">
-                          {qty > 0 && <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => changeFlowQuantity(setSelectedDrinks, item.id, -1)} className="flex h-9 w-9 items-center justify-center rounded-lg border text-lg">−</button>}
-                          {qty > 0 && <span className="w-5 text-center font-black">{qty}</span>}
-                          <button type="button" aria-label={`Add ${item.name}`} onClick={() => changeFlowQuantity(setSelectedDrinks, item.id, 1)} className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#815633] text-lg font-bold text-white">+</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div className="flex justify-between border-t border-gray-200 pt-4 font-black"><span>Current subtotal</span><span className="text-[#815633]">{formatMoney(summaryTotal)}</span></div>
-                </div>
-              )}
-
-              {orderFlowStep === 3 && (
-                <div className="space-y-5">
-                  <div>
-                    <h3 className="mb-3 text-sm font-black text-gray-900">Available add-ons</h3>
-                    {availableAddOns.length === 0 ? (
-                      <p className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-5 text-center text-sm font-medium text-gray-600">No add-ons are currently listed in the menu.</p>
-                    ) : <div className="space-y-2">
-                      {availableAddOns.map(item => {
-                        const qty = Number(selectedAddOns[item.id]) || 0;
-                        return (
-                          <div key={item.id} className={`flex items-center gap-3 rounded-xl border p-3 ${qty ? 'border-[#815633] bg-[#FBFAF4]' : 'border-gray-200'}`}>
-                            <div className="min-w-0 flex-1"><p className="text-sm font-bold text-gray-900">{item.name}</p><p className="text-xs font-bold text-[#815633]">{formatMoney(item.price)}</p></div>
-                            {qty > 0 && <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => changeFlowQuantity(setSelectedAddOns, item.id, -1)} className="flex h-9 w-9 items-center justify-center rounded-lg border text-lg">−</button>}
-                            {qty > 0 && <span className="w-5 text-center font-black">{qty}</span>}
-                            <button type="button" aria-label={`Add ${item.name}`} onClick={() => changeFlowQuantity(setSelectedAddOns, item.id, 1)} className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#815633] text-lg font-bold text-white">+</button>
-                          </div>
-                        );
-                      })}
-                    </div>}
-                  </div>
-                  <div>
-                    <h3 className="mb-2 text-sm font-black text-gray-900">Special instructions</h3>
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      {['No onions', 'Less spicy', 'Extra sauce', 'Sauce on the side', 'No utensils'].map(request => {
-                        const selected = selectedQuickRequests.includes(request);
-                        return <button key={request} type="button" onClick={() => setSelectedQuickRequests(previous => selected ? previous.filter(value => value !== request) : [...previous, request])} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${selected ? 'border-[#815633] bg-[#815633] text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-[#815633]'}`}>{request}</button>;
-                      })}
-                    </div>
-                    <textarea value={specialRequests} onChange={event => setSpecialRequests(event.target.value)} maxLength={500} rows={3} placeholder="Other requests (optional)" className="w-full resize-y rounded-xl border border-gray-200 px-3 py-3 text-sm outline-none focus:border-[#815633]" />
-                  </div>
-                  <div className="flex justify-between border-t border-gray-200 pt-3 text-sm font-black"><span>Current subtotal</span><span className="text-[#815633]">{formatMoney(summaryTotal)}</span></div>
-                </div>
-              )}
-
-              {orderFlowStep === 4 && (
-                <div className="space-y-4">
-                  <label className="block text-xs font-bold text-gray-600">
-                    Customer Name / Calling Name <span className="text-red-600">*</span>
-                    <input required autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Enter customer name" maxLength={255} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
-                  </label>
-                  {!customerName.trim() && <p className="text-xs font-semibold text-red-600">A customer name is required before checkout.</p>}
-                  <div className="grid gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2">
-                    <p><span className="font-bold text-gray-500">Customer:</span> <span className="font-black text-gray-900">{customerName.trim()}</span></p>
-                    <p><span className="font-bold text-gray-500">Order type:</span> <span className="font-black text-gray-900">{orderType}</span></p>
-                  </div>
-                  <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 px-4">
-                    {summaryItems.map(item => <div key={item.id} className="flex items-center justify-between gap-4 py-3 text-sm"><span className="min-w-0"><span className="font-bold text-gray-400">{item.qty}× </span><span className="font-bold text-gray-900">{item.name}</span>{item.type && <span className="ml-2 text-[10px] font-bold uppercase text-gray-400">{item.type}</span>}</span><span className="shrink-0 font-bold">{formatMoney(item.price * item.qty)}</span></div>)}
-                    {summaryItems.length === 0 && <p className="py-4 text-sm text-gray-500">Your order is empty.</p>}
-                  </div>
-                  {combineNotes(orderNotes, getFlowNotes()) && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm"><span className="font-bold">Special instructions:</span> {combineNotes(orderNotes, getFlowNotes())}</p>}
-                  <div className="flex justify-between border-t border-gray-200 pt-3 text-lg font-black"><span>Grand total</span><span className="text-[#815633]">{formatMoney(summaryTotal)}</span></div>
-                </div>
-              )}
-            </div>
-
-            <footer className="flex flex-wrap justify-between gap-2 border-t border-gray-100 bg-gray-50 p-4">
-              {orderFlowStep === 1 && <>
-                <button type="button" onClick={resetOrderFlow} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Cancel</button>
-                <button type="button" onClick={() => setOrderFlowStep(availableDrinks.length ? 2 : 3)} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B]">Next</button>
-              </>}
-              {orderFlowStep === 2 && <>
-                <button type="button" onClick={() => setOrderFlowStep(1)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Back</button>
-                <button type="button" onClick={() => { setSelectedDrinks({}); setOrderFlowStep(3); }} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Skip drinks</button>
-                <button type="button" onClick={() => setOrderFlowStep(3)} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B]">Next</button>
-              </>}
-              {orderFlowStep === 3 && <>
-                <button type="button" onClick={() => setOrderFlowStep(availableDrinks.length ? 2 : 1)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Back</button>
-                <button type="button" onClick={() => setOrderFlowStep(4)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Skip</button>
-                <button type="button" onClick={() => setOrderFlowStep(4)} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B]">Add to order</button>
-              </>}
-              {orderFlowStep === 4 && <>
-                <button type="button" onClick={() => activeProduct ? setOrderFlowStep(3) : resetOrderFlow()} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-white">Back</button>
-                <button type="button" onClick={addFlowToCart} className="rounded-lg border border-[#815633] px-4 py-2.5 text-sm font-bold text-[#815633] hover:bg-[#FBFAF4]">Order more</button>
-                <button type="button" disabled={!summaryItems.length || !customerName.trim()} onClick={continueToPayment} className="ml-auto rounded-lg bg-[#815633] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-50">Proceed to checkout</button>
-              </>}
-            </footer>
-          </section>
-        </div>
-      )}
 
       {isPaymentOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
