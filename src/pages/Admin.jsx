@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
+import SuccessModal from '../components/SuccessModal';
 
 const ADMIN_PAGE_SIZE = 20;
 
@@ -46,6 +47,7 @@ export default function Admin() {
   const [paymentPage, setPaymentPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
   const [activityPage, setActivityPage] = useState(1);
+  const [successMessage, setSuccessMessage] = useState('');
   
   // Product States
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -147,6 +149,7 @@ export default function Admin() {
       });
       if (response.ok) {
         setOrders(orders.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
+        setSuccessMessage(`Order status updated to ${newStatus}.`);
       }
     } catch (error) { console.error('Failed to update status', error); }
   };
@@ -159,7 +162,10 @@ export default function Admin() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ is_sold_out: !currentStatus })
       });
-      if (response.ok) setMenuItems(menuItems.map(item => item.id === id ? { ...item, is_sold_out: !currentStatus } : item));
+      if (response.ok) {
+        setMenuItems(menuItems.map(item => item.id === id ? { ...item, is_sold_out: !currentStatus } : item));
+        setSuccessMessage(currentStatus ? 'Product is available again.' : 'Product marked as sold out.');
+      }
     } catch (error) { console.error('Failed to toggle stock', error); }
   };
 
@@ -171,7 +177,10 @@ export default function Admin() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (response.ok) setMenuItems(menuItems.filter(item => item.id !== id));
+      if (response.ok) {
+        setMenuItems(menuItems.filter(item => item.id !== id));
+        setSuccessMessage('Product deleted successfully.');
+      }
     } catch (error) { console.error('Failed to delete product', error); }
   };
 
@@ -210,6 +219,7 @@ export default function Admin() {
         setEditingProduct(null); setEditImage(null);
         const menuRes = await fetch(`${API_URL}/api/menu`);
         if (menuRes.ok) setMenuItems(await menuRes.json());
+        setSuccessMessage('Product changes saved successfully.');
       } else alert("Failed to update menu item.");
     } catch (error) { alert('Error updating product'); }
   };
@@ -248,6 +258,7 @@ export default function Admin() {
         setNewProduct({ name: '', category: '3k Ala-Carte', price: '' });
         const menuRes = await fetch(`${API_URL}/api/menu`);
         if (menuRes.ok) setMenuItems(await menuRes.json());
+        setSuccessMessage('New product added successfully.');
       } else alert("Failed to save menu item.");
     } catch (error) { alert('Error adding product'); }
   };
@@ -264,6 +275,8 @@ export default function Admin() {
         setShowAddBranch(false);
         const res = await fetch(`${API_URL}/api/branches`);
         if (res.ok) setBranches(await res.json());
+        setNewBranch({ name: '', code: '', address: '', phone: '' });
+        setSuccessMessage('New branch added successfully.');
       }
     } catch (error) { alert('Failed to add branch'); }
   };
@@ -280,6 +293,8 @@ export default function Admin() {
         setShowAddRider(false);
         const res = await fetch(`${API_URL}/api/admin/riders`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setRiders(await res.json());
+        setNewRider({ firstname: '', lastname: '', email: '', password: '' });
+        setSuccessMessage('Rider account created successfully.');
       } else {
         const result = await response.json().catch(() => ({}));
         alert(result.error || 'Failed to add rider.');
@@ -301,6 +316,7 @@ export default function Admin() {
         setEditingRider(null); setEditRiderPass('');
         const res = await fetch(`${API_URL}/api/admin/riders`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setRiders(await res.json());
+        setSuccessMessage('Rider details saved successfully.');
       } else alert('Failed to update rider.');
     } catch (error) { alert('Failed to update rider'); }
   };
@@ -320,6 +336,7 @@ export default function Admin() {
         setNewStaff({ firstname: '', lastname: '', email: '', password: '', role: 'cashier', branch: '' });
         const res = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setStaff(await res.json());
+        setSuccessMessage('Staff account created successfully.');
       } else {
         const errorData = await response.json().catch(() => ({}));
         alert(errorData.error || 'Failed to add account. Email may already exist.');
@@ -341,6 +358,7 @@ export default function Admin() {
         setEditingStaff(null); setEditStaffPass(''); setEditStaffAdminPassword('');
         const res = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setStaff(await res.json());
+        setSuccessMessage('Account changes saved successfully.');
       } else {
         const errorData = await response.json().catch(() => ({}));
         alert(errorData.error || 'Failed to update account.');
@@ -371,7 +389,7 @@ export default function Admin() {
       setPendingRecoveryReview(null);
       setRecoveryAdminPassword('');
       setRecoveryReviewNote('');
-      alert(result.message || 'Recovery request reviewed and email notification sent.');
+      setSuccessMessage(result.message || 'Recovery request reviewed and email notification sent.');
     } catch (error) {
       setRecoveryReviewError(error.message || 'Could not review this recovery request.');
     } finally {
@@ -399,6 +417,7 @@ export default function Admin() {
         setRiders(riders.filter(s => s.id !== id));
         setPendingAdminDeletion(null);
         setAdminDeletePassword('');
+        setSuccessMessage('Account deleted successfully.');
       } else {
         const errorData = await response.json().catch(() => ({}));
         alert(errorData.error || 'Failed to delete account.');
@@ -1394,6 +1413,8 @@ export default function Admin() {
           </form>
         </div>
       )}
+
+      <SuccessModal message={successMessage} onClose={() => setSuccessMessage('')} />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry';
+import SuccessModal from '../components/SuccessModal';
 
 const CashierPOS = lazy(() => import('../components/CashierPOS'));
 
@@ -40,6 +41,7 @@ export default function Cashier() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [cashTendered, setCashTendered] = useState('');
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // 1. Fetch available branches
   useEffect(() => {
@@ -147,6 +149,13 @@ export default function Cashier() {
         if (socket) socket.emit('status_change', { orderId: id, status });
         setOrders(prevOrders => prevOrders.map(o => o.id === id ? { ...o, status } : o));
         setSelectedOrder(prev => prev && prev.id === id ? { ...prev, status } : prev);
+        const statusMessages = {
+          Confirmed: 'Order confirmed successfully.',
+          Preparing: 'Order sent to the kitchen.',
+          Ready: 'Order marked as ready.',
+          Cancelled: 'Order cancelled successfully.'
+        };
+        if (statusMessages[status]) setSuccessMessage(statusMessages[status]);
         return true;
       }
     } catch (error) { console.error('Error updating status', error); }
@@ -179,6 +188,7 @@ export default function Cashier() {
         return next;
       });
       setActiveTab('Done');
+      setSuccessMessage('Order completed and moved to Done.');
     }, 550);
   };
   
@@ -255,6 +265,7 @@ export default function Cashier() {
 
         // Notify the customer tracking screen after the payment has been saved.
         if (socket) socket.emit('status_change', { orderId: selectedOrder.id, status: newStatus });
+        setSuccessMessage('Payment confirmed successfully.');
       } catch (error) {
         console.error('Error confirming payment', error);
         alert(error.message || 'Payment could not be saved. Please try again.');
@@ -652,6 +663,8 @@ export default function Cashier() {
           </div>
         </div>
       )}
+
+      <SuccessModal message={successMessage} onClose={() => setSuccessMessage('')} />
 
     </div>
   );
