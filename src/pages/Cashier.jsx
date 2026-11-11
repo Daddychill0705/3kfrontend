@@ -461,6 +461,7 @@ export default function Cashier() {
           <button
             onClick={() => {
               logout();
+              showToast('You have been logged out.');
               navigate('/login');
             }}
             className="text-sm font-bold text-red-500 hover:text-red-700 hover:underline"

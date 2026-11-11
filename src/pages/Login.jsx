@@ -23,6 +23,7 @@ export default function Login() {
     e.preventDefault();
     try {
       const loggedInUser = await login(email, password);
+      showToast(`Welcome${loggedInUser.firstname ? `, ${loggedInUser.firstname}` : ' back'}!`);
       
       // Role-based redirection directly to dashboards
       if (loggedInUser.role === 'admin') navigate('/admin');

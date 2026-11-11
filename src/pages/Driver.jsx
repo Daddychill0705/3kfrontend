@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { io } from 'socket.io-client';
 import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry';
 
@@ -16,6 +17,7 @@ export default function Driver() {
   const [socket, setSocket] = useState(null);
   const chatOrderRef = useRef(null);
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -137,7 +139,7 @@ export default function Driver() {
              <Link to="/admin" className="text-sm font-bold text-gray-500 hover:text-gray-900 border border-gray-200 px-3 py-1.5 rounded-lg mr-2 bg-gray-50">← Back to Admin</Link>
           )}
           <span className="text-sm font-bold text-gray-600 hidden sm:block">{user.email}</span>
-          <button onClick={() => { logout(); navigate('/login'); }} className="text-sm font-bold text-red-500 hover:underline cursor-pointer">Sign out</button>
+          <button onClick={() => { logout(); showToast('You have been logged out.'); navigate('/login'); }} className="text-sm font-bold text-red-500 hover:underline cursor-pointer">Sign out</button>
         </div>
       </div>
 

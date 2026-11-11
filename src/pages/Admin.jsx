@@ -733,7 +733,7 @@ export default function Admin() {
               {branches.map(b => <option key={b.id}>{b.name}</option>)}
             </select>
             <span className="hidden items-center gap-2 rounded-full border border-[#e8d9c4] bg-white/80 px-3 py-2 text-xs font-bold text-[#665442] md:inline-flex"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#815633] text-[10px] font-black text-white">{user.email?.[0]?.toUpperCase() || 'A'}</span>{user.email}</span>
-            <button onClick={() => { logout(); navigate('/login'); }} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100 cursor-pointer">Sign out</button>
+            <button onClick={() => { logout(); showToast('You have been logged out.'); navigate('/login'); }} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100 cursor-pointer">Sign out</button>
           </div>
         </header>
 

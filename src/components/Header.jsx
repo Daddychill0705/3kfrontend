@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 
 export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { cartCount } = useCart();
+  const { showToast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isGuest = user?.role === 'guest' || user?.email === 'guest@3kkitchen.local';
   const canAccessKiosk = isGuest;
@@ -23,6 +25,7 @@ export default function Header() {
 
   const handleLogout = () => {
     logout();
+    showToast('You have been logged out.');
     navigate('/login');
   };
 
