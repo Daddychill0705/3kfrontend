@@ -175,6 +175,52 @@
   to { stroke-dashoffset: 0; }
 }
 
+.success-feedback-overlay {
+  animation: successFeedbackFade 280ms ease-out both;
+}
+
+.success-feedback-panel {
+  animation: successFeedbackEnter 440ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.success-feedback-ring {
+  animation: successFeedbackRing 560ms 100ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.success-feedback-check {
+  stroke-dasharray: 68;
+  stroke-dashoffset: 68;
+  animation: successFeedbackCheck 720ms 420ms ease-out forwards;
+}
+
+.success-feedback-progress {
+  transform-origin: left;
+  animation: successFeedbackProgress 5s linear both;
+}
+
+@keyframes successFeedbackFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes successFeedbackEnter {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes successFeedbackRing {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes successFeedbackCheck {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes successFeedbackProgress {
+  to { transform: scaleX(0); }
+}
+
 /* Shared wood-and-cream polish for every admin dashboard section. */
 .admin-dashboard-shell > header {
   border-bottom-color: rgb(201 167 124 / 45%);
@@ -287,9 +333,16 @@
   .kiosk-success-overlay,
   .kiosk-success-card,
   .kiosk-success-ring,
-  .kiosk-success-check {
+  .kiosk-success-check,
+  .success-feedback-overlay,
+  .success-feedback-panel,
+  .success-feedback-ring,
+  .success-feedback-check,
+  .success-feedback-progress {
     animation-duration: 1ms;
     animation-delay: 0ms;
   }
   .kiosk-success-check { stroke-dashoffset: 0; }
+  .success-feedback-check { stroke-dashoffset: 0; }
+  .success-feedback-progress { transform: scaleX(0); }
 }
