@@ -83,7 +83,7 @@ export default function Register() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[calc(100vh-80px)] bg-3k-bg">
-      <div className="bg-white flex flex-col justify-center items-center py-12 px-6 lg:order-1 order-2 border-r border-[#C9A77C]/20 shadow-xl z-10">
+      <div className="bg-white flex flex-col justify-center items-center py-12 px-6 lg:order-1 order-2 border-r border-[#C9A77C]/20">
         <div className="w-full max-w-[450px]">
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">{stage === 'verify' ? 'Verify Your Email' : 'Create Account'}</h1>
           <p className="text-sm text-gray-600 mb-8 leading-relaxed font-medium">
@@ -156,7 +156,7 @@ export default function Register() {
         </div>
       </div>
       
-      <div className="bg-gradient-to-br from-[#E6D4B8] to-[#C9A77C] flex-col justify-center items-center p-12 relative overflow-hidden hidden lg:flex lg:order-2">
+      <div className="relative z-10 bg-gradient-to-br from-[#E6D4B8] to-[#C9A77C] flex-col justify-center items-center p-12 overflow-hidden hidden lg:flex lg:order-2">
         <div className="text-center z-10">
           <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Join Our Community</h2>
           <div className="w-[300px] h-[300px] bg-[radial-gradient(ellipse_at_50%_50%,#C9A77C,#E6D4B8)] rounded-full flex justify-center items-center mx-auto shadow-xl animate-[bounce_3s_ease-in-out_infinite] border-4 border-white/20">

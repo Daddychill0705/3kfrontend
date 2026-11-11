@@ -37,7 +37,7 @@ export default function Login() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[calc(100vh-80px)] bg-3k-bg">
-      <div className="flex flex-col justify-center items-center py-10 px-4 sm:px-6 lg:order-1 order-2 lg:border-r border-[#C9A77C]/20 z-10">
+      <div className="flex flex-col justify-center items-center py-10 px-4 sm:px-6 lg:order-1 order-2 lg:border-r border-[#C9A77C]/20">
         <div className="relative isolate w-full max-w-[440px] rounded-2xl border border-[#C9A77C]/35 bg-[#FBFAF4] p-5 sm:p-7 lg:p-9 shadow-[0_18px_55px_rgba(74,52,34,0.14)] before:content-[''] before:absolute before:inset-4 before:-z-10 before:rounded-3xl before:bg-[#815633]/20 before:blur-2xl">
           <p className="text-sm text-gray-600 mb-7 leading-relaxed font-medium">
             Sign in so you can start ordering!
@@ -85,7 +85,7 @@ export default function Login() {
         </div>
       </div>
       
-      <div className="bg-gradient-to-br from-[#E6D4B8] to-[#C9A77C] flex-col justify-center items-center p-12 relative overflow-hidden hidden lg:flex lg:order-2">
+      <div className="relative z-10 bg-gradient-to-br from-[#E6D4B8] to-[#C9A77C] flex-col justify-center items-center p-12 overflow-hidden hidden lg:flex lg:order-2">
         <div className="text-center z-10">
           <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Welcome To The 3K Kitchen</h2>
           <p className="text-lg text-gray-800 font-medium leading-relaxed mb-8">
