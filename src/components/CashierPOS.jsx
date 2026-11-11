@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useToast } from '../context/ToastContext';
 
 const money = amount => `₱${Number(amount || 0).toFixed(2)}`;
 
 export default function CashierPOS({ branch, cashierUser, onBack }) {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const { showToast } = useToast();
   const [menuItems, setMenuItems] = useState([]);
   const [menuLoading, setMenuLoading] = useState(true);
   const [menuError, setMenuError] = useState('');
@@ -28,12 +30,12 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
   const [gcashRef, setGcashRef] = useState('');
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
   const [receipt, setReceipt] = useState(null);
   const [isCashierAccessOpen, setIsCashierAccessOpen] = useState(false);
   const [cashierPassword, setCashierPassword] = useState('');
-  const [cashierAccessError, setCashierAccessError] = useState('');
   const [isVerifyingCashier, setIsVerifyingCashier] = useState(false);
+  const setError = message => { if (message) showToast(message, 'error'); };
+  const setCashierAccessError = message => { if (message) showToast(message, 'error'); };
 
   useEffect(() => {
     let isCurrent = true;
@@ -552,7 +554,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
                     <input required autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Enter customer name" maxLength={255} className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[#815633]" />
                   </label>
                   {!customerName.trim() && <p className="text-xs font-semibold text-red-600">A customer name is required before checkout.</p>}
-                  {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
                   <div className="grid gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2">
                     <p><span className="font-bold text-gray-500">Customer:</span> <span className="font-black text-gray-900">{customerName.trim()}</span></p>
                     <p><span className="font-bold text-gray-500">Order type:</span> <span className="font-black text-gray-900">{orderType}</span></p>
@@ -634,7 +635,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
                   </label>
                 </div>
               )}
-              {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
               <div className="flex gap-3">
                 <button type="button" onClick={returnToOrderSummary} disabled={isSubmitting} className="flex-1 rounded-xl border border-gray-200 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60">Back</button>
                 <button type="submit" disabled={isSubmitting || (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashRef)) || (paymentMethod === 'Cash' && Number(cashTendered) < subtotal)} className="flex-[2] rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Saving sale...' : 'Confirm sale'}</button>
@@ -709,7 +709,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Cashier password
               <input autoFocus type="password" required autoComplete="current-password" value={cashierPassword} onChange={event => setCashierPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-semibold outline-none focus:border-[#815633]" />
             </label>
-            {cashierAccessError && <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{cashierAccessError}</p>}
             <button type="submit" disabled={isVerifyingCashier || !cashierPassword} className="mt-4 w-full rounded-xl bg-[#815633] py-3 font-bold text-white hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-60">{isVerifyingCashier ? 'Checking...' : 'Verify and return'}</button>
           </form>
         </div>

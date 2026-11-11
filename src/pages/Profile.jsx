@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 
 export default function Profile() {
   const { user, updateUserData } = useAuth();
   const { cart } = useCart();
+  const { showToast } = useToast();
   const [orders, setOrders] = useState([]);
   
   // Edit Profile States
@@ -15,7 +17,6 @@ export default function Profile() {
     phone: user?.phone || '',
     dob: user?.dob ? user.dob.split('T')[0] : ''
   });
-  const [updateError, setUpdateError] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -44,7 +45,6 @@ export default function Profile() {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    setUpdateError('');
     setIsUpdating(true);
 
     try {
@@ -71,10 +71,10 @@ export default function Profile() {
         last_updated: new Date().toISOString()
       });
 
-      alert('Profile updated successfully!');
+      showToast('Profile updated successfully!');
       setIsEditing(false);
     } catch (error) {
-      setUpdateError(error.message);
+      showToast(error.message || 'Could not update your profile.', 'error');
     } finally {
       setIsUpdating(false);
     }
@@ -146,7 +146,6 @@ export default function Profile() {
               </div>
             ) : (
               <form onSubmit={handleUpdateProfile} className="space-y-4">
-                {updateError && <p className="text-xs font-bold text-red-500 mb-2">{updateError}</p>}
                 
                 <div>
                   <label className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1 block">Email</label>

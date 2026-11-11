@@ -1,20 +1,20 @@
-﻿import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 
 export default function ResetPassword() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const { token } = useParams();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async event => {
     event.preventDefault();
-    setError('');
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      showToast('Passwords do not match.', 'error');
       return;
     }
     setIsSubmitting(true);
@@ -26,9 +26,9 @@ export default function ResetPassword() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Could not reset the password.');
-      setSuccess(result.message || 'Password reset successfully. You can now sign in.');
+      navigate('/login', { replace: true, state: { message: result.message || 'Password reset successfully. You can now sign in.' } });
     } catch (requestError) {
-      setError(requestError.message || 'Could not reset the password. Please try again.');
+      showToast(requestError.message || 'Could not reset the password. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -39,9 +39,7 @@ export default function ResetPassword() {
       <div className="w-full max-w-md rounded-2xl border border-[#C9A77C]/35 bg-[#FBFAF4] p-6 shadow-[0_18px_55px_rgba(74,52,34,0.14)] sm:p-8">
         <h1 className="text-2xl font-black text-gray-900">Set a new password</h1>
         <p className="mt-2 text-sm text-gray-600">Choose a password with 8 to 128 characters.</p>
-        {success && <div role="status" className="mt-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">{success}<Link to="/login" className="ml-2 font-black underline">Sign in</Link></div>}
-        {error && <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-        {!success && <form onSubmit={submit} className="mt-6 space-y-4">
+        <form onSubmit={submit} className="mt-6 space-y-4">
           <label className="block text-sm font-bold text-gray-800">New password
             <input type="password" required minLength={8} maxLength={128} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-medium focus:border-[#815633] focus:outline-none" />
           </label>
@@ -49,7 +47,7 @@ export default function ResetPassword() {
             <input type="password" required minLength={8} maxLength={128} autoComplete="new-password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 font-medium focus:border-[#815633] focus:outline-none" />
           </label>
           <button type="submit" disabled={isSubmitting} className="w-full rounded-lg bg-[#815633] py-3 font-bold text-white shadow-sm hover:bg-[#62432B] disabled:opacity-60">{isSubmitting ? 'Saving...' : 'Reset password'}</button>
-        </form>}
+        </form>
         <p className="mt-5 text-center text-sm text-gray-600"><Link to="/login" className="font-bold text-[#815633] hover:underline">Back to Sign In</Link></p>
       </div>
     </div>

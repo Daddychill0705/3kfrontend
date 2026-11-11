@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ToastProvider } from './context/ToastContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import AuthWrapper from './components/AuthWrapper';
@@ -53,6 +54,7 @@ function App() {
     <AuthProvider>
       <CartProvider>
         <Router>
+          <ToastProvider>
           <Routes>
             <Route path="/" element={<Welcome />} />
 
@@ -123,6 +125,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </ToastProvider>
         </Router>
       </CartProvider>
     </AuthProvider>

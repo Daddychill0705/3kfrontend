@@ -4,11 +4,13 @@ import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry';
 import SuccessModal from '../components/SuccessModal';
+import { useToast } from '../context/ToastContext';
 
 const CashierPOS = lazy(() => import('../components/CashierPOS'));
 
 export default function Cashier() {
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -177,7 +179,7 @@ export default function Cashier() {
         next.delete(orderId);
         return next;
       });
-      alert('Could not complete this order. Please try again.');
+      showToast('Could not complete this order. Please try again.', 'error');
       return;
     }
 
@@ -215,7 +217,7 @@ export default function Cashier() {
       const tendered = parseFloat(cashTendered);
       
       if (tendered < total) {
-          alert('Cash tendered must be equal to or greater than the total amount.');
+          showToast('Cash tendered must be equal to or greater than the total amount.', 'error');
           return;
       }
       
@@ -268,7 +270,7 @@ export default function Cashier() {
         setSuccessMessage('Payment confirmed successfully.');
       } catch (error) {
         console.error('Error confirming payment', error);
-        alert(error.message || 'Payment could not be saved. Please try again.');
+        showToast(error.message || 'Payment could not be saved. Please try again.', 'error');
       } finally {
         setIsSubmittingPayment(false);
       }

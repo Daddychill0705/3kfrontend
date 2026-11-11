@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 
 export default function Checkout() {
   const { cart, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [branches, setBranches] = useState([]);
   const [formData, setFormData] = useState({
     branchId: '',
@@ -53,21 +55,21 @@ export default function Checkout() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!cart.length) return alert('Your cart is empty. Add items before placing an order.');
+    if (!cart.length) return showToast('Your cart is empty. Add items before placing an order.', 'error');
     if (formData.paymentMethod === 'GCash' && !receipt) {
-      return alert('Please upload your GCash receipt.');
+      return showToast('Please upload your GCash receipt.', 'error');
     }
     
     const selectedBranch = branches.find(b => b.id === Number(formData.branchId));
     if (!selectedBranch) {
-      return alert('Available branches have not loaded yet. Please refresh the page and try again.');
+      return showToast('Available branches have not loaded yet. Please refresh the page and try again.', 'error');
     }
 
     setLoading(true);
     const token = localStorage.getItem('token');
     if (!token) {
       setLoading(false);
-      return alert('Your session has expired. Please log in again before placing your order.');
+      return showToast('Your session has expired. Please log in again before placing your order.', 'error');
     }
     let uploadedReceiptUrl = null;
 
@@ -88,7 +90,7 @@ export default function Checkout() {
         uploadedReceiptUrl = cloudData.secure_url;
       } catch (err) {
         setLoading(false);
-        return alert('Failed to upload receipt image. Please try again.');
+        return showToast('Failed to upload receipt image. Please try again.', 'error');
       }
     }
 
@@ -122,9 +124,10 @@ export default function Checkout() {
       }
       
       clearCart();
+      showToast('Your order was placed successfully.');
       navigate('/order');
     } catch (error) {
-      alert(error.message);
+      showToast(error.message || 'Could not place your order.', 'error');
     } finally {
       setLoading(false);
     }

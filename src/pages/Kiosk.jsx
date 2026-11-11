@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import logoImg from '../assets/logo.jpg';
+import { useToast } from '../context/ToastContext';
 
 export default function Kiosk() {
+  const { showToast } = useToast();
   // Flow States
   const [kioskBranch, setKioskBranch] = useState(localStorage.getItem('kiosk_active_branch') || '');
   const [orderType, setOrderType] = useState(''); // 'Dine-in' or 'Take-out'
@@ -29,7 +31,7 @@ export default function Kiosk() {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [cashTendered, setCashTendered] = useState('');
   const [gcashReference, setGcashReference] = useState('');
-  const [paymentError, setPaymentError] = useState('');
+  const setPaymentError = message => { if (message) showToast(message, 'error'); };
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -292,7 +294,7 @@ export default function Kiosk() {
         
         <div className="flex flex-col sm:flex-row gap-6">
           <button onClick={() => {
-             if (!kioskBranch) return alert("Please select a branch at the top right first.");
+             if (!kioskBranch) return showToast('Please select a branch at the top right first.', 'error');
              setOrderType('Dine-in');
           }} className="bg-white p-10 rounded-3xl shadow-lg border border-[#C9A77C]/30 hover:border-[#815633] hover:shadow-xl hover:-translate-y-2 transition-all flex flex-col items-center gap-4 w-56">
             <div className="w-20 h-20 bg-[#E6D4B8]/40 rounded-full flex items-center justify-center text-4xl border-2 border-[#815633]">🏪</div>
@@ -303,7 +305,7 @@ export default function Kiosk() {
           </button>
           
           <button onClick={() => {
-             if (!kioskBranch) return alert("Please select a branch at the top right first.");
+             if (!kioskBranch) return showToast('Please select a branch at the top right first.', 'error');
              setOrderType('Take-out');
           }} className="bg-white p-10 rounded-3xl shadow-lg border border-[#C9A77C]/30 hover:border-[#815633] hover:shadow-xl hover:-translate-y-2 transition-all flex flex-col items-center gap-4 w-56">
             <div className="w-20 h-20 bg-[#E6D4B8]/40 rounded-full flex items-center justify-center text-4xl border-2 border-[#815633]">🛍️</div>
@@ -665,7 +667,6 @@ export default function Kiosk() {
                   </label>
                 </div>
               )}
-              {paymentError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{paymentError}</p>}
               <div className="flex gap-3">
                 <button type="button" onClick={backToCart} disabled={checkoutLoading} className="flex-1 rounded-xl border border-[#C9A77C]/50 bg-white py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-60">Back</button>
                 <button type="submit" disabled={checkoutLoading || (paymentMethod === 'Cash' && Number(cashTendered) < cartTotal) || (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashReference))} className="flex-[2] rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">{checkoutLoading ? 'Saving order...' : 'Confirm sale'}</button>

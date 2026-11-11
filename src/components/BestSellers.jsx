@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 
 export default function BestSellers() {
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
-  const [notification, setNotification] = useState('');
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const isGuest = user?.role === 'guest' || user?.email === 'guest@3kkitchen.local';
 
@@ -26,12 +27,6 @@ export default function BestSellers() {
     return () => { isCurrent = false; };
   }, [API_URL, isGuest, user]);
 
-  useEffect(() => {
-    if (!notification) return undefined;
-    const timeoutId = window.setTimeout(() => setNotification(''), 2500);
-    return () => window.clearTimeout(timeoutId);
-  }, [notification]);
-
   if (!user || isGuest || items.length === 0) return null;
 
   const imageSource = item => {
@@ -48,16 +43,11 @@ export default function BestSellers() {
 
   const addBestSellerToCart = item => {
     addToCart({ ...item, qty: 1 });
-    setNotification(`${item.name} added to your cart.`);
+    showToast(`${item.name} added to your cart.`);
   };
 
   return (
     <section className="w-full px-4 md:px-8" aria-labelledby="best-sellers-title">
-      {notification && (
-        <div role="status" className="fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-gray-900 px-5 py-3 text-center text-sm font-bold text-white shadow-xl">
-          {notification}
-        </div>
-      )}
       <div className="mx-auto max-w-[1400px] rounded-3xl border border-[#C9A77C]/40 bg-white/90 p-5 shadow-sm sm:p-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
+import { useToast } from '../context/ToastContext';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -13,7 +15,6 @@ export default function Register() {
     password: '',
     confirmPassword: ''
   });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState('details');
   const [otp, setOtp] = useState('');
@@ -27,12 +28,10 @@ export default function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setError('');
-
     if (formData.password !== formData.confirmPassword) {
-      return setError('Passwords do not match');
+      return showToast('Passwords do not match.', 'error');
     }
-    if (!termsAccepted) return setError('Please agree to the Terms and Conditions and Privacy Policy.');
+    if (!termsAccepted) return showToast('Please agree to the Terms and Conditions and Privacy Policy.', 'error');
 
     setLoading(true);
 
@@ -56,9 +55,8 @@ export default function Register() {
       }
 
       setStage('verify');
-      setError('');
     } catch (err) {
-      setError(err.message);
+      showToast(err.message || 'Registration failed. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -66,7 +64,6 @@ export default function Register() {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/register/verify-otp`, {
@@ -78,7 +75,7 @@ export default function Register() {
       if (!response.ok) throw new Error(data.error || 'Could not verify the code.');
       navigate('/login', { state: { message: 'Your account is verified. You can now sign in.' } });
     } catch (err) {
-      setError(err.message);
+      showToast(err.message || 'Could not verify the code.', 'error');
     } finally {
       setLoading(false);
     }
@@ -92,8 +89,6 @@ export default function Register() {
           <p className="text-sm text-gray-600 mb-8 leading-relaxed font-medium">
             {stage === 'verify' ? `Enter the 6-digit code sent to ${formData.email}.` : 'Sign up to start ordering your favorite Filipino dishes.'}
           </p>
-          
-          {error && <p className="text-red-500 text-sm mb-4 font-bold">{error}</p>}
           
           <form onSubmit={stage === 'verify' ? handleVerifyOtp : handleRegister}>
             {stage === 'verify' ? (
@@ -153,7 +148,7 @@ export default function Register() {
             </button>
           </form>
 
-          {stage === 'verify' && <button type="button" onClick={() => { setStage('details'); setOtp(''); setError(''); }} className="mb-5 w-full text-sm font-bold text-[#815633] hover:underline">Back to account details</button>}
+          {stage === 'verify' && <button type="button" onClick={() => { setStage('details'); setOtp(''); }} className="mb-5 w-full text-sm font-bold text-[#815633] hover:underline">Back to account details</button>}
 
           <p className="text-center text-sm text-gray-600 font-medium">
             Already have an account? <Link to="/login" className="text-3k-red font-black hover:text-3k-red-hover transition-colors">Sign in</Link>

@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export default function Login() {
   const { login } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (location.state?.message) {
+      showToast(location.state.message);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate, showToast]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -23,7 +31,7 @@ export default function Login() {
       else if (loggedInUser.role === 'rider') navigate('/driver');
       else navigate('/home');
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
+      showToast(err.message || 'Invalid email or password', 'error');
     }
   };
 
@@ -35,10 +43,6 @@ export default function Login() {
             Sign in so you can start ordering!
           </p>
 
-          {location.state?.message && <p role="status" className="mb-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">{location.state.message}</p>}
-          
-          {error && <p className="text-red-500 text-sm mb-4 font-bold">{error}</p>}
-          
           <form onSubmit={handleLogin}>
             <div className="mb-6">
               <label htmlFor="email" className="block text-sm font-bold text-gray-800 mb-2">Email Address</label>

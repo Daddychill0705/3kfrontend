@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
+import { useToast } from '../context/ToastContext';
 
 const EMAIL_KEY = '3k-password-reset-email';
 const TOKEN_KEY = '3k-password-reset-token';
@@ -9,6 +10,7 @@ export default function ForgotPassword() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const location = useLocation();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const isVerifyPage = location.pathname === '/forgot-password/verify';
   const isNewPasswordPage = location.pathname === '/forgot-password/new-password';
   const [email, setEmail] = useState(() => sessionStorage.getItem(EMAIL_KEY) || '');
@@ -16,20 +18,20 @@ export default function ForgotPassword() {
   const [resetToken, setResetToken] = useState(() => sessionStorage.getItem(TOKEN_KEY) || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (location.state?.accountRecoveryMessage) {
+      showToast(location.state.accountRecoveryMessage);
+      navigate(location.pathname, { replace: true, state: null });
+    }
     if (isVerifyPage && !sessionStorage.getItem(EMAIL_KEY)) navigate('/forgot-password', { replace: true });
     if (isNewPasswordPage && !sessionStorage.getItem(TOKEN_KEY)) navigate('/forgot-password', { replace: true });
-  }, [isNewPasswordPage, isVerifyPage, navigate]);
+  }, [isNewPasswordPage, isVerifyPage, location.pathname, location.state, navigate, showToast]);
 
   const requestCode = async event => {
     event.preventDefault();
     setIsSubmitting(true);
-    setMessage('');
-    setError('');
     try {
       const response = await fetch(`${API_URL}/api/forgot-password/request-otp`, {
         method: 'POST',
@@ -40,9 +42,10 @@ export default function ForgotPassword() {
       if (!response.ok) throw new Error(result.error || 'Could not send the reset code.');
       sessionStorage.setItem(EMAIL_KEY, email.trim().toLowerCase());
       sessionStorage.removeItem(TOKEN_KEY);
+      showToast(result.message || 'If an account exists for that email, a reset code has been sent.');
       navigate('/forgot-password/verify');
     } catch (requestError) {
-      setError(requestError.message || 'Could not send the reset code. Please try again.');
+      showToast(requestError.message || 'Could not send the reset code. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -51,8 +54,6 @@ export default function ForgotPassword() {
   const verifyCode = async event => {
     event.preventDefault();
     setIsSubmitting(true);
-    setMessage('');
-    setError('');
     try {
       const response = await fetch(`${API_URL}/api/forgot-password/verify-otp`, {
         method: 'POST',
@@ -63,9 +64,10 @@ export default function ForgotPassword() {
       if (!response.ok) throw new Error(result.error || 'Could not verify the code.');
       sessionStorage.setItem(TOKEN_KEY, result.resetToken);
       setResetToken(result.resetToken);
+      showToast('Email verified. Set your new password to continue.');
       navigate('/forgot-password/new-password');
     } catch (requestError) {
-      setError(requestError.message || 'Could not verify the code. Please try again.');
+      showToast(requestError.message || 'Could not verify the code. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -73,10 +75,8 @@ export default function ForgotPassword() {
 
   const setNewPassword = async event => {
     event.preventDefault();
-    setMessage('');
-    setError('');
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      showToast('Passwords do not match.', 'error');
       return;
     }
     setIsSubmitting(true);
@@ -90,9 +90,10 @@ export default function ForgotPassword() {
       if (!response.ok) throw new Error(result.error || 'Could not reset your password.');
       sessionStorage.removeItem(EMAIL_KEY);
       sessionStorage.removeItem(TOKEN_KEY);
-      navigate('/login', { replace: true, state: { message: result.message || 'Password reset successfully. You can now sign in.' } });
+      showToast(result.message || 'Password reset successfully. You can now sign in.');
+      navigate('/login', { replace: true });
     } catch (requestError) {
-      setError(requestError.message || 'Could not reset your password. Please try again.');
+      showToast(requestError.message || 'Could not reset your password. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -114,9 +115,6 @@ export default function ForgotPassword() {
           </p>
           <h1 className="mb-2 text-3xl font-extrabold text-gray-900">{title}</h1>
           <p className="mb-8 text-sm font-medium leading-relaxed text-gray-600">{description}</p>
-          {location.state?.accountRecoveryMessage && !isVerifyPage && !isNewPasswordPage && <p role="status" className="mb-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">{location.state.accountRecoveryMessage}</p>}
-          {message && <p role="status" className="mb-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">{message}</p>}
-          {error && <p role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
 
           {!isVerifyPage && !isNewPasswordPage && <form onSubmit={requestCode}>
             <div className="mb-8">

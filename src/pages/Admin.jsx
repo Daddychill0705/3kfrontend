@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import SuccessModal from '../components/SuccessModal';
+import { useToast } from '../context/ToastContext';
 
 const ADMIN_PAGE_SIZE = 20;
 
@@ -41,7 +42,6 @@ export default function Admin() {
   const [pendingRecoveryReview, setPendingRecoveryReview] = useState(null);
   const [recoveryAdminPassword, setRecoveryAdminPassword] = useState('');
   const [recoveryReviewNote, setRecoveryReviewNote] = useState('');
-  const [recoveryReviewError, setRecoveryReviewError] = useState('');
   const [isReviewingRecovery, setIsReviewingRecovery] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState('');
   const [paymentPage, setPaymentPage] = useState(1);
@@ -80,6 +80,7 @@ export default function Admin() {
   const [viewCustomer, setViewCustomer] = useState(null);
 
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -202,7 +203,7 @@ export default function Admin() {
           const cloudData = await cloudRes.json();
           uploadedImageUrl = cloudData.secure_url;
         } else {
-          return alert('Failed to upload new image to Cloudinary.');
+          return showToast('Failed to upload new image to Cloudinary.', 'error');
         }
       }
       
@@ -220,8 +221,8 @@ export default function Admin() {
         const menuRes = await fetch(`${API_URL}/api/menu`);
         if (menuRes.ok) setMenuItems(await menuRes.json());
         setSuccessMessage('Product changes saved successfully.');
-      } else alert("Failed to update menu item.");
-    } catch (error) { alert('Error updating product'); }
+      } else showToast('Failed to update menu item.', 'error');
+    } catch (error) { showToast(error.message || 'Error updating product.', 'error'); }
   };
 
   const handleAddProduct = async (e) => {
@@ -241,7 +242,7 @@ export default function Admin() {
         if (cloudRes.ok) {
           const cloudData = await cloudRes.json();
           uploadedImageUrl = cloudData.secure_url;
-        } else return alert('Failed to upload image to Cloudinary.');
+        } else return showToast('Failed to upload image to Cloudinary.', 'error');
       }
       
       const payload = {
@@ -259,8 +260,8 @@ export default function Admin() {
         const menuRes = await fetch(`${API_URL}/api/menu`);
         if (menuRes.ok) setMenuItems(await menuRes.json());
         setSuccessMessage('New product added successfully.');
-      } else alert("Failed to save menu item.");
-    } catch (error) { alert('Error adding product'); }
+      } else showToast('Failed to save menu item.', 'error');
+    } catch (error) { showToast(error.message || 'Error adding product.', 'error'); }
   };
 
   const handleAddBranch = async (e) => {
@@ -278,7 +279,7 @@ export default function Admin() {
         setNewBranch({ name: '', code: '', address: '', phone: '' });
         setSuccessMessage('New branch added successfully.');
       }
-    } catch (error) { alert('Failed to add branch'); }
+    } catch (error) { showToast(error.message || 'Failed to add branch.', 'error'); }
   };
 
   const handleAddRider = async (e) => {
@@ -297,9 +298,9 @@ export default function Admin() {
         setSuccessMessage('Rider account created successfully.');
       } else {
         const result = await response.json().catch(() => ({}));
-        alert(result.error || 'Failed to add rider.');
+        showToast(result.error || 'Failed to add rider.', 'error');
       }
-    } catch (error) { alert('Failed to add rider'); }
+    } catch (error) { showToast(error.message || 'Failed to add rider.', 'error'); }
   };
 
   const handleEditRider = async (e) => {
@@ -317,8 +318,8 @@ export default function Admin() {
         const res = await fetch(`${API_URL}/api/admin/riders`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setRiders(await res.json());
         setSuccessMessage('Rider details saved successfully.');
-      } else alert('Failed to update rider.');
-    } catch (error) { alert('Failed to update rider'); }
+      } else showToast('Failed to update rider.', 'error');
+    } catch (error) { showToast(error.message || 'Failed to update rider.', 'error'); }
   };
 
   const handleAddStaff = async (e) => {
@@ -339,9 +340,9 @@ export default function Admin() {
         setSuccessMessage('Staff account created successfully.');
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(errorData.error || 'Failed to add account. Email may already exist.');
+        showToast(errorData.error || 'Failed to add account. Email may already exist.', 'error');
       }
-    } catch (error) { alert('Failed to add account'); }
+    } catch (error) { showToast(error.message || 'Failed to add account.', 'error'); }
   };
 
   const handleEditStaff = async (e) => {
@@ -361,16 +362,15 @@ export default function Admin() {
         setSuccessMessage('Account changes saved successfully.');
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(errorData.error || 'Failed to update account.');
+        showToast(errorData.error || 'Failed to update account.', 'error');
       }
-    } catch (error) { alert('Failed to update account'); }
+    } catch (error) { showToast(error.message || 'Failed to update account.', 'error'); }
   };
 
   const submitRecoveryDecision = async event => {
     event.preventDefault();
     if (!pendingRecoveryReview || !recoveryAdminPassword || isReviewingRecovery) return;
     setIsReviewingRecovery(true);
-    setRecoveryReviewError('');
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/admin/account-recovery/${pendingRecoveryReview.id}`, {
@@ -391,7 +391,7 @@ export default function Admin() {
       setRecoveryReviewNote('');
       setSuccessMessage(result.message || 'Recovery request reviewed and email notification sent.');
     } catch (error) {
-      setRecoveryReviewError(error.message || 'Could not review this recovery request.');
+      showToast(error.message || 'Could not review this recovery request.', 'error');
     } finally {
       setIsReviewingRecovery(false);
     }
@@ -420,7 +420,7 @@ export default function Admin() {
         setSuccessMessage('Account deleted successfully.');
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(errorData.error || 'Failed to delete account.');
+        showToast(errorData.error || 'Failed to delete account.', 'error');
         if (targetAccount?.role === 'admin') setAdminDeletePassword('');
       }
     } catch (error) { console.error('Failed to delete account', error); }
@@ -1230,8 +1230,8 @@ export default function Admin() {
                   </div>
                   {request.review_note && <p className="text-sm text-gray-600"><span className="font-bold">Admin note:</span> {request.review_note}</p>}
                   {request.status === 'Pending' && <div className="flex flex-wrap justify-end gap-2">
-                    <button type="button" onClick={() => { setPendingRecoveryReview({ ...request, decision: 'Denied' }); setRecoveryAdminPassword(''); setRecoveryReviewNote(''); setRecoveryReviewError(''); }} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50">Deny</button>
-                    <button type="button" disabled={!request.matched_account_id} onClick={() => { setPendingRecoveryReview({ ...request, decision: 'Approved' }); setRecoveryAdminPassword(''); setRecoveryReviewNote(''); setRecoveryReviewError(''); }} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40">Approve & send reset link</button>
+                    <button type="button" onClick={() => { setPendingRecoveryReview({ ...request, decision: 'Denied' }); setRecoveryAdminPassword(''); setRecoveryReviewNote(''); }} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50">Deny</button>
+                    <button type="button" disabled={!request.matched_account_id} onClick={() => { setPendingRecoveryReview({ ...request, decision: 'Approved' }); setRecoveryAdminPassword(''); setRecoveryReviewNote(''); }} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40">Approve & send reset link</button>
                   </div>}
                 </article>
               ))}
@@ -1371,7 +1371,6 @@ export default function Admin() {
             <label className="block text-sm font-bold text-gray-700">Confirm your admin password
               <input type="password" required autoComplete="current-password" value={recoveryAdminPassword} onChange={event => setRecoveryAdminPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium outline-none focus:border-[#815633]" />
             </label>
-            {recoveryReviewError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{recoveryReviewError}</p>}
             <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
               <button type="button" disabled={isReviewingRecovery} onClick={() => setPendingRecoveryReview(null)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-60">Cancel</button>
               <button type="submit" disabled={isReviewingRecovery || !recoveryAdminPassword} className={`rounded-lg px-4 py-2.5 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60 ${pendingRecoveryReview.decision === 'Approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>

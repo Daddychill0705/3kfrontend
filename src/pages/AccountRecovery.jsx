@@ -1,19 +1,19 @@
 ﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 
 const INITIAL_FORM = { accountName: '', accountEmail: '', registeredPhone: '', registeredDob: '', newEmail: '', accountDetails: '' };
 
 export default function AccountRecovery() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [form, setForm] = useState(INITIAL_FORM);
-  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async event => {
     event.preventDefault();
     setIsSubmitting(true);
-    setError('');
     try {
       const response = await fetch(`${API_URL}/api/account-recovery`, {
         method: 'POST',
@@ -27,7 +27,7 @@ export default function AccountRecovery() {
         state: { accountRecoveryMessage: result.message || 'Your request was sent for admin review.' }
       });
     } catch (requestError) {
-      setError(requestError.message || 'Could not submit the recovery request. Please try again.');
+      showToast(requestError.message || 'Could not submit the recovery request. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -43,8 +43,6 @@ export default function AccountRecovery() {
         <h1 className="text-2xl font-black text-gray-900 sm:text-3xl">Account Recovery</h1>
         <p className="mt-2 text-sm leading-relaxed text-gray-600">If you can&apos;t access your account email, send these details for admin review. An admin will compare them with the account information before deciding.</p>
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-900">Never enter your password or payment information here. If approved, the reset link will be sent to the new email address you provide.</p>
-        {error && <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-
         <form onSubmit={submit} className="mt-6 space-y-4">
           <label className="block text-sm font-bold text-gray-700">Full name on account
             <input name="accountName" required maxLength={255} value={form.accountName} onChange={updateField} autoComplete="name" className={fieldClass} />

@@ -2,18 +2,20 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export default function Cart() {
   const { cart, updateQuantity, removeFromCart, cartTotal, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const handleCheckout = async () => {
     if (!user) {
-      alert('Please log in to place an order.');
+      showToast('Please log in to place an order.', 'error');
       return navigate('/login');
     }
 
@@ -39,10 +41,10 @@ export default function Cart() {
       }
       
       clearCart();
-      alert('Order placed successfully!');
+      showToast('Order placed successfully!');
       navigate('/order');
     } catch (error) {
-      alert(error.message);
+      showToast(error.message || 'Could not place this order.', 'error');
     } finally {
       setLoading(false);
     }
