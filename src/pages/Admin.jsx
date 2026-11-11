@@ -59,6 +59,7 @@ export default function Admin() {
   // Branch States
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [newBranch, setNewBranch] = useState({ name: '', code: '', address: '', phone: '' });
+  const [editingBranch, setEditingBranch] = useState(null);
 
   // Rider States
   const [showAddRider, setShowAddRider] = useState(false);
@@ -280,6 +281,32 @@ export default function Admin() {
         setSuccessMessage('New branch added successfully.');
       }
     } catch (error) { showToast(error.message || 'Failed to add branch.', 'error'); }
+  };
+
+  const handleEditBranch = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/branches/${editingBranch.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          name: editingBranch.name,
+          code: editingBranch.code,
+          address: editingBranch.address || '',
+          phone: editingBranch.phone || ''
+        })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Failed to update branch.');
+
+      const branchesResponse = await fetch(`${API_URL}/api/branches`);
+      if (branchesResponse.ok) setBranches(await branchesResponse.json());
+      setEditingBranch(null);
+      setSuccessMessage('Branch details updated successfully.');
+    } catch (error) {
+      showToast(error.message || 'Failed to update branch.', 'error');
+    }
   };
 
   const handleAddRider = async (e) => {
@@ -1030,17 +1057,37 @@ export default function Admin() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {branches.map(branch => (
                   <div key={branch.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex justify-between items-start">
-                    <div>
+                    <div className="min-w-0 pr-3">
                       <h3 className="text-base font-black text-gray-900 mb-1">{branch.name} <span className="text-gray-400 font-medium text-xs">({branch.code})</span></h3>
                       <p className="text-xs text-gray-500 font-bold mb-1">{branch.address || 'No address yet'}</p>
+                      {branch.phone && <p className="text-xs text-gray-500 font-bold mb-1">{branch.phone}</p>}
                       <p className="text-xs text-gray-500 font-bold">8:00 AM - 8:00 PM</p>
                     </div>
                     <div className="flex flex-col gap-2 items-end">
                       <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Active</span>
+                      <button type="button" onClick={() => setEditingBranch({ ...branch, address: branch.address || '', phone: branch.phone || '' })} className="rounded-lg border border-[#C9A77C] px-3 py-1.5 text-xs font-bold text-[#815633] transition hover:bg-[#F5EFE3]">Edit</button>
                     </div>
                   </div>
                 ))}
               </div>
+              {editingBranch && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                  <form onSubmit={handleEditBranch} className="grid w-full max-w-2xl grid-cols-1 gap-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl sm:grid-cols-2">
+                    <div className="flex items-center justify-between sm:col-span-2">
+                      <h2 className="text-xl font-black text-gray-900">Edit Branch</h2>
+                      <button type="button" onClick={() => setEditingBranch(null)} aria-label="Close edit branch" className="rounded-lg px-2 py-1 text-xl font-bold text-gray-400 hover:bg-gray-100 hover:text-gray-700">×</button>
+                    </div>
+                    <div><label className="mb-2 block text-sm font-bold">Branch Name</label><input type="text" required value={editingBranch.name} onChange={event => setEditingBranch({ ...editingBranch, name: event.target.value })} className="w-full rounded-lg border px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Branch Code</label><input type="text" required value={editingBranch.code} onChange={event => setEditingBranch({ ...editingBranch, code: event.target.value })} className="w-full rounded-lg border px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div className="sm:col-span-2"><label className="mb-2 block text-sm font-bold">Address</label><textarea rows={2} value={editingBranch.address} onChange={event => setEditingBranch({ ...editingBranch, address: event.target.value })} className="w-full resize-y rounded-lg border px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Phone</label><input type="tel" value={editingBranch.phone} onChange={event => setEditingBranch({ ...editingBranch, phone: event.target.value })} className="w-full rounded-lg border px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div className="flex items-end justify-end gap-3 sm:col-span-2">
+                      <button type="button" onClick={() => setEditingBranch(null)} className="rounded-lg border px-5 py-2 font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
+                      <button type="submit" className="rounded-lg bg-[#815633] px-5 py-2 font-bold text-white shadow-sm hover:bg-[#62432B]">Save Changes</button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
           )}
 
