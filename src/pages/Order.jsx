@@ -181,7 +181,7 @@ export default function Order() {
               
               return (
               <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-[#C9A77C]/30 overflow-hidden">
-                <div className="flex flex-col p-6 md:p-8 bg-[#F5EFE3]">
+                <div className="flex flex-col p-6 md:p-8 bg-white">
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <h3 className="text-2xl font-black text-gray-900">{formatOrderNumber(order)}</h3>
@@ -219,7 +219,7 @@ export default function Order() {
                         (order.status === 'Completed' && idx <= 5);
                         
                       return (
-                        <div key={step} className="flex flex-col items-center gap-2 bg-[#F5EFE3] px-1">
+                        <div key={step} className="flex flex-col items-center gap-2 bg-white px-1">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 transition-colors ${isActive ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300 text-gray-400'}`}>
                             {isActive ? '✓' : idx + 1}
                           </div>
