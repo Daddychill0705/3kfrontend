@@ -179,11 +179,56 @@
 .admin-dashboard-shell > header {
   border-bottom-color: rgb(201 167 124 / 45%);
   background-image: linear-gradient(105deg, #fffdf8, #f7eddd 72%, #fffdf8);
+  box-shadow: 0 4px 16px rgb(83 57 34 / 6%);
 }
 
 .admin-page-title {
   position: relative;
   text-shadow: 0 1px 0 rgb(255 255 255 / 80%);
+}
+
+.admin-nav-item.is-active::before {
+  position: absolute;
+  inset-block: 25%;
+  left: 0;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: #fff4df;
+  content: "";
+}
+
+.admin-dashboard-shell aside button[aria-label="Close navigation"] {
+  color: rgb(255 255 255 / 70%);
+}
+
+.admin-dashboard-content {
+  scrollbar-color: rgb(129 86 51 / 35%) transparent;
+  scrollbar-width: thin;
+}
+
+.admin-module-intro {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  animation: adminIntroIn 360ms ease-out both;
+}
+
+.admin-module-intro::after {
+  position: absolute;
+  z-index: -1;
+  right: -34px;
+  bottom: -76px;
+  width: 180px;
+  height: 180px;
+  border: 1px solid rgb(129 86 51 / 10%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 18px rgb(129 86 51 / 3%), 0 0 0 38px rgb(129 86 51 / 2%);
+  content: "";
+}
+
+@keyframes adminIntroIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .admin-dashboard-content [class~="bg-white"][class~="rounded-2xl"][class~="border-gray-200"] {
@@ -206,6 +251,23 @@
 
 .admin-dashboard-content tbody tr:hover {
   background-color: rgb(244 231 210 / 42%);
+}
+
+.admin-dashboard-content thead th {
+  color: #755638;
+  letter-spacing: 0.08em;
+}
+
+.admin-dashboard-content button {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: 160ms;
+}
+
+.admin-dashboard-content button:focus-visible,
+.admin-dashboard-shell button:focus-visible,
+.admin-dashboard-shell a:focus-visible {
+  outline: 3px solid rgb(201 167 124 / 65%);
+  outline-offset: 2px;
 }
 
 .admin-dashboard-content input:not([type="checkbox"]),

@@ -7,6 +7,18 @@ import { useToast } from '../context/ToastContext';
 
 const ADMIN_PAGE_SIZE = 20;
 const DEFAULT_MENU_CATEGORIES = ['3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'];
+const ADMIN_MODULE_DESCRIPTIONS = {
+  Sales: 'Review revenue, order volume, and how customers are ordering.',
+  Orders: 'Keep an eye on new orders and update their progress for the team.',
+  'Order History': 'Find completed and cancelled orders from every branch.',
+  'Payment Logs': 'Review completed payments and search for customer records.',
+  'Activity Logs': 'See recent changes and actions across the admin system.',
+  Customers: 'Look up customer accounts and their order activity.',
+  Menu: 'Manage products, categories, pricing, and availability.',
+  'Accounts & Access': 'Manage administrator and POS access for your team.',
+  'Account Recovery': 'Review and respond to customer account recovery requests.',
+  'Rider Accounts': 'Manage rider access for delivery operations.'
+};
 
 function AdminPagination({ page, itemCount, onPageChange }) {
   const pageCount = Math.ceil(itemCount / ADMIN_PAGE_SIZE);
@@ -587,38 +599,43 @@ export default function Admin() {
         <div className="fixed inset-0 bg-black/40 z-40 md:hidden transition-opacity" onClick={() => setIsSidebarOpen(false)} />
       )}
       
-      <aside className={`fixed md:static inset-y-0 right-0 left-auto z-50 md:z-auto transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'} w-[min(82vw,320px)] md:w-64 bg-[#FBFAF4] flex flex-col overflow-hidden rounded-l-2xl md:rounded-none shadow-xl md:shadow-lg border-l md:border-l-0 md:border-r border-[#C9A77C]/30 shrink-0`}>
-        <div className="p-4 md:p-6 border-b border-[#C9A77C]/15">
+      <aside className={`fixed md:static inset-y-0 right-0 left-auto z-50 md:z-auto transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'} w-[min(82vw,320px)] md:w-64 bg-gradient-to-b from-[#34291f] via-[#30271f] to-[#241e19] text-white flex flex-col overflow-hidden rounded-l-2xl md:rounded-none shadow-2xl border-l md:border-l-0 md:border-r border-[#8c6a47]/45 shrink-0`}>
+        <div className="relative overflow-hidden border-b border-white/10 p-4 md:p-6">
+          <div className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-[#c9a77c]/10" aria-hidden="true" />
           <button aria-label="Close navigation" className="md:hidden absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-[#F1E7D7] hover:text-[#4a3b32]" onClick={() => setIsSidebarOpen(false)}>✕</button>
-          <h2 className="text-base md:text-xl font-black text-gray-900">Super admin</h2>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen System</span>
+          <div className="relative flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#d9b98d]/35 bg-gradient-to-br from-[#bd9362] to-[#815633] text-sm font-black text-white shadow-lg">3K</div>
+            <div><h2 className="text-base font-black tracking-wide text-white md:text-lg">3K Kitchen</h2><span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d8bd9c]">Admin workspace</span></div>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto py-4 hide-scrollbar">
-          <ul className="space-y-0 md:space-y-1">
+          <p className="px-5 pb-2 text-[9px] font-black uppercase tracking-[0.2em] text-[#c3a784]/65">Manage your kitchen</p>
+          <ul className="space-y-1 px-2">
             {modules.map((module) => (
               <li key={module.id}>
                 <button
                   onClick={() => { setActiveModule(module.id); setIsSidebarOpen(false); }}
-                  className={`w-full text-left px-4 py-2 text-xs md:px-6 md:py-3 md:text-sm font-bold transition-all duration-300 ${activeModule === module.id ? 'bg-[#4a3b32] text-white rounded-l-full ml-2 px-2 md:rounded-l-none md:ml-0 md:px-6 md:rounded-r-full md:mr-4' : 'text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50'}`}
+                  className={`admin-nav-item relative w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-all duration-200 md:px-4 md:py-3 md:text-[13px] ${activeModule === module.id ? 'is-active bg-gradient-to-r from-[#bd9362] to-[#946c45] text-white shadow-lg shadow-black/15' : 'text-[#e7dccd]/80 hover:bg-white/[0.07] hover:text-white'}`}
                 >
                   {module.name}
                 </button>
               </li>
             ))}
             
-            <li className="mt-4 border-t border-gray-100 pt-4">
-              <Link to="/cashier" className="w-full block text-left px-4 py-2 text-xs md:px-6 md:py-3 md:text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
+            <li className="mt-5 border-t border-white/10 pt-4">
+              <p className="px-3 pb-2 text-[9px] font-black uppercase tracking-[0.2em] text-[#c3a784]/65">Quick access</p>
+              <Link to="/cashier" className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[#e7dccd]/80 transition hover:bg-white/[0.07] hover:text-white md:px-4 md:py-3 md:text-[13px]">
                   ↪ Open Cashier System
               </Link>
             </li>
             <li>
-              <Link to="/driver" className="w-full block text-left px-4 py-2 text-xs md:px-6 md:py-3 md:text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
+              <Link to="/driver" className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[#e7dccd]/80 transition hover:bg-white/[0.07] hover:text-white md:px-4 md:py-3 md:text-[13px]">
                   ↪ Open Driver System
               </Link>
             </li>
             <li>
-              <Link to="/kiosk" className="w-full block text-left px-4 py-2 text-xs md:px-6 md:py-3 md:text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
+              <Link to="/kiosk" className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[#e7dccd]/80 transition hover:bg-white/[0.07] hover:text-white md:px-4 md:py-3 md:text-[13px]">
                   ↪ Open Kiosk
               </Link>
             </li>
@@ -630,7 +647,7 @@ export default function Admin() {
         <header className="flex justify-between items-center p-4 md:px-6 lg:px-8 border-b border-gray-200 bg-white shadow-sm shrink-0">
           <div className="flex items-center gap-3">
             <button className="md:hidden p-2 -ml-2 text-gray-600" onClick={() => setIsSidebarOpen(true)}>☰</button>
-            <h1 className="admin-page-title truncate text-2xl font-black text-gray-900">{activeModule}</h1>
+            <div className="leading-tight"><p className="hidden text-[9px] font-black uppercase tracking-[0.2em] text-[#9a7755] sm:block">3K Kitchen / Management</p><h1 className="admin-page-title truncate text-lg font-black text-[#33251b] md:text-xl">Admin Workspace</h1></div>
           </div>
           <div className="flex items-center gap-4">
             <select 
@@ -640,17 +657,26 @@ export default function Admin() {
                 setPaymentPage(1);
                 setHistoryPage(1);
               }}
-              className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none hidden sm:block cursor-pointer"
+              className="hidden cursor-pointer rounded-xl border border-[#d8bd9c] bg-[#fffdf8] px-3 py-2 text-xs font-bold text-[#5d4733] outline-none transition focus:border-[#815633] sm:block"
             >
               <option>All branches</option>
               {branches.map(b => <option key={b.id}>{b.name}</option>)}
             </select>
-            <span className="text-sm font-bold text-gray-600 hidden md:block">{user.email}</span>
-            <button onClick={() => { logout(); navigate('/login'); }} className="text-sm font-bold text-red-500 hover:underline cursor-pointer">Sign out</button>
+            <span className="hidden items-center gap-2 rounded-full border border-[#e8d9c4] bg-white/80 px-3 py-2 text-xs font-bold text-[#665442] md:inline-flex"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#815633] text-[10px] font-black text-white">{user.email?.[0]?.toUpperCase() || 'A'}</span>{user.email}</span>
+            <button onClick={() => { logout(); navigate('/login'); }} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100 cursor-pointer">Sign out</button>
           </div>
         </header>
 
         <div className="admin-dashboard-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          {activeModule !== 'Branches' && (
+            <section className="admin-module-intro mx-auto mb-6 flex max-w-[1500px] flex-col justify-between gap-4 rounded-2xl border border-[#d8bd9c]/55 bg-gradient-to-r from-[#fffdf8] via-[#fbf4e9] to-[#f2e3ce] p-5 shadow-[0_8px_22px_rgba(83,57,34,0.08)] sm:flex-row sm:items-center sm:p-6">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#946c45] to-[#62432b] text-white shadow-lg shadow-[#815633]/20"><svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v5H4zM14 15h6v5h-6z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg></div>
+                <div className="min-w-0"><p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#a06d3f]">3K Kitchen · Admin</p><h2 className="mt-0.5 text-xl font-black text-[#33251b] sm:text-2xl">{activeModule}</h2><p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#705b46] sm:text-sm">{ADMIN_MODULE_DESCRIPTIONS[activeModule] || 'Manage your 3K Kitchen operations from one place.'}</p></div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2 self-start rounded-xl border border-[#dfc9aa] bg-white/75 px-3 py-2 sm:self-auto"><span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]" /><span className="text-[10px] font-bold uppercase tracking-wider text-[#9a7755]">Branch</span><span className="max-w-40 truncate text-xs font-extrabold text-[#5d4733]">{selectedBranch}</span></div>
+            </section>
+          )}
           
           {/* SALES MODULE */}
           {activeModule === 'Sales' && (
