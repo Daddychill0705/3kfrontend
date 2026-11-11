@@ -16,6 +16,7 @@ export default function Driver() {
   const [unreadChatOrders, setUnreadChatOrders] = useState({});
   const [socket, setSocket] = useState(null);
   const chatOrderRef = useRef(null);
+  const orderFetchSequence = useRef(0);
   const { user, logout } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export default function Driver() {
     setSocket(newSocket);
     
     const fetchOrders = async () => {
+      const requestSequence = ++orderFetchSequence.current;
       const token = localStorage.getItem('token');
       try {
         const response = await fetch(`${API_URL}/api/admin/orders`, {
@@ -38,6 +40,7 @@ export default function Driver() {
         });
         if (response.ok) {
           const allOrders = await response.json();
+          if (requestSequence !== orderFetchSequence.current) return;
           setOrders(allOrders);
           allOrders.forEach(order => {
             if (order.order_type === 'Delivery' && (order.status === 'Out for Delivery' || (order.status === 'Completed' && isOrderChatOpen(order)))) {
@@ -85,10 +88,16 @@ export default function Driver() {
         body: JSON.stringify({ status })
       });
       if (res.ok) {
-        if (socket) socket.emit('status_change', { orderId: id, status });
-        setOrders(orders.map(o => o.id === id ? { ...o, status } : o));
+        setOrders(currentOrders => currentOrders.map(order => order.id === id ? { ...order, status } : order));
+        return true;
       }
-    } catch (error) { console.error('Error updating status', error); }
+      const result = await res.json().catch(() => ({}));
+      showToast(result.error || 'Could not update this delivery status.', 'error');
+    } catch (error) {
+      console.error('Error updating status', error);
+      showToast(error.message || 'Could not update this delivery status.', 'error');
+    }
+    return false;
   };
 
   const openChat = async (orderId) => {
@@ -200,7 +209,7 @@ export default function Driver() {
                       💬 Chat
                       {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
                     </button>
-                    <button onClick={() => updateStatus(order.id, 'Ready')} className="flex-1 bg-white border border-gray-300 text-gray-700 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">Release</button>
+                    <button onClick={async () => { if (await updateStatus(order.id, 'Ready')) setActiveTab('Available'); }} className="flex-1 bg-white border border-gray-300 text-gray-700 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">Release</button>
                     <button onClick={() => setDeliveryModalOrder(order)} className="flex-[2] bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] transition-colors">Mark delivered</button>
                   </>
                 )}
