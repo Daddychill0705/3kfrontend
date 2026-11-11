@@ -713,21 +713,23 @@ export default function Kiosk() {
               )}
               <div className="flex gap-3">
                 <button type="button" onClick={backToCart} disabled={checkoutLoading} className="flex-1 rounded-xl border border-[#C9A77C]/50 bg-white py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-60">Back</button>
-                <button type="submit" disabled={checkoutLoading || (paymentMethod === 'Cash' && Number(cashTendered) < cartTotal) || (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashReference))} className="flex-[2] rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">{checkoutLoading ? 'Saving order...' : 'Confirm sale'}</button>
+                <button type="submit" disabled={checkoutLoading || (paymentMethod === 'Cash' && Number(cashTendered) < cartTotal) || (paymentMethod === 'GCash' && !/^\d{13}$/.test(gcashReference))} className="flex-[2] rounded-xl bg-green-600 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60">
+                  {checkoutLoading ? <span className="inline-flex items-center justify-center gap-2"><svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" className="opacity-30" /><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>Sending order...</span> : 'Confirm sale'}
+                </button>
               </div>
             </form>
           </section>
         </div>
       )}
       {successOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="presentation">
-          <div className="w-full max-w-md rounded-[2rem] bg-white px-7 py-8 text-center shadow-2xl sm:px-10 sm:py-10" role="dialog" aria-modal="true" aria-labelledby="kiosk-order-success-title" aria-describedby="kiosk-order-success-message">
-            <div className="mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-full border-[5px] border-emerald-600 text-emerald-600 sm:h-36 sm:w-36" aria-hidden="true">
+        <div className="kiosk-success-overlay fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="presentation">
+          <div className="kiosk-success-card w-full max-w-md rounded-[2rem] bg-white px-7 py-8 text-center shadow-2xl sm:px-10 sm:py-10" role="dialog" aria-modal="true" aria-labelledby="kiosk-order-success-title" aria-describedby="kiosk-order-success-message">
+            <div className="kiosk-success-ring mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-full border-[5px] border-emerald-600 text-emerald-600 sm:h-36 sm:w-36" aria-hidden="true">
               <svg viewBox="0 0 64 64" className="h-16 w-16 sm:h-24 sm:w-24" fill="none">
-                <path d="M13 33.5 26 46l26-28" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+                <path className="kiosk-success-check" d="M13 33.5 26 46l26-28" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <h2 id="kiosk-order-success-title" className="mb-4 text-3xl font-medium text-emerald-700">Oh Yeah!</h2>
+            <h2 id="kiosk-order-success-title" className="mb-4 text-3xl font-medium text-emerald-700">Done</h2>
             <p id="kiosk-order-success-message" className="mb-2 text-lg leading-8 text-gray-700">
               {successOrder.customerName}, your order{successOrder.id ? ` #${successOrder.id}` : ''} was sent to the cashier.
             </p>
