@@ -128,6 +128,26 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
   }), [posMenuItems, activeCategory, searchQuery]);
   const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.qty, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.qty, 0), [cart]);
+  const cartByCategory = useMemo(() => {
+    const categoryRank = new Map(categories.slice(1).map((category, index) => [category.toLowerCase(), index]));
+    const sortedItems = cart
+      .map(item => ({ ...item, category: item.category || 'Menu' }))
+      .sort((left, right) => {
+        const leftRank = categoryRank.get(left.category.toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+        const rightRank = categoryRank.get(right.category.toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+        return leftRank - rightRank || left.category.localeCompare(right.category) || left.name.localeCompare(right.name);
+      });
+    const groups = new Map();
+    sortedItems.forEach(item => {
+      if (!groups.has(item.category)) groups.set(item.category, []);
+      groups.get(item.category).push(item);
+    });
+    let lineNumber = 0;
+    return [...groups.entries()].map(([category, items]) => ({
+      category,
+      items: items.map(item => ({ ...item, lineNumber: ++lineNumber }))
+    }));
+  }, [cart, categories]);
   const vatableSales = subtotal / 1.12;
   const vatAmount = subtotal - vatableSales;
   const changeDue = Math.max(0, Number(cashTendered || 0) - subtotal);
@@ -391,22 +411,28 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
                 <p className="text-xs font-black text-[#60452f]">No items on ticket</p>
                 <p className="mt-1 text-[11px] text-gray-500">Select a menu item to start this sale.</p>
               </div>
-            ) : cart.map((item, index) => (
-              <div key={item.id} className="border-b border-dashed border-[#d8c2a4] py-3 first:pt-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-bold leading-snug text-gray-900">{index + 1}. {item.name}</p>
-                    <span className="mt-1 inline-flex rounded border border-[#e4d5bf] bg-[#f2e8d8] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-[#815633]">{item.category || 'Menu'}</span>
-                    <p className="mt-1 text-[10px] text-gray-500">{formatMoney(item.price)} each</p>
-                  </div>
-                  <span className="shrink-0 text-[11px] font-black text-[#60452f]">{formatMoney(item.price * item.qty)}</span>
+            ) : cartByCategory.map(group => (
+              <section key={group.category} className="mb-3 overflow-hidden rounded-md border border-[#d8c2a4] bg-white last:mb-0">
+                <h3 className="border-b border-[#d8c2a4] bg-[#f2e8d8] px-2 py-1.5 text-[9px] font-black uppercase tracking-wider text-[#815633]">{group.category}</h3>
+                <div className="divide-y divide-dashed divide-[#d8c2a4] px-2">
+                  {group.items.map(item => (
+                    <div key={item.id} className="py-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-bold leading-snug text-gray-900">{item.lineNumber}. {item.name}</p>
+                          <p className="mt-1 text-[10px] text-gray-500">{formatMoney(item.price)} each</p>
+                        </div>
+                        <span className="shrink-0 text-[11px] font-black text-[#60452f]">{formatMoney(item.price * item.qty)}</span>
+                      </div>
+                      <div className="mt-2 flex items-center gap-1">
+                        <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => updateQuantity(item.id, -1)} className="h-6 w-7 rounded border border-[#d8c2a4] bg-white text-sm font-bold text-[#60452f] hover:bg-[#f2e8d8]">-</button>
+                        <span className="w-7 text-center text-xs font-black">{item.qty}</span>
+                        <button type="button" aria-label={`Add one ${item.name}`} onClick={() => updateQuantity(item.id, 1)} className="h-6 w-7 rounded border border-[#d8c2a4] bg-white text-sm font-bold text-[#60452f] hover:bg-[#f2e8d8]">+</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="mt-2 flex items-center gap-1">
-                  <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => updateQuantity(item.id, -1)} className="h-6 w-7 rounded border border-[#d8c2a4] bg-white text-sm font-bold text-[#60452f] hover:bg-[#f2e8d8]">-</button>
-                  <span className="w-7 text-center text-xs font-black">{item.qty}</span>
-                  <button type="button" aria-label={`Add one ${item.name}`} onClick={() => updateQuantity(item.id, 1)} className="h-6 w-7 rounded border border-[#d8c2a4] bg-white text-sm font-bold text-[#60452f] hover:bg-[#f2e8d8]">+</button>
-                </div>
-              </div>
+              </section>
             ))}
           </div>
           <div className="space-y-2 border-t border-[#e4d5bf] bg-white p-4">
@@ -440,20 +466,28 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
                 <p className="text-sm font-bold text-gray-700">Your order tray is empty</p>
                 <p className="mt-1 text-xs text-gray-500">Tap a menu item to add it to this sale.</p>
               </div>
-            ) : cart.map(item => (
-              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-[#C9A77C]/25 bg-[#FBFAF4] p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-xs font-bold leading-snug text-gray-900">{item.name}</p>
-                  <span className="mt-1 inline-flex rounded border border-[#e4d5bf] bg-[#f2e8d8] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-[#815633]">{item.category || 'Menu'}</span>
-                  <p className="mt-1 text-xs font-bold text-[#815633]">{formatMoney(item.price)}</p>
+            ) : cartByCategory.map(group => (
+              <section key={group.category} className="overflow-hidden rounded-xl border border-[#d8c2a4] bg-[#FBFAF4]">
+                <h3 className="border-b border-[#e4d5bf] bg-[#f2e8d8] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[#815633]">{group.category}</h3>
+                <div className="divide-y divide-dashed divide-[#d8c2a4] px-3">
+                  {group.items.map(item => (
+                    <div key={item.id} className="py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold leading-snug text-gray-900">{item.lineNumber}. {item.name}</p>
+                          <p className="mt-1 text-xs font-bold text-[#815633]">{formatMoney(item.price)} each</p>
+                        </div>
+                        <span className="shrink-0 text-xs font-black text-gray-900">{formatMoney(item.price * item.qty)}</span>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => updateQuantity(item.id, -1)} className="flex h-8 w-8 items-center justify-center rounded border border-[#d8c2a4] bg-white text-lg font-bold text-gray-600 hover:bg-[#f2e8d8]">-</button>
+                        <span className="w-6 text-center text-sm font-black">{item.qty}</span>
+                        <button type="button" aria-label={`Add one ${item.name}`} onClick={() => updateQuantity(item.id, 1)} className="flex h-8 w-8 items-center justify-center rounded border border-[#d8c2a4] bg-white text-lg font-bold text-gray-600 hover:bg-[#f2e8d8]">+</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex shrink-0 items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
-                  <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => updateQuantity(item.id, -1)} className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-600 hover:bg-gray-100">−</button>
-                  <span className="w-7 text-center text-sm font-black">{item.qty}</span>
-                  <button type="button" aria-label={`Add one ${item.name}`} onClick={() => updateQuantity(item.id, 1)} className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-600 hover:bg-gray-100">+</button>
-                </div>
-                <span className="w-20 shrink-0 text-right text-xs font-black text-gray-900">{formatMoney(item.price * item.qty)}</span>
-              </div>
+              </section>
             ))}
           </div>
 
