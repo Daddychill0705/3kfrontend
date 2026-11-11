@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-export default function SuccessModal({ message, onClose, title = 'Done', duration = 3000 }) {
+export default function SuccessModal({ message, onClose, title = 'Done', duration = 1000 }) {
   const onCloseRef = useRef(onClose);
 
   useEffect(() => {
