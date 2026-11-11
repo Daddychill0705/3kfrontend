@@ -195,7 +195,7 @@
 
 .success-feedback-progress {
   transform-origin: left;
-  animation: successFeedbackProgress 5s linear both;
+  animation: successFeedbackProgress 3s linear both;
 }
 
 @keyframes successFeedbackFade {

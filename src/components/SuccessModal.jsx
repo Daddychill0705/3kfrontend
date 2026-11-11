@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-export default function SuccessModal({ message, onClose, title = 'Done', duration = 5000 }) {
+export default function SuccessModal({ message, onClose, title = 'Done', duration = 3000 }) {
   const onCloseRef = useRef(onClose);
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function SuccessModal({ message, onClose, title = 'Done', duratio
         </div>
         <h2 id="success-modal-title" className="mb-4 text-3xl font-semibold text-emerald-700">{title}</h2>
         <p id="success-modal-message" className="mx-auto max-w-sm text-lg leading-8 text-gray-700">{message}</p>
-        <div className="mx-auto mt-7 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-emerald-100" aria-hidden="true"><div className="success-feedback-progress h-full rounded-full bg-emerald-600" /></div>
+        <div className="mx-auto mt-7 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-emerald-100" aria-hidden="true"><div className="success-feedback-progress h-full rounded-full bg-emerald-600" style={{ animationDuration: `${duration}ms` }} /></div>
       </section>
     </div>
   );
