@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry';
+import { formatOrderNumber } from '../utils/orderNumber';
 
 export default function Order() {
   const tabs = ['Pending', 'Preparing', 'Out for Delivery', 'Completed'];
@@ -183,7 +184,7 @@ export default function Order() {
                 <div className="flex flex-col p-6 md:p-8 bg-[#F5EFE3]">
                   <div className="flex justify-between items-start mb-6">
                     <div>
-                      <h3 className="text-2xl font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</h3>
+                      <h3 className="text-2xl font-black text-gray-900">{formatOrderNumber(order)}</h3>
                       <p className="text-xs text-gray-500 font-bold mt-1 uppercase tracking-wider">{order.date} • {order.branch}</p>
                     </div>
                     <div className="text-right flex gap-2">
@@ -276,7 +277,7 @@ export default function Order() {
                     <div className="px-5 py-4 bg-white border-b border-gray-100 flex items-center justify-between">
                       <div>
                         <h3 className="text-base font-black text-gray-900">Chat with your rider</h3>
-                        <p className="text-xs font-bold text-gray-500">Order O-{String(order.id).padStart(4, '0')}</p>
+                        <p className="text-xs font-bold text-gray-500">Order {formatOrderNumber(order)}</p>
                       </div>
                       <button type="button" onClick={closeRiderChat} aria-label="Close chat" className="text-gray-400 hover:text-gray-900 text-2xl leading-none">×</button>
                     </div>

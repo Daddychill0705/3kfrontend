@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import SuccessModal from '../components/SuccessModal';
 import { useToast } from '../context/ToastContext';
+import { formatOrderNumber } from '../utils/orderNumber';
 
 const ADMIN_PAGE_SIZE = 20;
 const ADMIN_MODULE_DESCRIPTIONS = {
@@ -961,7 +962,7 @@ export default function Admin() {
                     {activeOrdersList.map((order, i) => (
                       <tr key={i} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
-                          <p className="font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</p>
+                          <p className="font-black text-gray-900">{formatOrderNumber(order)}</p>
                           <p className="text-[10px] text-gray-500 font-bold">{order.branch}</p>
                         </td>
                         <td className="px-6 py-4">
@@ -1014,7 +1015,7 @@ export default function Admin() {
                     {visibleHistoryOrders.map((order, i) => (
                       <tr key={i} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
-                          <p className="font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</p>
+                          <p className="font-black text-gray-900">{formatOrderNumber(order)}</p>
                           <p className="text-[10px] text-gray-500 font-bold">{order.branch}</p>
                         </td>
                         <td className="px-6 py-4">
@@ -1077,7 +1078,7 @@ export default function Admin() {
                       <tbody className="divide-y divide-gray-100">
                           {visiblePaymentOrders.map(order => (
                               <tr key={order.id} className="hover:bg-gray-50">
-                                  <td className="px-6 py-4 font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</td>
+                                  <td className="px-6 py-4 font-black text-gray-900">{formatOrderNumber(order)}</td>
                                   <td className="px-6 py-4 font-bold text-gray-900">
                                     <span className="block">{order.customerName || 'Unknown customer'}</span>
                                     {order.email && <span className="mt-0.5 block text-xs font-medium text-gray-500">{order.email}</span>}

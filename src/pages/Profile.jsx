@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { formatOrderNumber } from '../utils/orderNumber';
 
 export default function Profile() {
   const { user, updateUserData } = useAuth();
@@ -186,7 +187,7 @@ export default function Profile() {
                   orders.map(order => (
                     <div key={order.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-4 border border-[#C9A77C]/40 rounded-xl bg-[#E6D4B8]/10 gap-4">
                       <div>
-                        <p className="font-bold text-gray-900">Order #{order.id}</p>
+                        <p className="font-bold text-gray-900">Order #{formatOrderNumber(order)}</p>
                         <p className="text-sm text-gray-600 font-medium">{order.date}</p>
                       </div>
                       <div className="flex items-center gap-4">

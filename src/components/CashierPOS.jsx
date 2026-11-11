@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../context/ToastContext';
+import { formatOrderNumber } from '../utils/orderNumber';
 
 const money = amount => `₱${Number(amount || 0).toFixed(2)}`;
 
@@ -292,6 +293,7 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
 
       setReceipt({
         id: result.orderId,
+        orderNumber: result.orderNumber,
         branch,
         customerName: customerName.trim(),
         orderType,
@@ -647,13 +649,13 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
           <div className="flex max-h-[92vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 p-4">
-              <div className="min-w-0"><h2 className="truncate font-black uppercase text-gray-900">{receipt.customerName}</h2><p className="text-xs font-bold text-gray-500">Order #O-{String(receipt.id).padStart(4, '0')}</p></div>
+              <div className="min-w-0"><h2 className="truncate font-black uppercase text-gray-900">{receipt.customerName}</h2><p className="text-xs font-bold text-gray-500">Order #{formatOrderNumber(receipt.orderNumber || receipt.id)}</p></div>
               <button type="button" aria-label="Close receipt and start a new order" onClick={startNewOrder} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
             </div>
             <div className="overflow-y-auto p-5 font-mono text-xs text-gray-900">
               <div className="center text-center"><p className="text-base font-black">3K KITCHEN</p><p>{receipt.branch}</p><p>SALES RECEIPT</p></div>
               <div className="rule my-3 border-t border-dashed border-gray-600" />
-              <p className="bold">Customer: {receipt.customerName}</p><p>Order #: O-{String(receipt.id).padStart(4, '0')}</p><p>Date: {receipt.createdAt}</p><p>Type: {receipt.orderType}</p>
+              <p className="bold">Customer: {receipt.customerName}</p><p>Order #: {formatOrderNumber(receipt.orderNumber || receipt.id)}</p><p>Date: {receipt.createdAt}</p><p>Type: {receipt.orderType}</p>
               <div className="rule my-3 border-t border-dashed border-gray-600" />
               {receipt.items.map(item => <div key={item.id} className="row my-1 flex justify-between gap-2"><span>{item.qty}x {item.type ? `${item.type}: ` : ''}{item.name}</span><span>{formatMoney(item.price * item.qty)}</span></div>)}
               <div className="rule my-3 border-t border-dashed border-gray-600" />

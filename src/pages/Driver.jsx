@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { io } from 'socket.io-client';
 import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry';
+import { formatOrderNumber } from '../utils/orderNumber';
 
 export default function Driver() {
   const [orders, setOrders] = useState([]);
@@ -169,7 +170,7 @@ export default function Driver() {
             <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-2xl font-black text-gray-900 mb-1">O-{String(order.id).padStart(4, '0')}</h3>
+                  <h3 className="text-2xl font-black text-gray-900 mb-1">{formatOrderNumber(order)}</h3>
                   <p className="text-sm font-bold text-gray-600">{order.customerName}</p>
                   <p className="text-xs font-bold text-gray-400 mt-1">{order.date.split(',')[0]}</p>
                 </div>
@@ -229,7 +230,7 @@ export default function Driver() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
             <button onClick={() => setDeliveryModalOrder(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
-            <h3 className="text-xl font-black text-gray-900 mb-2">Deliver O-{String(deliveryModalOrder.id).padStart(4, '0')}</h3>
+            <h3 className="text-xl font-black text-gray-900 mb-2">Deliver {formatOrderNumber(deliveryModalOrder)}</h3>
             <p className="text-gray-600 font-medium mb-6 text-sm">
               {['GCash', 'Cash'].includes(deliveryModalOrder.payment_method)
                  ? 'This order is already paid. Confirm that it was handed over.' 
@@ -252,7 +253,7 @@ export default function Driver() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[500px] overflow-hidden relative">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="font-black text-gray-900 text-lg">Chat - O-{String(chatOrder).padStart(4, '0')}</h3>
+              <h3 className="font-black text-gray-900 text-lg">Chat - {formatOrderNumber(orders.find(order => String(order.id) === String(chatOrder)) || chatOrder)}</h3>
               <button onClick={() => { setChatOrder(null); chatOrderRef.current = null; }} className="text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
             </div>
             

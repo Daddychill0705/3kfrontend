@@ -755,7 +755,9 @@ export default function Kiosk() {
             </div>
             <h2 id="kiosk-order-success-title" className="mb-4 text-3xl font-medium text-emerald-700">Done</h2>
             <p id="kiosk-order-success-message" className="mb-2 text-lg leading-8 text-gray-700">
-              {successOrder.customerName}, order {successOrder.orderNumber} was sent to the cashier.
+              {successOrder.customerName === successOrder.orderNumber
+                ? `Your order ${successOrder.orderNumber} was sent to the cashier.`
+                : `${successOrder.customerName}, order ${successOrder.orderNumber} was sent to the cashier.`}
             </p>
             <p className="mb-6 text-sm text-gray-500">The kitchen will start preparing it shortly.</p>
             <div className="mx-auto h-2 w-full max-w-xs overflow-hidden rounded-full bg-emerald-100" aria-hidden="true">

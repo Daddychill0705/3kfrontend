@@ -6,6 +6,7 @@ import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry'
 import SuccessModal from '../components/SuccessModal';
 import { useToast } from '../context/ToastContext';
 import { useBranch } from '../context/BranchContext';
+import { formatOrderNumber } from '../utils/orderNumber';
 
 const CashierPOS = lazy(() => import('../components/CashierPOS'));
 
@@ -401,7 +402,7 @@ export default function Cashier() {
                    <span className="font-black text-gray-900">₱{parseFloat(order.total_amount).toFixed(2)}</span>
                  </div>
                  
-                 <p className="text-xs text-gray-500 font-bold">Order #O-{String(order.id).padStart(4, '0')}</p>
+                 <p className="text-xs text-gray-500 font-bold">Order #{formatOrderNumber(order)}</p>
 
                  <div className="flex gap-2 mt-1">
                    {/* Order Type Badge */}
@@ -481,7 +482,7 @@ export default function Cashier() {
                <div className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
                  <div>
                    <h2 className="text-3xl md:text-4xl font-black uppercase text-gray-900 mb-1">{getCustomerName(selectedOrder)}</h2>
-                   <p className="text-sm font-bold text-gray-500">Order #O-{String(selectedOrder.id).padStart(4, '0')}</p>
+                   <p className="text-sm font-bold text-gray-500">Order #{formatOrderNumber(selectedOrder)}</p>
                    <p className="text-xs font-bold text-gray-500 mt-1">{selectedOrder.order_type}</p>
                  </div>
                  <div className="text-right flex flex-col items-end gap-2">
@@ -585,7 +586,7 @@ export default function Cashier() {
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <h3 className="text-xl font-black text-gray-900 mb-2">Complete this order?</h3>
             <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to complete order O-{String(selectedOrder.id).padStart(4, '0')}? It will move to Done.
+              Are you sure you want to complete order {formatOrderNumber(selectedOrder)}? It will move to Done.
             </p>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setIsCompleteConfirmOpen(false)} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50">
@@ -647,7 +648,7 @@ export default function Cashier() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[500px] overflow-hidden relative">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="font-black text-gray-900 text-lg">Delivery Chat - O-{String(selectedOrder.id).padStart(4, '0')}</h3>
+              <h3 className="font-black text-gray-900 text-lg">Delivery Chat - {formatOrderNumber(selectedOrder)}</h3>
               <button onClick={() => { setIsChatOpen(false); currentChatOrderIdRef.current = null; }} className="text-gray-400 hover:text-gray-900 font-bold text-xl">×</button>
             </div>
 
