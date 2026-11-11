@@ -54,7 +54,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
   const [orderType, setOrderType] = useState('');
   const [isOrderTypeSelectionOpen, setIsOrderTypeSelectionOpen] = useState(true);
   const [customerName, setCustomerName] = useState('');
-  const [orderNotes, setOrderNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -200,7 +199,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
     setError('');
     const token = localStorage.getItem('token');
     const tendered = paymentMethod === 'Cash' ? Number(cashTendered) : subtotal;
-    const notes = orderNotes.trim();
 
     try {
       const response = await fetch(`${API_URL}/api/orders`, {
@@ -217,7 +215,7 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
           address: null,
           phone: null,
           paymentMethod,
-          notes,
+          notes: null,
           receipt_url: null,
           customerName: customerName.trim() || 'Walk-in Customer',
           gcashReference: paymentMethod === 'GCash' ? gcashRef : null,
@@ -256,13 +254,12 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
         change: paymentMethod === 'Cash' ? tendered - subtotal : 0,
         gcashReference: paymentMethod === 'GCash' ? gcashRef : '',
         amountPaid: subtotal,
-        notes,
+        notes: null,
         createdAt: new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }),
         status: statusConfirmed ? 'Confirmed' : 'Pending'
       });
       setCart([]);
       setCustomerName('');
-      setOrderNotes('');
       setGcashRef('');
       setPaymentMethod('Cash');
       setIsPaymentOpen(false);
@@ -277,7 +274,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
     setReceipt(null);
     setCart([]);
     setCustomerName('');
-    setOrderNotes('');
     setOrderType('');
     setPaymentMethod('Cash');
     setCashTendered('');
@@ -394,9 +390,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
             <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Customer / calling name <span className="font-medium normal-case tracking-normal text-gray-400">(optional)</span>
               <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Optional — defaults to Walk-in Customer" maxLength={255} className="mt-1 w-full rounded-md border border-[#d8c2a4] bg-[#fbf8f1] px-3 py-2 text-xs font-semibold text-gray-800 outline-none focus:border-[#815633]" />
             </label>
-            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Order notes
-              <textarea value={orderNotes} onChange={event => setOrderNotes(event.target.value)} maxLength={500} rows={2} placeholder="Optional kitchen notes" className="mt-1 w-full resize-y rounded-md border border-[#d8c2a4] bg-[#fbf8f1] px-3 py-2 text-xs font-medium text-gray-800 outline-none focus:border-[#815633]" />
-            </label>
             <div className="flex justify-between text-[11px] font-semibold text-gray-500"><span>Vatable sales</span><span>{formatMoney(vatableSales)}</span></div>
             <div className="flex justify-between text-[11px] font-semibold text-gray-500"><span>VAT (12%)</span><span>{formatMoney(vatAmount)}</span></div>
             <div className="flex justify-between border-t border-dashed border-[#d8c2a4] pt-2 text-xs font-black text-[#33251b]"><span>Grand total</span><span className="text-base text-[#815633]">{formatMoney(subtotal)}</span></div>
@@ -441,9 +434,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
           <div className="space-y-2 border-t border-gray-200 bg-gray-50 p-4">
             <label className="block text-xs font-bold text-gray-600">Customer / calling name <span className="font-medium text-gray-400">(optional)</span>
               <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Optional — defaults to Walk-in Customer" maxLength={255} className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-[#815633]" />
-            </label>
-            <label className="block text-xs font-bold text-gray-600">Order notes
-              <textarea value={orderNotes} onChange={event => setOrderNotes(event.target.value)} maxLength={500} rows={2} placeholder="Optional kitchen notes" className="mt-1 w-full resize-y rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium outline-none focus:border-[#815633]" />
             </label>
             <div className="flex justify-between text-xs font-bold text-gray-600"><span>Vatable sales</span><span>{formatMoney(vatableSales)}</span></div>
             <div className="flex justify-between text-xs font-bold text-gray-600"><span>VAT (12%)</span><span>{formatMoney(vatAmount)}</span></div>
