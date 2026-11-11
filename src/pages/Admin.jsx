@@ -56,7 +56,7 @@ function smoothSalesPath(points) {
 export default function Admin() {
   const [activeModule, setActiveModule] = useState('Sales');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [expandedNavGroups, setExpandedNavGroups] = useState({});
+  const [expandedNavGroups, setExpandedNavGroups] = useState({ Dashboard: true });
   const [selectedBranch, setSelectedBranch] = useState('All branches');
   const [salesPeriod, setSalesPeriod] = useState('today');
   const [orders, setOrders] = useState([]);
@@ -652,7 +652,7 @@ export default function Admin() {
   ];
   const moduleById = Object.fromEntries(modules.map(module => [module.id, module]));
   const navigationGroups = [
-    { id: 'Sales', label: 'Sales', single: true, items: [moduleById.Sales] },
+    { id: 'Dashboard', label: 'Dashboard', items: [moduleById.Sales] },
     { id: 'Orders', label: 'Orders', items: [moduleById.Orders, moduleById['Order History']] },
     { id: 'AdminLogs', label: 'Admin & Logs', items: [moduleById['Payment Logs'], moduleById['Activity Logs'], moduleById.Customers] },
     { id: 'Menu', label: 'Menu', items: [moduleById.Menu, moduleById.Branches] },
