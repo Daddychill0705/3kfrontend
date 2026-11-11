@@ -27,6 +27,7 @@ export default function Kiosk() {
   const [selectedQuickRequests, setSelectedQuickRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [orderNumberNotice, setOrderNumberNotice] = useState(null);
   const [successOrder, setSuccessOrder] = useState(null);
   const [successCountdown, setSuccessCountdown] = useState(5);
   const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
@@ -43,6 +44,15 @@ export default function Kiosk() {
     document.addEventListener('fullscreenchange', syncFullscreenState);
     return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
   }, []);
+
+  useEffect(() => {
+    if (!orderNumberNotice) return undefined;
+    const timer = setTimeout(() => {
+      setSuccessOrder(orderNumberNotice);
+      setOrderNumberNotice(null);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [orderNumberNotice]);
 
   useEffect(() => {
     if (!successOrder) return undefined;
@@ -226,7 +236,7 @@ export default function Kiosk() {
   const changeToReturn = Math.max(0, Number(cashTendered || 0) - cartTotal);
 
   const openPayment = () => {
-    if (!cart.length || !customerName.trim()) return;
+    if (!cart.length) return;
     if (!cashTendered) setCashTendered(cartTotal.toFixed(2));
     setPaymentError('');
     setIsCartOpen(false);
@@ -243,10 +253,6 @@ export default function Kiosk() {
     if (checkoutLoading || cart.length === 0) return;
     if (!orderType) return setPaymentError('Please choose dine-in or take-out before ordering.');
     
-    // Require the Kiosk user to enter their name so the Cashier isn't confused
-    if (!customerName.trim()) {
-      return setPaymentError('Please enter your name for the order receipt.');
-    }
     if (paymentMethod === 'Cash' && Number(cashTendered) < cartTotal) {
       return setPaymentError('Cash tendered must cover the total amount.');
     }
@@ -297,7 +303,9 @@ export default function Kiosk() {
       setOrderNotes('');
       setIsCartOpen(false);
       setIsPaymentOpen(false);
-      setSuccessOrder({ id: responseData.orderId, customerName: customerName.trim() });
+      const orderNumber = responseData.orderNumber || `O-${String(responseData.orderId).padStart(4, '0')}`;
+      const callingName = customerName.trim() || orderNumber;
+      setOrderNumberNotice({ id: responseData.orderId, orderNumber, customerName: callingName });
     } catch (error) { setPaymentError(error.message || 'Could not submit this order. Please try again.'); }
     finally { setCheckoutLoading(false); }
   };
@@ -634,14 +642,13 @@ export default function Kiosk() {
             {/* NAME FIELD ADDED HERE FOR KIOSK ORDERS */}
             {cart.length > 0 && (
                 <div className="mb-4">
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Your Name (for order calling)</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Your Name (optional)</label>
                   <input 
                      type="text" 
-                     required 
                      autoComplete="off"
                      value={customerName} 
                      onChange={(e) => setCustomerName(e.target.value)} 
-                     placeholder="Enter your name" 
+                     placeholder="Leave blank to use your order number"
                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#815633] text-sm font-medium"
                   />
                 </div>
@@ -664,9 +671,9 @@ export default function Kiosk() {
               <button
                 type="button"
                 onClick={openPayment}
-                disabled={cart.length === 0 || checkoutLoading || !customerName.trim()}
+                disabled={cart.length === 0 || checkoutLoading}
                 className={`flex-1 rounded-2xl py-4 font-black text-base shadow-md transition-all duration-300 uppercase tracking-wide md:text-lg
-                   ${cart.length > 0 && !checkoutLoading && customerName.trim() ? 'bg-[#815633] hover:bg-[#62432B] text-white hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                   ${cart.length > 0 && !checkoutLoading ? 'bg-[#815633] hover:bg-[#62432B] text-white hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
               >
                 {checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}
               </button>
@@ -728,6 +735,16 @@ export default function Kiosk() {
           </section>
         </div>
       )}
+      {orderNumberNotice && !successOrder && (
+        <div className="kiosk-success-overlay fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="presentation">
+          <div className="w-full max-w-md rounded-[2rem] bg-white px-7 py-9 text-center shadow-2xl sm:px-10">
+            <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-[#815633]">Order received</p>
+            <h2 className="mb-3 text-2xl font-black text-gray-900">Your calling number</h2>
+            <p className="mb-2 text-4xl font-black text-[#815633]">{orderNumberNotice.orderNumber}</p>
+            <p className="text-sm leading-6 text-gray-600">Please remember this number. Your order is being sent to the cashier.</p>
+          </div>
+        </div>
+      )}
       {successOrder && (
         <div className="kiosk-success-overlay fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="presentation">
           <div className="kiosk-success-card w-full max-w-md rounded-[2rem] bg-white px-7 py-8 text-center shadow-2xl sm:px-10 sm:py-10" role="dialog" aria-modal="true" aria-labelledby="kiosk-order-success-title" aria-describedby="kiosk-order-success-message">
@@ -738,7 +755,7 @@ export default function Kiosk() {
             </div>
             <h2 id="kiosk-order-success-title" className="mb-4 text-3xl font-medium text-emerald-700">Done</h2>
             <p id="kiosk-order-success-message" className="mb-2 text-lg leading-8 text-gray-700">
-              {successOrder.customerName}, your order{successOrder.id ? ` #${successOrder.id}` : ''} was sent to the cashier.
+              {successOrder.customerName}, order {successOrder.orderNumber} was sent to the cashier.
             </p>
             <p className="mb-6 text-sm text-gray-500">The kitchen will start preparing it shortly.</p>
             <div className="mx-auto h-2 w-full max-w-xs overflow-hidden rounded-full bg-emerald-100" aria-hidden="true">
