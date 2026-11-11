@@ -34,6 +34,7 @@ export default function Cashier() {
   const [activeTab, setActiveTab] = useState('Active');
   const [orderTypeFilter, setOrderTypeFilter] = useState('All'); // 'All', 'Dine-in', 'Take-out', 'Online'
   const [isPosOpen, setIsPosOpen] = useState(false);
+  const [isKitchenDisplayOpen, setIsKitchenDisplayOpen] = useState(false);
 
   const [socket, setSocket] = useState(null);
   const [chatLogs, setChatLogs] = useState([]);
@@ -340,12 +341,65 @@ export default function Cashier() {
           : order.customerName || 'Walk-in Customer';
   };
 
+  const kitchenOrders = orders.filter(order => order.status === 'Preparing');
+
   // Main cashier dashboard
   if (isPosOpen) {
     return (
       <Suspense fallback={<div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#F5EFE3] font-bold text-[#815633]">Loading POS...</div>}>
         <CashierPOS branch={activeBranch} cashierUser={user} onBack={() => setIsPosOpen(false)} />
       </Suspense>
+    );
+  }
+
+  if (isKitchenDisplayOpen) {
+    return (
+      <div className="flex h-screen flex-col bg-[#201a15] font-sans text-white">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#2b2119] px-5 py-4 shadow-lg sm:px-8">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c59b6d]">3K Kitchen · {activeBranch || 'Branch'}</p>
+            <h1 className="mt-1 text-xl font-black sm:text-2xl">Kitchen Display</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm font-black text-amber-200">{kitchenOrders.length} PREPARING</span>
+            <button type="button" onClick={() => setIsKitchenDisplayOpen(false)} className="rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10">Back to cashier</button>
+          </div>
+        </header>
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {kitchenOrders.length === 0 ? (
+            <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
+              <span className="text-5xl" aria-hidden="true">🍳</span>
+              <h2 className="mt-4 text-xl font-black">Kitchen is clear</h2>
+              <p className="mt-2 text-sm text-white/60">Orders sent from the cashier will appear here.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+              {kitchenOrders.map(order => (
+                <article key={order.id} className="flex min-h-72 flex-col overflow-hidden rounded-2xl border border-[#b98d61]/40 bg-[#fbf8f1] text-[#33251b] shadow-xl">
+                  <header className="flex items-start justify-between gap-3 border-b border-[#e4d5bf] bg-[#f2e8d8] px-5 py-4">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8b6847]">Order #{formatOrderNumber(order)}</p>
+                      <h2 className="mt-1 text-lg font-black">{getCustomerName(order) || 'Walk-in Customer'}</h2>
+                    </div>
+                    <span className="rounded-md border border-amber-300 bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase text-amber-800">{order.order_type}</span>
+                  </header>
+                  <div className="flex-1 space-y-3 p-5">
+                    {order.itemsData?.map((item, index) => (
+                      <div key={`${order.id}-${index}`} className="flex items-start justify-between gap-3 border-b border-dashed border-[#e4d5bf] pb-2 last:border-0">
+                        <span className="text-sm font-bold leading-snug"><span className="mr-2 inline-flex min-w-8 justify-center rounded bg-[#815633] px-2 py-1 text-xs font-black text-white">{item.qty}×</span>{item.name}</span>
+                      </div>
+                    ))}
+                    {order.notes && <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs"><span className="font-black">Kitchen notes:</span> {order.notes}</p>}
+                  </div>
+                  <footer className="border-t border-[#e4d5bf] p-4">
+                    <button type="button" onClick={() => updateStatus(order.id, 'Ready')} className="w-full rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-black uppercase tracking-wide text-white shadow-md transition hover:bg-emerald-700">Mark as Ready</button>
+                  </footer>
+                </article>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
     );
   }
 
@@ -451,6 +505,14 @@ export default function Cashier() {
             className="rounded-lg bg-[#815633] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-50"
           >
             + New POS Sale
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsKitchenDisplayOpen(true)}
+            className="relative rounded-lg border border-[#C9A77C]/50 bg-white px-4 py-2 text-sm font-bold text-[#815633] shadow-sm transition hover:bg-[#FBFAF4]"
+          >
+            Kitchen Display
+            {kitchenOrders.length > 0 && <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-black text-white">{kitchenOrders.length}</span>}
           </button>
           <button
             type="button"
@@ -560,9 +622,6 @@ export default function Cashier() {
                  )}
                  {selectedOrder.status === 'Confirmed' && (
                    <button onClick={() => updateStatus(selectedOrder.id, 'Preparing')} className="bg-[#815633] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-[#62432B]">Send to kitchen</button>
-                 )}
-                 {selectedOrder.status === 'Preparing' && (
-                   <button onClick={() => updateStatus(selectedOrder.id, 'Ready')} className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-green-700">Mark as Ready</button>
                  )}
                  {selectedOrder.status === 'Ready' && ['Pick-up', 'Take-out', 'Dine-in'].includes(selectedOrder.order_type) && (
                    <button onClick={() => setIsCompleteConfirmOpen(true)} className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-black">Complete Order</button>
