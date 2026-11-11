@@ -35,6 +35,7 @@ const formatBranchTime = (time, fallback) => {
   date.setHours(Number(match[1]), Number(match[2]), 0, 0);
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 };
+const isBranchActive = branch => branch?.is_active === true || Number(branch?.is_active) === 1;
 
 export default function Home() {
   const [branches, setBranches] = useState([]);
@@ -49,11 +50,11 @@ export default function Home() {
         const response = await fetch(`${API_URL}/api/branches`);
         if (response.ok) {
           const data = await response.json();
-          const currentBranches = data
+          const currentBranches = data.filter(isBranchActive)
             .sort((left, right) => branchOrder.indexOf(currentBranchKey(left.name)) - branchOrder.indexOf(currentBranchKey(right.name)));
           setBranches(currentBranches);
-          if (currentBranches.length > 0 && !currentBranches.some(branch => branch.id === selectedBranch?.id)) {
-            selectBranch(currentBranches.find(b => b.is_active) || currentBranches[0]);
+          if (!currentBranches.some(branch => branch.id === selectedBranch?.id)) {
+            selectBranch(currentBranches[0] || null);
           }
         }
       } catch (error) {
@@ -66,6 +67,7 @@ export default function Home() {
   }, [API_URL, selectBranch, selectedBranch?.id]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Loading branches...</div>;
+  if (branches.length === 0) return <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-[#F5EFE3] px-6 text-center"><div className="max-w-md rounded-2xl border border-[#C9A77C]/35 bg-white p-8 shadow-sm"><h1 className="text-2xl font-black text-[#33251b]">No active branches right now</h1><p className="mt-2 text-sm text-[#705b46]">Please check back later to place an order.</p></div></div>;
 
   return (
     <div className="bg-[#F5EFE3] min-h-[calc(100vh-80px)] flex flex-col items-center gap-12 py-12">

@@ -26,6 +26,7 @@ const formatBranchTime = (time, fallback) => {
   date.setHours(Number(match[1]), Number(match[2]), 0, 0);
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 };
+const isBranchActive = branch => branch?.is_active === true || Number(branch?.is_active) === 1;
 
 function AdminPagination({ page, itemCount, onPageChange }) {
   const pageCount = Math.ceil(itemCount / ADMIN_PAGE_SIZE);
@@ -103,6 +104,7 @@ export default function Admin() {
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [newBranch, setNewBranch] = useState({ name: '', code: '', address: '', phone: '' });
   const [editingBranch, setEditingBranch] = useState(null);
+  const [updatingBranchStatusId, setUpdatingBranchStatusId] = useState(null);
 
   // Rider States
   const [showAddRider, setShowAddRider] = useState(false);
@@ -423,6 +425,27 @@ export default function Admin() {
       setSuccessMessage('Branch details updated successfully.');
     } catch (error) {
       showToast(error.message || 'Failed to update branch.', 'error');
+    }
+  };
+
+  const handleBranchStatusChange = async (branch, nextActive) => {
+    if (updatingBranchStatusId === branch.id || isBranchActive(branch) === nextActive) return;
+    setUpdatingBranchStatusId(branch.id);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/branches/${branch.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ is_active: nextActive ? 1 : 0 })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Failed to update branch status.');
+      setBranches(previous => previous.map(item => item.id === branch.id ? { ...item, is_active: nextActive ? 1 : 0 } : item));
+      setSuccessMessage(`${branch.name} is now ${nextActive ? 'active' : 'inactive'}.`);
+    } catch (error) {
+      showToast(error.message || 'Failed to update branch status.', 'error');
+    } finally {
+      setUpdatingBranchStatusId(null);
     }
   };
 
@@ -1342,7 +1365,7 @@ export default function Admin() {
               )}
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 {branches.map(branch => (
-                  <article key={branch.id} className="group relative overflow-hidden rounded-2xl border border-[#C9A77C]/35 bg-gradient-to-br from-white via-[#fffdf8] to-[#f7eddd] p-5 shadow-[0_5px_16px_rgba(83,57,34,0.08)] transition duration-200 hover:-translate-y-1 hover:border-[#b98d61]/70 hover:shadow-[0_12px_28px_rgba(83,57,34,0.15)] sm:p-6">
+                  <article key={branch.id} className={`group relative overflow-hidden rounded-2xl border p-5 shadow-[0_5px_16px_rgba(83,57,34,0.08)] transition duration-200 sm:p-6 ${isBranchActive(branch) ? 'border-[#C9A77C]/35 bg-gradient-to-br from-white via-[#fffdf8] to-[#f7eddd] hover:-translate-y-1 hover:border-[#b98d61]/70 hover:shadow-[0_12px_28px_rgba(83,57,34,0.15)]' : 'border-gray-300 bg-gradient-to-br from-gray-100 to-gray-50 opacity-80'}`}>
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#815633] via-[#d2a674] to-[#e7d2b2]" aria-hidden="true" />
                     <div className="flex items-start gap-4">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#d8bd9c]/50 bg-[#f4e7d2] text-[#815633] shadow-inner">
@@ -1354,7 +1377,7 @@ export default function Admin() {
                             <h3 className="break-words text-base font-black text-[#33251b]">{branch.name}</h3>
                             <span className="mt-1 inline-flex rounded-md bg-[#eee1cf] px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-[#815633]">{branch.code}</span>
                           </div>
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Active</span>
+                          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${isBranchActive(branch) ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-300 bg-gray-100 text-gray-600'}`}><span className={`h-1.5 w-1.5 rounded-full ${isBranchActive(branch) ? 'bg-emerald-500' : 'bg-gray-400'}`} />{isBranchActive(branch) ? 'Active' : 'Inactive'}</span>
                         </div>
                         <div className="mt-4 space-y-2 border-t border-[#e9dccb] pt-3">
                           <p className="flex items-start gap-2 text-xs font-semibold leading-relaxed text-[#665442]">
@@ -1364,7 +1387,11 @@ export default function Admin() {
                           {branch.phone && <p className="flex items-center gap-2 text-xs font-semibold text-[#665442]"><span className="w-4 text-center text-[#a06d3f]" aria-hidden="true">☎</span>{branch.phone}</p>}
                           <p className="flex items-center gap-2 text-xs font-bold text-[#815633]"><svg viewBox="0 0 24 24" className="h-4 w-4 text-[#a06d3f]" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" /><path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>{formatBranchTime(branch.opening_time, '8:00 AM')} - {formatBranchTime(branch.closing_time, '8:00 PM')}</p>
                         </div>
-                        <div className="mt-4 flex justify-end">
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                          <div className="inline-flex rounded-lg border border-[#d8bd9c] bg-white p-1 shadow-sm" aria-label={`Set ${branch.name} status`}>
+                            <button type="button" onClick={() => handleBranchStatusChange(branch, true)} disabled={updatingBranchStatusId === branch.id || isBranchActive(branch)} aria-pressed={isBranchActive(branch)} className={`rounded-md px-3 py-1.5 text-[10px] font-black uppercase transition disabled:cursor-default ${isBranchActive(branch) ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-50'}`}>{updatingBranchStatusId === branch.id && !isBranchActive(branch) ? 'Saving...' : 'Active'}</button>
+                            <button type="button" onClick={() => handleBranchStatusChange(branch, false)} disabled={updatingBranchStatusId === branch.id || !isBranchActive(branch)} aria-pressed={!isBranchActive(branch)} className={`rounded-md px-3 py-1.5 text-[10px] font-black uppercase transition disabled:cursor-default ${!isBranchActive(branch) ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}>{updatingBranchStatusId === branch.id && isBranchActive(branch) ? 'Saving...' : 'Inactive'}</button>
+                          </div>
                           <button type="button" onClick={() => setEditingBranch({ ...branch, address: branch.address || '', phone: branch.phone || '', opening_time: String(branch.opening_time || '08:00').slice(0, 5), closing_time: String(branch.closing_time || '20:00').slice(0, 5) })} className="inline-flex items-center gap-2 rounded-lg border border-[#c8a77f] bg-white/80 px-3.5 py-2 text-xs font-extrabold text-[#704a2d] shadow-sm transition hover:border-[#815633] hover:bg-[#815633] hover:text-white">
                             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" aria-hidden="true"><path d="m14 5 5 5M4 20l4.5-1 11-11a2.1 2.1 0 0 0-3-3l-11 11L4 20Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>Edit branch
                           </button>
