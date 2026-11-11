@@ -56,6 +56,7 @@ function smoothSalesPath(points) {
 export default function Admin() {
   const [activeModule, setActiveModule] = useState('Sales');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [expandedNavGroups, setExpandedNavGroups] = useState({});
   const [selectedBranch, setSelectedBranch] = useState('All branches');
   const [salesPeriod, setSalesPeriod] = useState('today');
   const [orders, setOrders] = useState([]);
@@ -648,6 +649,14 @@ export default function Admin() {
     { id: 'Account Recovery', name: `Account Recovery${accountRecoveryRequests.some(request => request.status === 'Pending') ? ' •' : ''}` },
     { id: 'Riders', name: 'Rider Accounts' }
   ];
+  const moduleById = Object.fromEntries(modules.map(module => [module.id, module]));
+  const navigationGroups = [
+    { id: 'Sales', label: 'Sales', single: true, items: [moduleById.Sales] },
+    { id: 'Orders', label: 'Orders', items: [moduleById.Orders, moduleById['Order History']] },
+    { id: 'AdminLogs', label: 'Admin & Logs', items: [moduleById['Payment Logs'], moduleById['Activity Logs'], moduleById.Customers] },
+    { id: 'Menu', label: 'Menu', items: [moduleById.Menu, moduleById.Branches] },
+    { id: 'Accounts', label: 'Accounts', items: [moduleById.Accounts, moduleById['Account Recovery'], moduleById.Riders] }
+  ];
 
   return (
     <div className="flex h-screen bg-[#F5EFE3] font-sans">
@@ -668,16 +677,28 @@ export default function Admin() {
         <div className="flex-1 overflow-y-auto py-4 hide-scrollbar">
           <p className="px-5 pb-2 text-[9px] font-black uppercase tracking-[0.2em] text-[#c3a784]/65">Manage your kitchen</p>
           <ul className="space-y-1 px-2">
-            {modules.map((module) => (
-              <li key={module.id}>
-                <button
-                  onClick={() => { setActiveModule(module.id); setIsSidebarOpen(false); }}
-                  className={`admin-nav-item relative w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-all duration-200 md:px-4 md:py-3 md:text-[13px] ${activeModule === module.id ? 'is-active bg-gradient-to-r from-[#bd9362] to-[#946c45] text-white shadow-lg shadow-black/15' : 'text-[#e7dccd]/80 hover:bg-white/[0.07] hover:text-white'}`}
-                >
-                  {module.name}
-                </button>
-              </li>
-            ))}
+            {navigationGroups.map(group => {
+              const isExpanded = Boolean(expandedNavGroups[group.id]);
+              const hasActivePage = group.items.some(item => item.id === activeModule);
+              const activeCount = group.id === 'Orders' ? activeOrdersList.length : 0;
+              return (
+                <li key={group.id}>
+                  {group.single ? (
+                    <button type="button" onClick={() => { setActiveModule(group.items[0].id); setIsSidebarOpen(false); }} className={`admin-nav-item relative w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-all duration-200 md:px-4 md:py-3 md:text-[13px] ${hasActivePage ? 'is-active bg-gradient-to-r from-[#bd9362] to-[#946c45] text-white shadow-lg shadow-black/15' : 'text-[#e7dccd]/80 hover:bg-white/[0.07] hover:text-white'}`}>{group.label}</button>
+                  ) : (
+                    <>
+                      <button type="button" aria-expanded={isExpanded} aria-controls={`admin-nav-${group.id}`} onClick={() => setExpandedNavGroups(previous => ({ ...previous, [group.id]: !previous[group.id] }))} className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-bold transition-colors md:px-4 md:py-3 md:text-[13px] ${hasActivePage ? 'text-[#f2cf9f]' : 'text-[#d8c7b2] hover:bg-white/[0.06] hover:text-white'}`}>
+                        <span className="flex items-center gap-2">{group.label}{group.id === 'Orders' && activeCount > 0 && <span className="rounded-full bg-[#c7485d] px-1.5 py-0.5 text-[9px] font-black text-white">{activeCount}</span>}</span>
+                        <svg viewBox="0 0 20 20" className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} fill="none" aria-hidden="true"><path d="m7 4 6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      </button>
+                      {isExpanded && <ul id={`admin-nav-${group.id}`} className="ml-3 mt-1 space-y-1 border-l border-[#c9a77c]/25 pl-2">
+                        {group.items.map(module => <li key={module.id}><button type="button" onClick={() => { setActiveModule(module.id); setExpandedNavGroups(previous => ({ ...previous, [group.id]: true })); setIsSidebarOpen(false); }} aria-current={activeModule === module.id ? 'page' : undefined} className={`w-full rounded-lg px-3 py-2.5 text-left text-[11px] font-semibold transition-all md:text-xs ${activeModule === module.id ? 'bg-white/10 text-white shadow-inner' : 'text-[#e7dccd]/70 hover:bg-white/[0.06] hover:text-white'}`}>{module.name}</button></li>)}
+                      </ul>}
+                    </>
+                  )}
+                </li>
+              );
+            })}
             
             <li className="mt-5 border-t border-white/10 pt-4">
               <p className="px-3 pb-2 text-[9px] font-black uppercase tracking-[0.2em] text-[#c3a784]/65">Quick access</p>
