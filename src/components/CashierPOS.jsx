@@ -59,9 +59,8 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
 
   const categories = useMemo(() => ['All', ...new Set(menuItems.map(item => item.category).filter(Boolean))], [menuItems]);
   const availableDrinks = useMemo(() => menuItems.filter(item => {
-    const searchable = `${item.category || ''} ${item.name || ''}`.toLowerCase();
-    const looksLikeDrink = /drink|beverage|juice|tea|coffee|soda|water|gulaman|lemonade|shake|milk/.test(searchable);
-    return looksLikeDrink && Number(item.is_sold_out) !== 1 && item.is_sold_out !== true;
+    const category = String(item.category || '').trim().toLowerCase();
+    return category === 'drinks' && Number(item.is_sold_out) !== 1 && item.is_sold_out !== true;
   }), [menuItems]);
   const availableAddOns = useMemo(() => menuItems.filter(item => {
     const category = String(item.category || '').toLowerCase();

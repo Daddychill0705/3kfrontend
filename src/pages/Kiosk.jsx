@@ -135,8 +135,8 @@ export default function Kiosk() {
   const filteredItems = activeCategory === 'ALL' ? menuItems : menuItems.filter(item => item.category === activeCategory);
 
   const availableDrinks = useMemo(() => menuItems.filter(item => {
-    const searchable = `${item.category || ''} ${item.name || ''}`.toLowerCase();
-    return /drink|beverage|juice|tea|coffee|soda|water|gulaman|lemonade|shake|milk/.test(searchable) && Number(item.is_sold_out) !== 1 && item.is_sold_out !== true;
+    const category = String(item.category || '').trim().toLowerCase();
+    return category === 'drinks' && Number(item.is_sold_out) !== 1 && item.is_sold_out !== true;
   }), [menuItems]);
   const availableAddOns = useMemo(() => menuItems.filter(item => {
     const category = String(item.category || '').toLowerCase();
