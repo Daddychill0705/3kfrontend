@@ -145,6 +145,12 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
       .filter(item => item.qty > 0));
   };
 
+  const toggleOrderType = () => {
+    const nextOrderType = orderType === 'Dine-in' ? 'Take-out' : 'Dine-in';
+    setOrderType(nextOrderType);
+    showToast(`Order type changed to ${nextOrderType}.`, 'success');
+  };
+
   const openPayment = () => {
     if (!cart.length || !orderType) return;
     setIsCartOpen(false);
@@ -359,7 +365,7 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8b6847]">Register ticket</p>
               <h2 className="mt-1 text-sm font-black text-[#33251b]">Current order</h2>
             </div>
-            <span className="rounded-md border border-[#d8c2a4] bg-white px-2 py-1 text-[10px] font-black uppercase text-[#815633]">{orderType || 'New sale'}</span>
+            <button type="button" onClick={toggleOrderType} title="Change order type" aria-label={`Change order type from ${orderType} to ${orderType === 'Dine-in' ? 'Take-out' : 'Dine-in'}`} className="rounded-md border border-[#d8c2a4] bg-white px-2 py-1 text-[10px] font-black uppercase text-[#815633] transition hover:border-[#815633] hover:bg-[#fbf8f1]">{orderType || 'New sale'}</button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
             {cart.length === 0 ? (
@@ -403,7 +409,10 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
           <div className="space-y-3 border-b border-gray-100 bg-gray-50/70 p-4">
             <div className="flex items-center justify-between">
               <h2 id="cart-title" className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gray-600"><span className="text-lg text-[#815633]">▣</span> Current order summary</h2>
-              <button type="button" aria-label="Close cart" onClick={() => setIsCartOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={toggleOrderType} title="Change order type" aria-label={`Change order type from ${orderType} to ${orderType === 'Dine-in' ? 'Take-out' : 'Dine-in'}`} className="rounded-md border border-[#d8c2a4] bg-white px-2 py-1 text-[10px] font-black uppercase text-[#815633] transition hover:border-[#815633] hover:bg-[#fbf8f1]">{orderType}</button>
+                <button type="button" aria-label="Close cart" onClick={() => setIsCartOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-gray-400 hover:bg-gray-200">×</button>
+              </div>
             </div>
           </div>
 
