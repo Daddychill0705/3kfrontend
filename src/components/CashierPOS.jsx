@@ -435,15 +435,15 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
               </section>
             ))}
           </div>
-          <div className="space-y-2 border-t border-[#e4d5bf] bg-white p-4">
-            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Customer / calling name <span className="font-medium normal-case tracking-normal text-gray-400">(optional)</span>
-              <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Optional — defaults to Walk-in Customer" maxLength={255} className="mt-1 w-full rounded-md border border-[#d8c2a4] bg-[#fbf8f1] px-3 py-2 text-xs font-semibold text-gray-800 outline-none focus:border-[#815633]" />
+          <div className="space-y-1 border-t border-[#e4d5bf] bg-white p-3">
+            <label className="block text-[9px] font-bold uppercase tracking-wide text-gray-500">Customer / calling name <span className="font-medium normal-case tracking-normal text-gray-400">(optional)</span>
+              <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Optional — defaults to Walk-in Customer" maxLength={255} className="mt-0.5 w-full rounded-md border border-[#d8c2a4] bg-[#fbf8f1] px-2.5 py-1.5 text-[11px] font-semibold text-gray-800 outline-none focus:border-[#815633]" />
             </label>
-            <div className="flex justify-between text-[11px] font-semibold text-gray-500"><span>Vatable sales</span><span>{formatMoney(vatableSales)}</span></div>
-            <div className="flex justify-between text-[11px] font-semibold text-gray-500"><span>VAT (12%)</span><span>{formatMoney(vatAmount)}</span></div>
-            <div className="flex justify-between border-t border-dashed border-[#d8c2a4] pt-2 text-xs font-black text-[#33251b]"><span>Grand total</span><span className="text-base text-[#815633]">{formatMoney(subtotal)}</span></div>
-            <button type="button" onClick={openPayment} disabled={!cart.length || isSubmitting} className="mt-2 w-full rounded-lg bg-[#815633] py-3 text-xs font-black uppercase tracking-wide text-white shadow-sm transition hover:bg-[#62432B] disabled:cursor-not-allowed disabled:bg-gray-300">Process payment</button>
-            <button type="button" onClick={() => setCart([])} disabled={!cart.length || isSubmitting} className="w-full rounded-lg border border-red-200 py-2 text-[11px] font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">Clear ticket</button>
+            <div className="flex justify-between text-[10px] font-semibold text-gray-500"><span>Vatable sales</span><span>{formatMoney(vatableSales)}</span></div>
+            <div className="flex justify-between text-[10px] font-semibold text-gray-500"><span>VAT (12%)</span><span>{formatMoney(vatAmount)}</span></div>
+            <div className="flex justify-between border-t border-dashed border-[#d8c2a4] pt-1 text-[11px] font-black text-[#33251b]"><span>Grand total</span><span className="text-sm text-[#815633]">{formatMoney(subtotal)}</span></div>
+            <button type="button" onClick={openPayment} disabled={!cart.length || isSubmitting} className="w-full rounded-lg bg-[#815633] py-2 text-[11px] font-black uppercase tracking-wide text-white shadow-sm transition hover:bg-[#62432B] disabled:cursor-not-allowed disabled:bg-gray-300">Process payment</button>
+            <button type="button" onClick={() => setCart([])} disabled={!cart.length || isSubmitting} className="w-full rounded-lg border border-red-200 py-1.5 text-[10px] font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">Clear ticket</button>
           </div>
         </aside>
 
@@ -491,16 +491,16 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
             ))}
           </div>
 
-          <div className="space-y-2 border-t border-gray-200 bg-gray-50 p-4">
-            <label className="block text-xs font-bold text-gray-600">Customer / calling name <span className="font-medium text-gray-400">(optional)</span>
-              <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Optional — defaults to Walk-in Customer" maxLength={255} className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-[#815633]" />
+          <div className="space-y-1.5 border-t border-gray-200 bg-gray-50 p-3">
+            <label className="block text-[11px] font-bold text-gray-600">Customer / calling name <span className="font-medium text-gray-400">(optional)</span>
+              <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Optional — defaults to Walk-in Customer" maxLength={255} className="mt-0.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-[#815633]" />
             </label>
-            <div className="flex justify-between text-xs font-bold text-gray-600"><span>Vatable sales</span><span>{formatMoney(vatableSales)}</span></div>
-            <div className="flex justify-between text-xs font-bold text-gray-600"><span>VAT (12%)</span><span>{formatMoney(vatAmount)}</span></div>
-            <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-black text-gray-900"><span>Grand total</span><span className="text-xl text-[#815633]">{formatMoney(subtotal)}</span></div>
+            <div className="flex justify-between text-[11px] font-bold text-gray-600"><span>Vatable sales</span><span>{formatMoney(vatableSales)}</span></div>
+            <div className="flex justify-between text-[11px] font-bold text-gray-600"><span>VAT (12%)</span><span>{formatMoney(vatAmount)}</span></div>
+            <div className="flex justify-between border-t border-gray-200 pt-1 text-sm font-black text-gray-900"><span>Grand total</span><span className="text-lg text-[#815633]">{formatMoney(subtotal)}</span></div>
             <div className="mt-2 flex gap-2">
-              <button type="button" onClick={() => setCart([])} disabled={!cart.length || isSubmitting} className="shrink-0 rounded-xl border border-red-200 bg-white px-4 py-3.5 text-sm font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">Clear all</button>
-              <button type="button" onClick={openPayment} disabled={!cart.length || isSubmitting} className="flex-1 rounded-xl bg-[#815633] py-3.5 text-sm font-black uppercase tracking-wider text-white shadow-md transition hover:bg-[#62432B] disabled:cursor-not-allowed disabled:bg-gray-300">
+              <button type="button" onClick={() => setCart([])} disabled={!cart.length || isSubmitting} className="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">Clear all</button>
+              <button type="button" onClick={openPayment} disabled={!cart.length || isSubmitting} className="flex-1 rounded-lg bg-[#815633] py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-md transition hover:bg-[#62432B] disabled:cursor-not-allowed disabled:bg-gray-300">
                 Process payment
               </button>
             </div>
