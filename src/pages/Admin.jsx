@@ -38,6 +38,21 @@ function AdminPagination({ page, itemCount, onPageChange }) {
   );
 }
 
+function smoothSalesPath(points) {
+  if (!points.length) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  return points.slice(0, -1).reduce((path, point, index) => {
+    const previous = points[Math.max(0, index - 1)];
+    const next = points[index + 1];
+    const afterNext = points[Math.min(points.length - 1, index + 2)];
+    const controlOneX = point.x + (next.x - previous.x) / 6;
+    const controlOneY = point.y + (next.y - previous.y) / 6;
+    const controlTwoX = next.x - (afterNext.x - point.x) / 6;
+    const controlTwoY = next.y - (afterNext.y - point.y) / 6;
+    return `${path} C ${controlOneX} ${controlOneY}, ${controlTwoX} ${controlTwoY}, ${next.x} ${next.y}`;
+  }, `M ${points[0].x} ${points[0].y}`);
+}
+
 export default function Admin() {
   const [activeModule, setActiveModule] = useState('Sales');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -584,6 +599,20 @@ export default function Admin() {
     };
   });
   const maxDailySales = Math.max(...salesChartPoints.map(point => point.sales), 0);
+  const salesPlotPoints = salesChartPoints.map((point, index) => ({
+    ...point,
+    x: salesChartPoints.length > 1 ? 58 + (index / (salesChartPoints.length - 1)) * 680 : 398,
+    y: 236 - (point.sales / Math.max(maxDailySales, 1)) * 204
+  }));
+  const salesTrendPath = smoothSalesPath(salesPlotPoints);
+  const salesAreaPath = salesPlotPoints.length ? `${salesTrendPath} L ${salesPlotPoints[salesPlotPoints.length - 1].x} 238 L ${salesPlotPoints[0].x} 238 Z` : '';
+  const topProductRows = Object.entries(salesOrders.reduce((totals, order) => {
+    for (const item of order.itemsData || []) {
+      const name = String(item.name || 'Menu item');
+      totals[name] = (totals[name] || 0) + Number(item.qty || 0);
+    }
+    return totals;
+  }, {})).sort((left, right) => right[1] - left[1]).slice(0, 5);
   const gcashOrders = salesOrders.filter(order => String(order.payment_method || '').toLowerCase().includes('gcash'));
   const cashOrders = salesOrders.filter(order => /cash/i.test(order.payment_method || ''));
   const gcashSales = gcashOrders.reduce((sum, order) => sum + Number(order.total_amount || order.total || 0), 0);
@@ -593,6 +622,8 @@ export default function Admin() {
   const inStoreOrders = salesOrders.filter(order => ['Dine-in', 'Take-out'].includes(order.order_type));
   const onlineSales = onlineOrders.reduce((sum, order) => sum + Number(order.total_amount || order.total || 0), 0);
   const inStoreSales = inStoreOrders.reduce((sum, order) => sum + Number(order.total_amount || order.total || 0), 0);
+  const gcashSharePercent = paymentTotal > 0 ? Math.round((gcashSales / paymentTotal) * 100) : 0;
+  const onlineSharePercent = salesRevenue > 0 ? Math.round((onlineSales / salesRevenue) * 100) : 0;
   const historyOrdersList = filteredOrders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
   const visibleHistoryOrders = historyOrdersList.slice((historyPage - 1) * ADMIN_PAGE_SIZE, historyPage * ADMIN_PAGE_SIZE);
   const searchedPaymentOrders = completedOrders.filter(order => {
@@ -705,6 +736,65 @@ export default function Admin() {
           
           {/* SALES MODULE */}
           {activeModule === 'Sales' && (
+            <>
+            <div className="mx-auto max-w-[1500px] space-y-5 animate-fade-in">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Sales date range">
+                  {[["today", "Today"], ["7days", "7 days"], ["30days", "30 days"]].map(([period, label]) => <button key={period} type="button" onClick={() => setSalesPeriod(period)} aria-pressed={salesPeriod === period} className={`rounded-full px-4 py-2 text-xs font-bold transition ${salesPeriod === period ? 'bg-[#4a3b32] text-white shadow-md' : 'border border-[#ddc9ad] bg-[#fffdf8]/85 text-[#705b46] hover:bg-white'}`}>{label}</button>)}
+                </div>
+                <p className="rounded-full border border-[#ddc9ad] bg-[#fffdf8]/85 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-[#80664b]">{selectedBranch} · {salesPeriod === 'today' ? 'Today' : salesPeriod === '7days' ? 'Last 7 days' : 'Last 30 days'}</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+                <section className="overflow-hidden rounded-2xl border border-[#e5e8ef] bg-white p-5 shadow-[0_10px_30px_rgba(42,51,70,0.08)] sm:p-6 xl:col-span-7" aria-labelledby="sales-revenue-heading">
+                  <div className="mb-2 flex flex-wrap items-start justify-between gap-3"><div><h3 id="sales-revenue-heading" className="text-sm font-semibold tracking-wide text-slate-700">Revenue</h3><p className="mt-1 text-xs text-slate-400">{salesPeriod === 'today' ? 'Sales collected today' : salesPeriod === '7days' ? 'Sales collected in the last 7 days' : 'Sales collected in the last 30 days'}</p></div><span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-bold text-emerald-700">{salesOrders.length} completed orders</span></div>
+                  <p className="text-3xl font-semibold tracking-tight text-[#ec4b67] sm:text-4xl">{String.fromCharCode(8369)}{salesRevenue.toFixed(2)}</p>
+                  <div className="mt-5 overflow-x-auto">
+                    <svg viewBox="0 0 760 292" role="img" aria-label={`Revenue trend, peak ${String.fromCharCode(8369)}${maxDailySales.toFixed(2)}`} className="h-[270px] w-full min-w-[620px] overflow-visible">
+                      <defs><linearGradient id="salesRevenueFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#ec4b67" stopOpacity="0.18" /><stop offset="100%" stopColor="#ec4b67" stopOpacity="0" /></linearGradient><linearGradient id="salesRevenueStroke" x1="0" x2="1"><stop offset="0%" stopColor="#ff5069" /><stop offset="100%" stopColor="#e63859" /></linearGradient></defs>
+                      {[0, 1, 2, 3, 4].map(tick => { const y = 34 + tick * 51; const value = maxDailySales * (1 - tick / 4); return <g key={tick}><line x1="58" x2="742" y1={y} y2={y} stroke="#e9edf3" strokeWidth="1" /><text x="48" y={y + 4} textAnchor="end" fill="#8991a1" fontSize="10">{Math.round(value).toLocaleString()}</text></g>; })}
+                      {salesPlotPoints.length > 1 && <path d={salesAreaPath} fill="url(#salesRevenueFill)" />}
+                      {salesPlotPoints.length > 1 && <path d={salesTrendPath} fill="none" stroke="url(#salesRevenueStroke)" strokeWidth="4" strokeLinecap="round" />}
+                      {salesPlotPoints.map((point, index) => { const shouldLabel = salesPeriod === 'today' ? index % 2 === 0 : salesPeriod === '7days' || index % 5 === 0 || index === salesPlotPoints.length - 1; const label = salesPeriod === 'today' ? point.date.toLocaleTimeString([], { hour: 'numeric' }).replace(' ', '').toLowerCase() : point.date.toLocaleDateString([], { month: 'short', day: 'numeric' }); return <g key={point.date.toISOString()}><circle cx={point.x} cy={point.y} r="4" fill="#fff" stroke="#ec4b67" strokeWidth="2.5"><title>{label}: {String.fromCharCode(8369)}{point.sales.toFixed(2)} · {point.orders} orders</title></circle>{shouldLabel && <text x={point.x} y="270" textAnchor="middle" fill="#7e8797" fontSize="10">{label}</text>}</g>; })}
+                    </svg>
+                  </div>
+                  {salesOrders.length === 0 && <p className="-mt-2 text-center text-xs font-medium text-slate-400">No completed sales for this period.</p>}
+                </section>
+
+                <div className="grid grid-cols-2 gap-4 xl:col-span-5">
+                  <article className="rounded-2xl border border-[#e5e8ef] bg-white p-4 text-center shadow-[0_8px_24px_rgba(42,51,70,0.07)] sm:p-5">
+                    <div className="flex items-center justify-between gap-2 text-left"><h3 className="text-xs font-semibold text-slate-600">GCash share</h3><span className="text-[10px] font-bold text-slate-400">Payments</span></div>
+                    <div className="mx-auto mt-4 flex h-28 w-28 items-center justify-center rounded-full p-[6px] sm:h-32 sm:w-32" style={{ background: `conic-gradient(#12b981 ${gcashSharePercent}%, #e9edf2 0)` }}><div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-white"><span className="text-2xl font-semibold text-[#ec4b67]">{gcashSharePercent}%</span><span className="text-[9px] font-semibold text-slate-400">of payments</span></div></div>
+                    <p className="mt-3 truncate text-xs font-bold text-slate-600">{String.fromCharCode(8369)}{gcashSales.toFixed(2)} GCash</p>
+                  </article>
+                  <article className="rounded-2xl border border-rose-300 bg-gradient-to-br from-[#f24b68] to-[#e33b5c] p-4 text-center text-white shadow-[0_8px_24px_rgba(230,59,92,0.2)] sm:p-5">
+                    <div className="flex items-center justify-between gap-2 text-left"><h3 className="text-xs font-semibold">Online sales</h3><span className="text-[10px] font-bold text-white/75">Channel mix</span></div>
+                    <div className="mx-auto mt-4 flex h-28 w-28 items-center justify-center rounded-full border-[5px] border-white/80 p-1 sm:h-32 sm:w-32"><div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-white/10"><span className="text-2xl font-semibold">{onlineSharePercent}%</span><span className="text-[9px] font-semibold text-white/80">of revenue</span></div></div>
+                    <p className="mt-3 truncate text-xs font-bold">{String.fromCharCode(8369)}{onlineSales.toFixed(2)} online</p>
+                  </article>
+                  <article className="flex items-center justify-between gap-2 rounded-2xl border border-[#e5e8ef] bg-white p-4 shadow-[0_8px_24px_rgba(42,51,70,0.07)] sm:p-5"><div><p className="text-[10px] font-semibold text-slate-400">Average order</p><p className="mt-1 text-lg font-semibold text-slate-700">{String.fromCharCode(8369)}{salesOrders.length ? (salesRevenue / salesOrders.length).toFixed(2) : '0.00'}</p></div><span className="text-2xl text-emerald-500" aria-hidden="true">↗</span></article>
+                  <article className="flex items-center justify-between gap-2 rounded-2xl border border-[#e5e8ef] bg-white p-4 shadow-[0_8px_24px_rgba(42,51,70,0.07)] sm:p-5"><div><p className="text-[10px] font-semibold text-slate-400">Items sold</p><p className="mt-1 text-lg font-semibold text-slate-700">{salesItemCount}</p></div><span className="text-2xl text-[#ec4b67]" aria-hidden="true">◈</span></article>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                <section className="rounded-2xl border border-[#e5e8ef] bg-white p-5 shadow-[0_8px_24px_rgba(42,51,70,0.07)]">
+                  <div className="flex items-start justify-between"><div><h3 className="text-sm font-semibold text-slate-700">Payment breakdown</h3><p className="mt-1 text-xs text-slate-400">Cash and GCash collections</p></div><span className="text-xl text-[#ec4b67]" aria-hidden="true">◉</span></div>
+                  <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all" style={{ width: `${paymentTotal ? (gcashSales / paymentTotal) * 100 : 0}%` }} /></div>
+                  <div className="mt-4 space-y-3 text-xs"><div className="flex justify-between"><span className="font-semibold text-slate-500">GCash · {gcashOrders.length} orders</span><strong className="text-slate-700">{String.fromCharCode(8369)}{gcashSales.toFixed(2)}</strong></div><div className="flex justify-between"><span className="font-semibold text-slate-500">Cash / COD · {cashOrders.length} orders</span><strong className="text-slate-700">{String.fromCharCode(8369)}{cashSales.toFixed(2)}</strong></div></div>
+                  {paymentTotal === 0 && <p className="mt-3 text-xs text-slate-400">No payment totals for this period.</p>}
+                </section>
+                <section className="overflow-hidden rounded-2xl border border-[#e5e8ef] bg-white shadow-[0_8px_24px_rgba(42,51,70,0.07)]">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h3 className="text-sm font-semibold text-slate-700">Top products</h3><p className="mt-1 text-xs text-slate-400">Units sold in this period</p></div><span className="text-xs font-bold text-[#815633]">{topProductRows.length} items</span></div>
+                  <div className="divide-y divide-slate-100">{topProductRows.length ? topProductRows.map(([name, quantity], index) => <div key={name} className="flex items-center justify-between gap-3 px-5 py-3"><div className="flex min-w-0 items-center gap-3"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-black ${index === 0 ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>{index + 1}</span><span className="truncate text-xs font-bold text-slate-600">{name}</span></div><span className="text-xs font-semibold text-slate-500">{quantity}</span></div>) : <p className="p-5 text-xs text-slate-400">No product sales for this period.</p>}</div>
+                </section>
+                <section className="rounded-2xl border border-[#e5e8ef] bg-white p-5 shadow-[0_8px_24px_rgba(42,51,70,0.07)]">
+                  <div className="mb-4"><h3 className="text-sm font-semibold text-slate-700">Sales by channel</h3><p className="mt-1 text-xs text-slate-400">Online compared with in-store</p></div>
+                  {[{ label: 'Online', orders: onlineOrders, sales: onlineSales, color: '#ec4b67' }, { label: 'In-store', orders: inStoreOrders, sales: inStoreSales, color: '#12b981' }].map(channel => <div key={channel.label} className="mb-4 last:mb-0"><div className="mb-2 flex items-center justify-between gap-3 text-xs"><span className="font-semibold text-slate-500">{channel.label} · {channel.orders.length} orders</span><strong className="text-slate-700">{String.fromCharCode(8369)}{channel.sales.toFixed(2)}</strong></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full" style={{ width: `${salesRevenue ? (channel.sales / salesRevenue) * 100 : 0}%`, backgroundColor: channel.color }} /></div></div>)}
+                </section>
+              </div>
+            </div>
+            <div className="hidden">
             <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
               <div className="flex flex-wrap gap-2 sm:gap-4 mb-6" role="group" aria-label="Sales date range">
                 {[
@@ -814,6 +904,8 @@ export default function Admin() {
                 </div>
               </div>
             </div>
+            </div>
+            </>
           )}
 
           {/* ACTIVE ORDERS MODULE */}
