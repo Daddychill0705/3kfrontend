@@ -342,22 +342,22 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
 
   return (
     <div className="fixed inset-0 z-[60] flex min-h-0 flex-col bg-[#F5EFE3] font-sans text-gray-800">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#C9A77C]/30 bg-white px-4 py-3 shadow-sm sm:px-6">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#60452f] bg-[#33251b] px-4 py-3 text-white shadow-md sm:px-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-[#E6D4B8] to-[#C9A77C] font-black text-[#815633] shadow-sm">3K</div>
           <div>
-            <h1 className="text-base font-black tracking-tight text-gray-900 sm:text-lg">3K Kitchen POS</h1>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{branch || 'Cashier register'}</p>
+            <h1 className="text-base font-black tracking-tight text-white sm:text-lg">3K Kitchen POS</h1>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#dfc4a3]">{branch || 'Cashier register'}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="hidden rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700 sm:inline-flex">Counter sale</span>
-          <button type="button" onClick={() => setIsCartOpen(true)} className="rounded-lg border border-[#C9A77C]/50 bg-white px-4 py-2 text-sm font-bold text-[#815633] shadow-sm hover:bg-[#FBFAF4]">View Cart <span className="ml-1 rounded-full bg-[#815633] px-2 py-0.5 text-xs text-white">{cartCount}</span></button>
+          <span className="hidden rounded-md border border-[#8c6846] bg-[#493524] px-3 py-1.5 text-xs font-bold text-[#f5dfc4] sm:inline-flex">COUNTER SALE</span>
+          <button type="button" onClick={() => setIsCartOpen(true)} className="rounded-lg border border-[#c9a77c] bg-[#f5efe3] px-4 py-2 text-sm font-bold text-[#60452f] shadow-sm hover:bg-white lg:hidden">View Cart <span className="ml-1 rounded-full bg-[#815633] px-2 py-0.5 text-xs text-white">{cartCount}</span></button>
           {canReturnToCashier && <button type="button" onClick={() => { setCashierAccessError(''); setCashierPassword(''); setIsCashierAccessOpen(true); }} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50">🔒 Cashier</button>}
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_360px] lg:overflow-hidden">
         <section className="flex min-h-[55vh] min-w-0 flex-col p-4 sm:p-6 lg:min-h-0">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row">
             <label className="relative min-w-0 flex-1">
@@ -368,9 +368,9 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
             <div className="flex items-center rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-600"><span className="mr-2 text-[#815633]">⌖</span>{branch || 'Select branch'}</div>
           </div>
 
-          <div className="mb-4 flex shrink-0 gap-2 overflow-x-auto pb-2">
+          <div className="mb-3 flex shrink-0 flex-wrap gap-1.5 overflow-x-auto pb-1">
             {categories.map(category => (
-              <button key={category} type="button" onClick={() => setActiveCategory(category)} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition ${activeCategory === category ? 'border-[#815633] bg-[#815633] text-white shadow-sm' : 'border-[#C9A77C]/40 bg-white text-gray-700 hover:border-[#815633]'}`}>
+              <button key={category} type="button" onClick={() => setActiveCategory(category)} className={`shrink-0 rounded-md border px-3 py-2 text-[11px] font-black uppercase tracking-wide transition ${activeCategory === category ? 'border-[#815633] bg-[#815633] text-white shadow-sm' : 'border-[#C9A77C]/40 bg-white text-gray-700 hover:border-[#815633]'}`}>
                 {category}
               </button>
             ))}
@@ -384,20 +384,20 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
             ) : visibleItems.length === 0 ? (
               <div className="rounded-xl border border-dashed border-gray-300 bg-white/60 p-10 text-center text-sm font-semibold text-gray-500">No menu items found.</div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {visibleItems.map(item => {
                   const soldOut = Number(item.is_sold_out) === 1 || item.is_sold_out === true;
                   return (
-                    <button key={item.id} type="button" disabled={soldOut} onClick={() => beginItemOrder(item)} className={`group overflow-hidden rounded-2xl border bg-white p-2.5 text-left shadow-sm transition ${soldOut ? 'cursor-not-allowed opacity-55 grayscale' : 'border-gray-200 hover:-translate-y-0.5 hover:border-[#C9A77C] hover:shadow-md active:scale-[0.99]'}`}>
-                      <div className="relative mb-2 h-28 overflow-hidden rounded-xl bg-[#F5EFE3] sm:h-32">
+                    <button key={item.id} type="button" disabled={soldOut} onClick={() => beginItemOrder(item)} className={`group overflow-hidden rounded-lg border bg-white p-1.5 text-left shadow-sm transition ${soldOut ? 'cursor-not-allowed opacity-55 grayscale' : 'border-[#d8c2a4] hover:-translate-y-0.5 hover:border-[#815633] hover:shadow-md active:scale-[0.99]'}`}>
+                      <div className="relative mb-1.5 h-16 overflow-hidden rounded-md bg-[#F5EFE3] sm:h-[72px]">
                         {item.image_url && <img src={item.image_url} alt={item.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />}
-                        {item.category && <span className="absolute left-2 top-2 max-w-[90%] truncate rounded-full border border-white/70 bg-white/90 px-2 py-1 text-[9px] font-black text-gray-700 shadow-sm">{item.category}</span>}
+                        {item.category && <span className="absolute left-1 top-1 max-w-[90%] truncate rounded border border-white/70 bg-white/90 px-1.5 py-0.5 text-[8px] font-black text-gray-700 shadow-sm">{item.category}</span>}
                         {soldOut && <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs font-black tracking-widest text-white">SOLD OUT</span>}
                       </div>
-                      <span className="line-clamp-2 block min-h-10 text-xs font-bold leading-snug text-gray-900">{item.name}</span>
-                      <span className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
-                        <span className="text-sm font-black text-[#815633]">{formatMoney(item.price)}</span>
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#815633] text-lg font-bold text-white">+</span>
+                      <span className="line-clamp-2 block min-h-8 text-[10px] font-bold leading-tight text-gray-900 sm:text-[11px]">{item.name}</span>
+                      <span className="mt-1 flex items-center justify-between border-t border-gray-100 pt-1.5">
+                        <span className="text-xs font-black text-[#815633]">{formatMoney(item.price)}</span>
+                        <span className="flex h-6 w-6 items-center justify-center rounded bg-[#815633] text-base font-bold text-white">+</span>
                       </span>
                     </button>
                   );
@@ -406,6 +406,47 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
             )}
           </div>
         </section>
+
+        <aside className="hidden min-h-0 flex-col border-l border-[#d8c2a4] bg-[#fbf8f1] shadow-[-8px_0_20px_rgba(80,55,30,0.08)] lg:flex">
+          <div className="flex items-center justify-between border-b border-[#e4d5bf] bg-[#f2e8d8] px-4 py-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8b6847]">Register ticket</p>
+              <h2 className="mt-1 text-sm font-black text-[#33251b]">Current order</h2>
+            </div>
+            <span className="rounded-md border border-[#d8c2a4] bg-white px-2 py-1 text-[10px] font-black uppercase text-[#815633]">{orderType || 'New sale'}</span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            {cart.length === 0 ? (
+              <div className="flex h-full min-h-48 flex-col items-center justify-center rounded-lg border border-dashed border-[#d8c2a4] bg-white/70 p-5 text-center">
+                <span className="mb-2 text-3xl text-[#b99971]">▤</span>
+                <p className="text-xs font-black text-[#60452f]">No items on ticket</p>
+                <p className="mt-1 text-[11px] text-gray-500">Select a menu item to start this sale.</p>
+              </div>
+            ) : cart.map((item, index) => (
+              <div key={item.id} className="border-b border-dashed border-[#d8c2a4] py-3 first:pt-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-bold leading-snug text-gray-900">{index + 1}. {item.name}</p>
+                    <p className="mt-1 text-[10px] text-gray-500">{formatMoney(item.price)} each</p>
+                  </div>
+                  <span className="shrink-0 text-[11px] font-black text-[#60452f]">{formatMoney(item.price * item.qty)}</span>
+                </div>
+                <div className="mt-2 flex items-center gap-1">
+                  <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => updateQuantity(item.id, -1)} className="h-6 w-7 rounded border border-[#d8c2a4] bg-white text-sm font-bold text-[#60452f] hover:bg-[#f2e8d8]">-</button>
+                  <span className="w-7 text-center text-xs font-black">{item.qty}</span>
+                  <button type="button" aria-label={`Add one ${item.name}`} onClick={() => updateQuantity(item.id, 1)} className="h-6 w-7 rounded border border-[#d8c2a4] bg-white text-sm font-bold text-[#60452f] hover:bg-[#f2e8d8]">+</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2 border-t border-[#e4d5bf] bg-white p-4">
+            <div className="flex justify-between text-[11px] font-semibold text-gray-500"><span>Vatable sales</span><span>{formatMoney(vatableSales)}</span></div>
+            <div className="flex justify-between text-[11px] font-semibold text-gray-500"><span>VAT (12%)</span><span>{formatMoney(vatAmount)}</span></div>
+            <div className="flex justify-between border-t border-dashed border-[#d8c2a4] pt-2 text-xs font-black text-[#33251b]"><span>Grand total</span><span className="text-base text-[#815633]">{formatMoney(subtotal)}</span></div>
+            <button type="button" onClick={openPayment} disabled={!cart.length || isSubmitting} className="mt-2 w-full rounded-lg bg-[#815633] py-3 text-xs font-black uppercase tracking-wide text-white shadow-sm transition hover:bg-[#62432B] disabled:cursor-not-allowed disabled:bg-gray-300">Process payment</button>
+            <button type="button" onClick={() => setCart([])} disabled={!cart.length || isSubmitting} className="w-full rounded-lg border border-red-200 py-2 text-[11px] font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">Clear ticket</button>
+          </div>
+        </aside>
 
         {isCartOpen && <div className="fixed inset-0 z-[70] bg-black/50" onMouseDown={event => { if (event.target === event.currentTarget) setIsCartOpen(false); }}>
         <aside role="dialog" aria-modal="true" aria-labelledby="cart-title" className="absolute inset-y-0 right-0 flex w-full max-w-[440px] min-w-0 flex-col border-l border-gray-200 bg-white shadow-2xl">
