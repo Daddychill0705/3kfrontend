@@ -117,7 +117,11 @@ function App() {
                 </AuthWrapper>
               } />
               <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
+              <Route path="/contact" element={
+                <AuthWrapper allowedRoles={['customer', 'admin', 'cashier', 'rider']} guestRedirectTo="/home">
+                  <Contact />
+                </AuthWrapper>
+              } />
               <Route path="/order" element={
                 <AuthWrapper allowedRoles={['customer', 'admin']}>
                   <Order />

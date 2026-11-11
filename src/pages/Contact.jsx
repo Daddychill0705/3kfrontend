@@ -1,6 +1,53 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export default function Contact() {
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      showToast('Please sign in before sending us a message.', 'error');
+      return;
+    }
+    if (!subject.trim() || !message.trim()) {
+      showToast('Please enter a subject and message.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_URL}/api/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ subject: subject.trim(), message: message.trim() })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not send your message. Please try again.');
+
+      showToast('Your message was sent. A confirmation email is on its way.', 'success');
+      setSubject('');
+      setMessage('');
+    } catch (error) {
+      showToast(error.message || 'Could not send your message. Please try again.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const fullName = user?.name || '';
+  const email = user?.email || '';
+
   return (
     <div className="bg-3k-bg min-h-screen py-16 px-4 md:px-8">
       <div className="max-w-[1200px] mx-auto">
@@ -46,25 +93,25 @@ export default function Contact() {
           
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-[#C9A77C]/30">
             <h2 className="text-2xl font-bold text-gray-900 mb-8">Send us a Message</h2>
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="mb-6">
                 <label htmlFor="name" className="block text-sm font-bold text-gray-800 mb-2">Full Name</label>
-                <input type="text" id="name" placeholder="Your full name" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633] focus:ring-2 focus:ring-[#815633]/20 transition-all font-medium" />
+                <input type="text" id="name" value={fullName} readOnly className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-medium" />
               </div>
               <div className="mb-6">
                 <label htmlFor="email" className="block text-sm font-bold text-gray-800 mb-2">Email Address</label>
-                <input type="email" id="email" placeholder="your@email.com" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633] focus:ring-2 focus:ring-[#815633]/20 transition-all font-medium" />
+                <input type="email" id="email" value={email} readOnly className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-medium" />
               </div>
               <div className="mb-6">
                 <label htmlFor="subject" className="block text-sm font-bold text-gray-800 mb-2">Subject</label>
-                <input type="text" id="subject" placeholder="What's this about?" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633] focus:ring-2 focus:ring-[#815633]/20 transition-all font-medium" />
+                <input type="text" id="subject" value={subject} onChange={event => setSubject(event.target.value)} placeholder="What's this about?" maxLength={150} required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633] focus:ring-2 focus:ring-[#815633]/20 transition-all font-medium" />
               </div>
               <div className="mb-6">
                 <label htmlFor="message" className="block text-sm font-bold text-gray-800 mb-2">Message</label>
-                <textarea id="message" placeholder="Tell us how we can help you..." required rows="4" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633] focus:ring-2 focus:ring-[#815633]/20 transition-all resize-y font-medium"></textarea>
+                <textarea id="message" value={message} onChange={event => setMessage(event.target.value)} placeholder="Tell us how we can help you..." required rows="4" maxLength={5000} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633] focus:ring-2 focus:ring-[#815633]/20 transition-all resize-y font-medium"></textarea>
               </div>
-              <button type="submit" className="w-full bg-3k-red text-white font-bold py-3 rounded-lg shadow-md hover:bg-3k-red-hover hover:-translate-y-1 transition-all duration-300">
-                Send Message
+              <button type="submit" disabled={isSubmitting} className="w-full bg-3k-red text-white font-bold py-3 rounded-lg shadow-md hover:bg-3k-red-hover hover:-translate-y-1 transition-all duration-300 disabled:cursor-wait disabled:opacity-60">
+                {isSubmitting ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           </div>
