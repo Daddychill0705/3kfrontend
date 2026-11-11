@@ -148,10 +148,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
 
   const openPayment = () => {
     if (!cart.length || !orderType) return;
-    if (!customerName.trim()) {
-      setError('Enter the customer name or calling name to continue.');
-      return;
-    }
     setIsCartOpen(false);
     setError('');
     setCashTendered(subtotal.toFixed(2));
@@ -191,10 +187,6 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
   const completeSale = async event => {
     event.preventDefault();
     if (isSubmitting || cart.length === 0 || !orderType) return;
-    if (!customerName.trim()) {
-      setError('Enter the customer name or calling name to complete this sale.');
-      return;
-    }
     if (paymentMethod === 'Cash' && Number(cashTendered) < subtotal) {
       setError('Cash tendered must cover the total amount.');
       return;
@@ -227,7 +219,7 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
           paymentMethod,
           notes,
           receipt_url: null,
-          customerName: customerName.trim(),
+          customerName: customerName.trim() || 'Walk-in Customer',
           gcashReference: paymentMethod === 'GCash' ? gcashRef : null,
           cashTendered: paymentMethod === 'Cash' ? tendered : null
         })
@@ -253,7 +245,7 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
         id: result.orderId,
         orderNumber: result.orderNumber,
         branch,
-        customerName: customerName.trim(),
+        customerName: customerName.trim() || 'Walk-in Customer',
         orderType,
         items: cart.map(item => ({ ...item })),
         subtotal,
@@ -399,8 +391,8 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
             ))}
           </div>
           <div className="space-y-2 border-t border-[#e4d5bf] bg-white p-4">
-            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Customer / calling name <span className="text-red-600">*</span>
-              <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Walk-in customer" maxLength={255} className="mt-1 w-full rounded-md border border-[#d8c2a4] bg-[#fbf8f1] px-3 py-2 text-xs font-semibold text-gray-800 outline-none focus:border-[#815633]" />
+            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Customer / calling name <span className="font-medium normal-case tracking-normal text-gray-400">(optional)</span>
+              <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Optional — defaults to Walk-in Customer" maxLength={255} className="mt-1 w-full rounded-md border border-[#d8c2a4] bg-[#fbf8f1] px-3 py-2 text-xs font-semibold text-gray-800 outline-none focus:border-[#815633]" />
             </label>
             <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500">Order notes
               <textarea value={orderNotes} onChange={event => setOrderNotes(event.target.value)} maxLength={500} rows={2} placeholder="Optional kitchen notes" className="mt-1 w-full resize-y rounded-md border border-[#d8c2a4] bg-[#fbf8f1] px-3 py-2 text-xs font-medium text-gray-800 outline-none focus:border-[#815633]" />
@@ -447,8 +439,8 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
           </div>
 
           <div className="space-y-2 border-t border-gray-200 bg-gray-50 p-4">
-            <label className="block text-xs font-bold text-gray-600">Customer / calling name <span className="text-red-600">*</span>
-              <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Walk-in customer" maxLength={255} className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-[#815633]" />
+            <label className="block text-xs font-bold text-gray-600">Customer / calling name <span className="font-medium text-gray-400">(optional)</span>
+              <input autoComplete="off" value={customerName} onChange={event => { setCustomerName(event.target.value); setError(''); }} placeholder="Optional — defaults to Walk-in Customer" maxLength={255} className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-[#815633]" />
             </label>
             <label className="block text-xs font-bold text-gray-600">Order notes
               <textarea value={orderNotes} onChange={event => setOrderNotes(event.target.value)} maxLength={500} rows={2} placeholder="Optional kitchen notes" className="mt-1 w-full resize-y rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium outline-none focus:border-[#815633]" />
