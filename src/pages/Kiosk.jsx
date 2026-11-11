@@ -28,6 +28,7 @@ export default function Kiosk() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
+  const [successCountdown, setSuccessCountdown] = useState(5);
   const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -42,6 +43,37 @@ export default function Kiosk() {
     document.addEventListener('fullscreenchange', syncFullscreenState);
     return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
   }, []);
+
+  useEffect(() => {
+    if (!successOrder) return undefined;
+    setSuccessCountdown(5);
+    const countdownTimer = setInterval(() => setSuccessCountdown(seconds => Math.max(0, seconds - 1)), 1000);
+    const resetTimer = setTimeout(() => {
+      setSuccessOrder(null);
+      setOrderType('');
+      setCustomerName('');
+      setOrderNotes('');
+      setCart([]);
+      setIsCartOpen(false);
+      setIsPaymentOpen(false);
+      setIsOrderFlowOpen(false);
+      setOrderFlowStep(1);
+      setActiveProduct(null);
+      setProductQuantity(1);
+      setSelectedDrinks({});
+      setSelectedAddOns({});
+      setSpecialRequests('');
+      setSelectedQuickRequests([]);
+      setPaymentMethod('Cash');
+      setCashTendered('');
+      setGcashReference('');
+      setPaymentError('');
+    }, 5000);
+    return () => {
+      clearInterval(countdownTimer);
+      clearTimeout(resetTimer);
+    };
+  }, [successOrder]);
 
   const toggleFullscreen = async () => {
     try {
@@ -689,28 +721,21 @@ export default function Kiosk() {
       )}
       {successOrder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="presentation">
-          <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="kiosk-order-success-title">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl font-black text-green-700">✓</div>
-            <h2 id="kiosk-order-success-title" className="mb-3 text-2xl font-black text-gray-900">Order received!</h2>
-            <p className="mb-2 text-gray-700">
+          <div className="w-full max-w-md rounded-[2rem] bg-white px-7 py-8 text-center shadow-2xl sm:px-10 sm:py-10" role="dialog" aria-modal="true" aria-labelledby="kiosk-order-success-title" aria-describedby="kiosk-order-success-message">
+            <div className="mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-full border-[5px] border-emerald-600 text-emerald-600 sm:h-36 sm:w-36" aria-hidden="true">
+              <svg viewBox="0 0 64 64" className="h-16 w-16 sm:h-24 sm:w-24" fill="none">
+                <path d="M13 33.5 26 46l26-28" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h2 id="kiosk-order-success-title" className="mb-4 text-3xl font-medium text-emerald-700">Oh Yeah!</h2>
+            <p id="kiosk-order-success-message" className="mb-2 text-lg leading-8 text-gray-700">
               {successOrder.customerName}, your order{successOrder.id ? ` #${successOrder.id}` : ''} was sent to the cashier.
             </p>
-            <p className="mb-7 text-sm text-gray-500">The kitchen will start preparing it shortly.</p>
-            <button
-              onClick={() => {
-                setSuccessOrder(null);
-                setOrderType('');
-                setCustomerName('');
-                setOrderNotes('');
-                setPaymentMethod('Cash');
-                setCashTendered('');
-                setGcashReference('');
-                setPaymentError('');
-              }}
-              className="w-full rounded-xl bg-[#815633] py-3.5 font-bold text-white shadow-sm transition-colors hover:bg-[#62432B]"
-            >
-              Done
-            </button>
+            <p className="mb-6 text-sm text-gray-500">The kitchen will start preparing it shortly.</p>
+            <div className="mx-auto h-2 w-full max-w-xs overflow-hidden rounded-full bg-emerald-100" aria-hidden="true">
+              <div className="h-full rounded-full bg-emerald-600 transition-[width] duration-1000 ease-linear" style={{ width: `${(successCountdown / 5) * 100}%` }} />
+            </div>
+            <p className="mt-3 text-xs font-semibold text-gray-500" aria-live="polite">Returning to the start in {successCountdown} seconds</p>
           </div>
         </div>
       )}
