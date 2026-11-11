@@ -1032,7 +1032,7 @@ export default function Admin() {
                   <div key={branch.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex justify-between items-start">
                     <div>
                       <h3 className="text-base font-black text-gray-900 mb-1">{branch.name} <span className="text-gray-400 font-medium text-xs">({branch.code})</span></h3>
-                      <p className="text-xs text-gray-500 font-bold mb-1">No address yet</p>
+                      <p className="text-xs text-gray-500 font-bold mb-1">{branch.address || 'No address yet'}</p>
                       <p className="text-xs text-gray-500 font-bold">8:00 AM - 8:00 PM</p>
                     </div>
                     <div className="flex flex-col gap-2 items-end">

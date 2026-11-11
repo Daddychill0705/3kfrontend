@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import BestSellers from '../components/BestSellers';
 import BilaoShowcase from '../components/BilaoShowcase';
+import { useBranch } from '../context/BranchContext';
 
 const currentBranchKey = (branchName) => {
   const name = String(branchName || '').toLowerCase();
+  if (name.includes('langkaan')) return 'langkaan';
+  if (name.includes('gentry') || name.includes('general trias')) return 'gentry';
+  if (name.includes('trece')) return 'trece';
+  if (name.includes('imus')) return 'imus';
   if (name.includes('dasma') || name.includes('dasmarinas')) return 'dasma';
   if (name.includes('gma') && name.includes('terminal')) return 'gma';
   if (name.includes('silang')) return 'silang';
@@ -13,16 +18,20 @@ const currentBranchKey = (branchName) => {
 
 const branchPositions = {
   dasma: { top: '42%', left: '69%', labelLeft: '-14px', labelTop: '-10px', labelTransform: 'translate(-100%, -100%)' },
+  langkaan: { top: '47%', left: '73%', labelLeft: '14px', labelTop: '0', labelTransform: 'translate(0, -50%)' },
+  gentry: { top: '48%', left: '54%', labelLeft: '-14px', labelTop: '-8px', labelTransform: 'translate(-100%, -100%)' },
+  trece: { top: '41%', left: '46%', labelLeft: '-14px', labelTop: '0', labelTransform: 'translate(-100%, -50%)' },
+  imus: { top: '35%', left: '67%', labelLeft: '14px', labelTop: '-4px', labelTransform: 'translate(0, -100%)' },
   gma: { top: '50%', left: '63%', labelLeft: '-14px', labelTop: '0', labelTransform: 'translate(-100%, -50%)' },
   silang: { top: '60%', left: '69%', labelLeft: '18px', labelTop: '0', labelTransform: 'translate(0, -50%)' }
 };
-const branchOrder = ['dasma', 'gma', 'silang'];
+const branchOrder = ['trece', 'gentry', 'imus', 'dasma', 'langkaan', 'gma', 'silang'];
 
 const currentBranchPosition = (branchName) => branchPositions[currentBranchKey(branchName)] || null;
 
 export default function Home() {
   const [branches, setBranches] = useState([]);
-  const [selectedBranch, setSelectedBranch] = useState(null);
+  const { selectedBranch, selectBranch } = useBranch();
   const [loading, setLoading] = useState(true);
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -33,13 +42,11 @@ export default function Home() {
         const response = await fetch(`${API_URL}/api/branches`);
         if (response.ok) {
           const data = await response.json();
-          const currentBranches = [...new Map(data
-            .map(branch => [currentBranchKey(branch.name), branch])
-            .filter(([key]) => key)).values()]
+          const currentBranches = data
             .sort((left, right) => branchOrder.indexOf(currentBranchKey(left.name)) - branchOrder.indexOf(currentBranchKey(right.name)));
           setBranches(currentBranches);
-          if (currentBranches.length > 0) {
-            setSelectedBranch(currentBranches.find(b => b.is_active) || currentBranches[0]);
+          if (currentBranches.length > 0 && !currentBranches.some(branch => branch.id === selectedBranch?.id)) {
+            selectBranch(currentBranches.find(b => b.is_active) || currentBranches[0]);
           }
         }
       } catch (error) {
@@ -49,7 +56,7 @@ export default function Home() {
       }
     };
     fetchBranches();
-  }, [API_URL]);
+  }, [API_URL, selectBranch, selectedBranch?.id]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Loading branches...</div>;
 
@@ -72,7 +79,7 @@ export default function Home() {
             <select 
               className="w-full appearance-none bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-xl shadow-sm focus:outline-none focus:border-[#815633] cursor-pointer"
               value={selectedBranch?.id || ''}
-              onChange={(e) => setSelectedBranch(branches.find(b => b.id === Number(e.target.value)))}
+              onChange={(e) => selectBranch(branches.find(b => b.id === Number(e.target.value)))}
             >
               {branches.map(branch => (
                 <option key={branch.id} value={branch.id}>{branch.name}</option>
@@ -137,7 +144,7 @@ export default function Home() {
                     top: pos.top, 
                     left: pos.left 
                   }}
-                  onClick={() => setSelectedBranch(branch)}
+                  onClick={() => selectBranch(branch)}
                 >
                   <div
                     style={{ left: pos.labelLeft, top: pos.labelTop, transform: pos.labelTransform }}

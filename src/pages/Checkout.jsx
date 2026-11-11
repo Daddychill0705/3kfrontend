@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { useBranch } from '../context/BranchContext';
 
 export default function Checkout() {
   const { cart, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { selectedBranch, selectBranch } = useBranch();
   const [branches, setBranches] = useState([]);
   const [formData, setFormData] = useState({
     branchId: '',
@@ -35,7 +37,9 @@ export default function Checkout() {
           const activeBranches = data.filter(b => b.is_active);
           setBranches(activeBranches);
           if (activeBranches.length > 0) {
-            setFormData(prev => ({ ...prev, branchId: activeBranches[0].id }));
+            const preferredBranch = activeBranches.find(branch => branch.id === selectedBranch?.id) || activeBranches[0];
+            setFormData(prev => ({ ...prev, branchId: preferredBranch.id }));
+            selectBranch(preferredBranch);
           }
         }
       } catch (error) {
@@ -43,10 +47,13 @@ export default function Checkout() {
       }
     };
     fetchBranches();
-  }, [API_URL]);
+  }, [API_URL, selectBranch, selectedBranch?.id]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === 'branchId') {
+      selectBranch(branches.find(branch => branch.id === Number(e.target.value)));
+    }
   };
 
   const handleFileChange = (e) => {

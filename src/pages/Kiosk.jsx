@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import logoImg from '../assets/logo.jpg';
 import { useToast } from '../context/ToastContext';
+import { useBranch } from '../context/BranchContext';
 
 export default function Kiosk() {
   const { showToast } = useToast();
+  const { selectedBranch, selectBranch } = useBranch();
   // Flow States
   const [kioskBranch, setKioskBranch] = useState(localStorage.getItem('kiosk_active_branch') || '');
   const [orderType, setOrderType] = useState(''); // 'Dine-in' or 'Take-out'
@@ -71,7 +73,16 @@ export default function Kiosk() {
         if (menuRes.ok) setMenuItems(await menuRes.json());
         if (branchRes.ok) {
           const branchData = await branchRes.json();
-          setBranches(branchData.filter(b => b.is_active));
+          const activeBranches = branchData.filter(b => b.is_active);
+          setBranches(activeBranches);
+          const targetBranch = activeBranches.find(branch => branch.name === kioskBranch)
+            || activeBranches.find(branch => branch.id === selectedBranch?.id)
+            || activeBranches[0];
+          if (targetBranch) {
+            setKioskBranch(targetBranch.name);
+            localStorage.setItem('kiosk_active_branch', targetBranch.name);
+            selectBranch(targetBranch);
+          }
         }
       } catch (error) { 
         console.error('Failed to load initial kiosk data:', error); 
@@ -80,7 +91,7 @@ export default function Kiosk() {
       }
     };
     fetchInitialData();
-  }, [API_URL]);
+  }, [API_URL, selectBranch, selectedBranch?.id]);
 
   const filteredItems = activeCategory === 'ALL' ? menuItems : menuItems.filter(item => item.category === activeCategory);
 
@@ -281,6 +292,7 @@ export default function Kiosk() {
             onChange={(e) => {
               setKioskBranch(e.target.value);
               localStorage.setItem('kiosk_active_branch', e.target.value);
+              selectBranch(branches.find(branch => branch.name === e.target.value));
             }} 
             className="bg-white border border-gray-200 text-gray-700 text-sm font-bold py-2 px-4 rounded-lg shadow-sm focus:outline-none focus:border-[#815633] cursor-pointer"
           >

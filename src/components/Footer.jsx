@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import logoImg from '../assets/logo.jpg';
+import { useBranch } from '../context/BranchContext';
 
 export default function Footer() {
+  const { selectedBranch } = useBranch();
   return (
     <footer className="bg-gradient-to-br from-[#815633] to-[#62432B] text-white pt-12 pb-8 px-4 md:px-8 mt-16">
       {/* Changed lg:grid-cols-4 to lg:grid-cols-3 to center the 3 remaining columns */}
@@ -34,10 +36,8 @@ export default function Footer() {
         <div>
           <h4 className="text-white mb-4 text-lg font-bold drop-shadow-sm">Branch Location</h4>
           <div className="text-orange-50 leading-loose font-medium">
-            <p className="m-0">San Pedro Jeepney Terminal, 4117 Congressional Rd<br />GMA Cavite</p>
-            
-            
-            
+            <p className="m-0 font-bold">{selectedBranch?.name || 'GMA Terminal'}</p>
+            <p className="m-0">{selectedBranch?.address || 'San Pedro Jeepney Terminal, 4117 Congressional Rd, GMA Cavite'}</p>
           </div>
         </div>
 

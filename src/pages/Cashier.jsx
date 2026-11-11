@@ -5,12 +5,14 @@ import { io } from 'socket.io-client';
 import { isOrderChatOpen, useOrderChatClock } from '../hooks/useOrderChatExpiry';
 import SuccessModal from '../components/SuccessModal';
 import { useToast } from '../context/ToastContext';
+import { useBranch } from '../context/BranchContext';
 
 const CashierPOS = lazy(() => import('../components/CashierPOS'));
 
 export default function Cashier() {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
+  const { selectBranch } = useBranch();
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -69,6 +71,7 @@ export default function Cashier() {
           if (target) {
             setActiveBranch(target);
             localStorage.setItem('cashier_active_branch', target);
+            selectBranch(activeBranches.find(branch => branch.name === target) || data.find(branch => branch.name === target));
           }
         }
       } catch (error) {
@@ -76,7 +79,7 @@ export default function Cashier() {
       }
     };
     fetchInitialData();
-  }, [user, navigate, API_URL]);
+  }, [user, navigate, API_URL, selectBranch]);
 
   // 2. Fetch orders as soon as the active branch is known
   useEffect(() => {
@@ -427,6 +430,7 @@ export default function Cashier() {
                  onChange={(e) => {
                    setActiveBranch(e.target.value);
                    localStorage.setItem('cashier_active_branch', e.target.value);
+                   selectBranch(branches.find(branch => branch.name === e.target.value));
                  }} 
                  className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none cursor-pointer"
                >
