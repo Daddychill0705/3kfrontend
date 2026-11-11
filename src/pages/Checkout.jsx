@@ -4,6 +4,14 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useBranch } from '../context/BranchContext';
 
+const formatBranchTime = (time, fallback) => {
+  const match = String(time || '').match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return fallback;
+  const date = new Date();
+  date.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+};
+
 export default function Checkout() {
   const { cart, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
@@ -23,6 +31,7 @@ export default function Checkout() {
   });
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(false);
+  const checkoutBranch = branches.find(branch => branch.id === Number(formData.branchId));
 
   // Define the dynamic API_URL
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -155,12 +164,12 @@ export default function Checkout() {
               <div className="relative">
                 <select name="branchId" value={formData.branchId} onChange={handleInputChange} className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#815633] focus:bg-white outline-none font-bold text-gray-800 appearance-none cursor-pointer">
                   {branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name} - Open now</option>
+                    <option key={b.id} value={b.id}>{b.name} ({formatBranchTime(b.opening_time, '8:00 AM')} - {formatBranchTime(b.closing_time, '8:00 PM')})</option>
                   ))}
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▼</div>
               </div>
-              <p className="text-xs font-bold text-gray-400 mt-2 ml-1">Open now: 8:00 AM - 8:00 PM</p>
+              <p className="text-xs font-bold text-gray-400 mt-2 ml-1">Branch hours: {formatBranchTime(checkoutBranch?.opening_time, '8:00 AM')} - {formatBranchTime(checkoutBranch?.closing_time, '8:00 PM')}</p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">

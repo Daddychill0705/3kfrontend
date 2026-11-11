@@ -18,6 +18,13 @@ const ADMIN_MODULE_DESCRIPTIONS = {
   'Account Recovery': 'Review and respond to customer account recovery requests.',
   'Rider Accounts': 'Manage rider access for delivery operations.'
 };
+const formatBranchTime = (time, fallback) => {
+  const match = String(time || '').match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return fallback;
+  const date = new Date();
+  date.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+};
 
 function AdminPagination({ page, itemCount, onPageChange }) {
   const pageCount = Math.ceil(itemCount / ADMIN_PAGE_SIZE);
@@ -401,7 +408,9 @@ export default function Admin() {
           name: editingBranch.name,
           code: editingBranch.code,
           address: editingBranch.address || '',
-          phone: editingBranch.phone || ''
+          phone: editingBranch.phone || '',
+          opening_time: editingBranch.opening_time || '08:00',
+          closing_time: editingBranch.closing_time || '20:00'
         })
       });
       const result = await response.json().catch(() => ({}));
@@ -1352,10 +1361,10 @@ export default function Admin() {
                             <span>{branch.address || 'Address not set'}</span>
                           </p>
                           {branch.phone && <p className="flex items-center gap-2 text-xs font-semibold text-[#665442]"><span className="w-4 text-center text-[#a06d3f]" aria-hidden="true">☎</span>{branch.phone}</p>}
-                          <p className="flex items-center gap-2 text-xs font-bold text-[#815633]"><svg viewBox="0 0 24 24" className="h-4 w-4 text-[#a06d3f]" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" /><path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>8:00 AM - 8:00 PM</p>
+                          <p className="flex items-center gap-2 text-xs font-bold text-[#815633]"><svg viewBox="0 0 24 24" className="h-4 w-4 text-[#a06d3f]" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" /><path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>{formatBranchTime(branch.opening_time, '8:00 AM')} - {formatBranchTime(branch.closing_time, '8:00 PM')}</p>
                         </div>
                         <div className="mt-4 flex justify-end">
-                          <button type="button" onClick={() => setEditingBranch({ ...branch, address: branch.address || '', phone: branch.phone || '' })} className="inline-flex items-center gap-2 rounded-lg border border-[#c8a77f] bg-white/80 px-3.5 py-2 text-xs font-extrabold text-[#704a2d] shadow-sm transition hover:border-[#815633] hover:bg-[#815633] hover:text-white">
+                          <button type="button" onClick={() => setEditingBranch({ ...branch, address: branch.address || '', phone: branch.phone || '', opening_time: String(branch.opening_time || '08:00').slice(0, 5), closing_time: String(branch.closing_time || '20:00').slice(0, 5) })} className="inline-flex items-center gap-2 rounded-lg border border-[#c8a77f] bg-white/80 px-3.5 py-2 text-xs font-extrabold text-[#704a2d] shadow-sm transition hover:border-[#815633] hover:bg-[#815633] hover:text-white">
                             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" aria-hidden="true"><path d="m14 5 5 5M4 20l4.5-1 11-11a2.1 2.1 0 0 0-3-3l-11 11L4 20Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>Edit branch
                           </button>
                         </div>
@@ -1375,6 +1384,8 @@ export default function Admin() {
                     <div><label className="mb-2 block text-sm font-bold">Branch Code</label><input type="text" required value={editingBranch.code} onChange={event => setEditingBranch({ ...editingBranch, code: event.target.value })} className="w-full rounded-lg border px-4 py-2 outline-none focus:border-[#815633]" /></div>
                     <div className="sm:col-span-2"><label className="mb-2 block text-sm font-bold">Address</label><textarea rows={2} value={editingBranch.address} onChange={event => setEditingBranch({ ...editingBranch, address: event.target.value })} className="w-full resize-y rounded-lg border px-4 py-2 outline-none focus:border-[#815633]" /></div>
                     <div><label className="mb-2 block text-sm font-bold">Phone</label><input type="tel" value={editingBranch.phone} onChange={event => setEditingBranch({ ...editingBranch, phone: event.target.value })} className="w-full rounded-lg border px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Opening Time</label><input type="time" required value={editingBranch.opening_time} onChange={event => setEditingBranch({ ...editingBranch, opening_time: event.target.value })} className="w-full rounded-lg border px-4 py-2 outline-none focus:border-[#815633]" /></div>
+                    <div><label className="mb-2 block text-sm font-bold">Closing Time</label><input type="time" required value={editingBranch.closing_time} onChange={event => setEditingBranch({ ...editingBranch, closing_time: event.target.value })} className="w-full rounded-lg border px-4 py-2 outline-none focus:border-[#815633]" /></div>
                     <div className="flex items-end justify-end gap-3 sm:col-span-2">
                       <button type="button" onClick={() => setEditingBranch(null)} className="rounded-lg border px-5 py-2 font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
                       <button type="submit" className="rounded-lg bg-[#815633] px-5 py-2 font-bold text-white shadow-sm hover:bg-[#62432B]">Save Changes</button>

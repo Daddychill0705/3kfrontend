@@ -28,6 +28,13 @@ const branchPositions = {
 const branchOrder = ['trece', 'gentry', 'imus', 'dasma', 'langkaan', 'gma', 'silang'];
 
 const currentBranchPosition = (branchName) => branchPositions[currentBranchKey(branchName)] || null;
+const formatBranchTime = (time, fallback) => {
+  const match = String(time || '').match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return fallback;
+  const date = new Date();
+  date.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+};
 
 export default function Home() {
   const [branches, setBranches] = useState([]);
@@ -98,7 +105,7 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-black text-gray-900 mb-2 break-words">{selectedBranch.name}</h3>
               <p className="text-sm font-bold text-gray-500 mb-4 flex items-center gap-2">
-                🕒 {selectedBranch.opening_time || '8:00 AM'} - {selectedBranch.closing_time || '8:00 PM'}
+                🕒 {formatBranchTime(selectedBranch.opening_time, '8:00 AM')} - {formatBranchTime(selectedBranch.closing_time, '8:00 PM')}
               </p>
               
               {!selectedBranch.is_active && (
