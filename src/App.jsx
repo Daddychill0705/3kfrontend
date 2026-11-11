@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
 import { BranchProvider } from './context/BranchContext';
@@ -49,6 +49,12 @@ const BlankLayout = () => (
     <Outlet />
   </main>
 );
+
+const PublicMenu = () => {
+  const { user } = useAuth();
+  const isGuest = user?.role === 'guest' || user?.email === 'guest@3kkitchen.local';
+  return isGuest ? <Navigate to="/home" replace /> : <Menu />;
+};
 
 function App() {
   return (
@@ -111,11 +117,7 @@ function App() {
             
             {/* User Experience with Header, No Footer */}
             <Route element={<NoFooterLayout />}>
-              <Route path="/menu" element={
-                <AuthWrapper allowedRoles={['customer', 'admin', 'cashier', 'rider']} guestRedirectTo="/home">
-                  <Menu />
-                </AuthWrapper>
-              } />
+              <Route path="/menu" element={<PublicMenu />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/order" element={

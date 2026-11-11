@@ -69,7 +69,7 @@ export default function Header() {
         </Link>
         
         <Link to="/home" onClick={() => setMobileMenuOpen(false)} className={`min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/home')}`}>Home</Link>
-        {canBrowseCustomerPages && (
+        {(!user || canBrowseCustomerPages) && (
           <Link to="/menu" onClick={() => setMobileMenuOpen(false)} className={`min-h-12 w-full px-4 py-3 text-left text-base md:min-h-0 md:w-auto md:px-0 md:py-0 md:text-center md:text-base font-medium ${isActive('/menu')}`}>Menu</Link>
         )}
         
