@@ -131,6 +131,7 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
     const lineItem = {
       id: item.id,
       name: item.name,
+      category: item.category || (item.brand ? 'Drinks' : 'Menu'),
       price: Number(item.price),
       image: item.image_url || null,
       qty: 1
@@ -384,6 +385,7 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-bold leading-snug text-gray-900">{index + 1}. {item.name}</p>
+                    <span className="mt-1 inline-flex rounded border border-[#e4d5bf] bg-[#f2e8d8] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-[#815633]">{item.category || 'Menu'}</span>
                     <p className="mt-1 text-[10px] text-gray-500">{formatMoney(item.price)} each</p>
                   </div>
                   <span className="shrink-0 text-[11px] font-black text-[#60452f]">{formatMoney(item.price * item.qty)}</span>
@@ -431,6 +433,7 @@ export default function CashierPOS({ branch, cashierUser, onBack }) {
               <div key={item.id} className="flex items-center gap-3 rounded-xl border border-[#C9A77C]/25 bg-[#FBFAF4] p-3">
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 text-xs font-bold leading-snug text-gray-900">{item.name}</p>
+                  <span className="mt-1 inline-flex rounded border border-[#e4d5bf] bg-[#f2e8d8] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-[#815633]">{item.category || 'Menu'}</span>
                   <p className="mt-1 text-xs font-bold text-[#815633]">{formatMoney(item.price)}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
