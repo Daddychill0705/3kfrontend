@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
+import { useBranch } from '../context/BranchContext';
+
+const formatBranchTime = (time, fallback) => {
+  const match = String(time || '').match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return fallback;
+  const date = new Date();
+  date.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+};
 
 export default function Checkout() {
   const { cart, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { selectedBranch, selectBranch } = useBranch();
   const [branches, setBranches] = useState([]);
   const [formData, setFormData] = useState({
     branchId: '',
@@ -19,22 +31,24 @@ export default function Checkout() {
   });
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(false);
+  const checkoutBranch = branches.find(branch => branch.id === Number(formData.branchId));
 
+  // Define the dynamic API_URL
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchBranches = async () => {
       try {
+        // Use the dynamic API_URL here
         const response = await fetch(`${API_URL}/api/branches`);
         if (response.ok) {
           const data = await response.json();
           const activeBranches = data.filter(b => b.is_active);
           setBranches(activeBranches);
           if (activeBranches.length > 0) {
-            const savedBranchName = localStorage.getItem('customer_branch');
-            const matched = activeBranches.find(b => b.name === savedBranchName);
-            const defaultBranch = matched || activeBranches[0];
-            setFormData(prev => ({ ...prev, branchId: defaultBranch.id }));
+            const preferredBranch = activeBranches.find(branch => branch.id === selectedBranch?.id) || activeBranches[0];
+            setFormData(prev => ({ ...prev, branchId: preferredBranch.id }));
+            selectBranch(preferredBranch);
           }
         }
       } catch (error) {
@@ -42,14 +56,12 @@ export default function Checkout() {
       }
     };
     fetchBranches();
-  }, [API_URL]);
+  }, [API_URL, selectBranch, selectedBranch?.id]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    if (name === 'branchId') {
-      const chosen = branches.find(b => b.id === Number(value));
-      if (chosen) localStorage.setItem('customer_branch', chosen.name);
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === 'branchId') {
+      selectBranch(branches.find(branch => branch.id === Number(e.target.value)));
     }
   };
 
@@ -59,15 +71,25 @@ export default function Checkout() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!cart.length) return showToast('Your cart is empty. Add items before placing an order.', 'error');
     if (formData.paymentMethod === 'GCash' && !receipt) {
-      return alert('Please upload your GCash receipt.');
+      return showToast('Please upload your GCash receipt.', 'error');
     }
     
+    const selectedBranch = branches.find(b => b.id === Number(formData.branchId));
+    if (!selectedBranch) {
+      return showToast('Available branches have not loaded yet. Please refresh the page and try again.', 'error');
+    }
+
     setLoading(true);
     const token = localStorage.getItem('token');
-    const selectedBranch = branches.find(b => b.id === Number(formData.branchId));
+    if (!token) {
+      setLoading(false);
+      return showToast('Your session has expired. Please log in again before placing your order.', 'error');
+    }
     let uploadedReceiptUrl = null;
 
+    // Upload receipt to Cloudinary
     if (receipt) {
       const cloudinaryFormData = new FormData();
       cloudinaryFormData.append('file', receipt);
@@ -84,7 +106,7 @@ export default function Checkout() {
         uploadedReceiptUrl = cloudData.secure_url;
       } catch (err) {
         setLoading(false);
-        return alert('Failed to upload receipt image. Please try again.');
+        return showToast('Failed to upload receipt image. Please try again.', 'error');
       }
     }
 
@@ -92,7 +114,7 @@ export default function Checkout() {
       items: JSON.stringify(cart),
       totalAmount: cartTotal,
       orderType: formData.orderType,
-      branch: selectedBranch ? selectedBranch.name : 'Unknown Branch',
+      branch: selectedBranch.name,
       address: formData.address,
       phone: formData.phone,
       paymentMethod: formData.paymentMethod,
@@ -101,6 +123,7 @@ export default function Checkout() {
     };
 
     try {
+      // Use the dynamic API_URL here
       const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 
@@ -110,12 +133,17 @@ export default function Checkout() {
         body: JSON.stringify(payload)
       });
       
-      if (!response.ok) throw new Error('Checkout failed');
+      const responseData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = responseData.error || `Checkout failed (HTTP ${response.status}). Please try again.`;
+        throw new Error(responseData.code ? `${message} (${responseData.code})` : message);
+      }
       
       clearCart();
+      showToast('Your order was placed successfully.');
       navigate('/order');
     } catch (error) {
-      alert(error.message);
+      showToast(error.message || 'Could not place your order.', 'error');
     } finally {
       setLoading(false);
     }
@@ -124,7 +152,7 @@ export default function Checkout() {
   if (cart.length === 0) return navigate('/cart');
 
   return (
-    <div className="bg-[#fffaf7] min-h-screen py-12 px-4 md:px-8 font-sans">
+    <div className="bg-[#F5EFE3] min-h-screen py-12 px-4 md:px-8 font-sans">
       <div className="max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <div className="lg:col-span-2 space-y-8">
@@ -134,34 +162,35 @@ export default function Checkout() {
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
               <label className="block text-sm font-bold text-gray-900 mb-3">Which branch?</label>
               <div className="relative">
-                <select name="branchId" value={formData.branchId} onChange={handleInputChange} className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#E39A7B] focus:bg-white outline-none font-bold text-gray-800 appearance-none cursor-pointer">
+                <select name="branchId" value={formData.branchId} onChange={handleInputChange} className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#815633] focus:bg-white outline-none font-bold text-gray-800 appearance-none cursor-pointer">
                   {branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name} - Open now</option>
+                    <option key={b.id} value={b.id}>{b.name} ({formatBranchTime(b.opening_time, '8:00 AM')} - {formatBranchTime(b.closing_time, '8:00 PM')})</option>
                   ))}
                 </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▼</div>
               </div>
-              <p className="text-xs font-bold text-gray-400 mt-2 ml-1">Open now: 8:00 AM - 8:00 PM</p>
+              <p className="text-xs font-bold text-gray-400 mt-2 ml-1">Branch hours: {formatBranchTime(checkoutBranch?.opening_time, '8:00 AM')} - {formatBranchTime(checkoutBranch?.closing_time, '8:00 PM')}</p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
               <label className="block text-sm font-bold text-gray-900 mb-4">When?</label>
               <div className="flex gap-3 mb-6">
-                <button type="button" onClick={() => setFormData({...formData, scheduleMode: 'As soon as possible'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${formData.scheduleMode === 'As soon as possible' ? 'bg-[#E39A7B] text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>As soon as possible</button>
-                <button type="button" onClick={() => setFormData({...formData, scheduleMode: 'Schedule for later'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${formData.scheduleMode === 'Schedule for later' ? 'bg-[#E39A7B] text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Schedule for later</button>
+                <button type="button" onClick={() => setFormData({...formData, scheduleMode: 'As soon as possible'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${formData.scheduleMode === 'As soon as possible' ? 'bg-[#815633] text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>As soon as possible</button>
+                <button type="button" onClick={() => setFormData({...formData, scheduleMode: 'Schedule for later'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${formData.scheduleMode === 'Schedule for later' ? 'bg-[#815633] text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Schedule for later</button>
               </div>
               
               {formData.scheduleMode === 'Schedule for later' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Day</label>
-                    <select name="scheduleDay" value={formData.scheduleDay} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl font-bold outline-none focus:border-[#E39A7B]">
+                    <select name="scheduleDay" value={formData.scheduleDay} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl font-bold outline-none focus:border-[#815633]">
                       <option>Today</option>
                       <option>Tomorrow</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Time</label>
-                    <select name="scheduleTime" value={formData.scheduleTime} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl font-bold outline-none focus:border-[#E39A7B]">
+                    <select name="scheduleTime" value={formData.scheduleTime} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl font-bold outline-none focus:border-[#815633]">
                       <option>08:00 AM</option>
                       <option>09:00 AM</option>
                       <option>10:00 AM</option>
@@ -179,15 +208,21 @@ export default function Checkout() {
                 <button type="button" onClick={() => setFormData({...formData, orderType: 'Pick-up'})} className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${formData.orderType === 'Pick-up' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Pickup</button>
                 <button type="button" onClick={() => setFormData({...formData, orderType: 'Delivery'})} className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${formData.orderType === 'Delivery' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Delivery</button>
               </div>
+
               <div className="space-y-5">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Mobile number</label>
-                  <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} required placeholder="09000000000" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium" />
+                  <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} required placeholder="09000000000" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#815633] outline-none font-medium" />
                 </div>
+
                 {formData.orderType === 'Delivery' && (
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Delivery Address / Map Pin</label>
-                    <input type="text" name="address" value={formData.address} onChange={handleInputChange} required placeholder="Street, Barangay, City" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium" />
+                    <div className="w-full h-48 bg-gray-200 rounded-xl mb-3 flex items-center justify-center relative overflow-hidden border border-gray-200">
+                      <div className="absolute inset-0 opacity-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                      <span className="text-4xl relative z-10 drop-shadow-md">📍</span>
+                    </div>
+                    <input type="text" name="address" value={formData.address} onChange={handleInputChange} required placeholder="Street, Barangay, City" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#815633] outline-none font-medium" />
                   </div>
                 )}
               </div>
@@ -195,28 +230,30 @@ export default function Checkout() {
 
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
               <label className="block text-sm font-bold text-gray-900 mb-4">Payment</label>
-              <div className="flex gap-3 mb-6">
-                <button type="button" onClick={() => setFormData({...formData, paymentMethod: 'Cash on delivery'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${formData.paymentMethod === 'Cash on delivery' ? 'bg-green-50 text-green-700 border-green-200 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Cash on delivery</button>
-                <button type="button" onClick={() => setFormData({...formData, paymentMethod: 'GCash'})} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${formData.paymentMethod === 'GCash' ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>GCash</button>
+              <div className="flex flex-wrap gap-3 mb-6">
+                <button type="button" onClick={() => setFormData({ ...formData, paymentMethod: 'Cash on delivery' })} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${formData.paymentMethod === 'Cash on delivery' ? 'bg-green-50 text-green-700 border-green-200 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Cash on delivery</button>
+                <button type="button" onClick={() => setFormData({ ...formData, paymentMethod: 'GCash' })} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${formData.paymentMethod === 'GCash' ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>GCash</button>
               </div>
               
-              {formData.paymentMethod === 'GCash' && (
-                <div className="bg-[#fffaf7] p-6 rounded-xl border border-[#FFB5AB]/40 text-center">
+              {formData.paymentMethod === 'GCash' ? (
+                <div className="bg-[#F5EFE3] p-6 rounded-xl border border-[#C9A77C]/40 text-center">
                   <div className="w-40 h-40 bg-white mx-auto mb-4 p-2 rounded-xl shadow-sm border border-gray-200 flex items-center justify-center text-4xl">QR</div>
                   <p className="font-black text-gray-900 text-lg">Ruchell Quesada</p>
                   <p className="text-sm font-bold text-gray-500 mb-4">0997 131 2386</p>
-                  <p className="text-sm font-bold text-gray-800 mb-4">Send exactly <span className="text-[#E39A7B]">₱{cartTotal.toFixed(2)}</span></p>
+                  <p className="text-sm font-bold text-gray-800 mb-4">Send exactly <span className="text-[#815633]">₱{cartTotal.toFixed(2)}</span></p>
                   
                   <div className="text-left space-y-4">
-                    <input type="text" placeholder="Reference No. (e.g. 1012 345 678901)" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium text-sm" />
-                    <input type="file" accept="image/*" onChange={handleFileChange} className="w-full text-sm font-medium text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#E39A7B] file:text-white hover:file:bg-[#DBB06B]" />
+                    <input type="text" placeholder="Reference No. (e.g. 1012 345 678901)" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#815633] outline-none font-medium text-sm" />
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="w-full text-sm font-medium text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#815633] file:text-white hover:file:bg-[#62432B]" />
                   </div>
                 </div>
+              ) : (
+                <p className="text-sm font-medium text-gray-600">Pay the rider in cash when your delivery arrives.</p>
               )}
 
               <div className="mt-6">
                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Notes for the kitchen</label>
-                <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows="2" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#E39A7B] outline-none font-medium text-sm"></textarea>
+                <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows="2" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[#815633] outline-none font-medium text-sm"></textarea>
               </div>
             </div>
           </form>
@@ -241,7 +278,7 @@ export default function Checkout() {
             <div className="bg-gray-50 p-4 rounded-xl mb-6">
               <div className="flex justify-between items-center mb-1">
                 <span className="font-bold text-gray-500 text-sm">Estimated total</span>
-                <span className="text-xl font-black text-[#E39A7B]">₱{cartTotal.toFixed(2)}</span>
+                <span className="text-xl font-black text-[#815633]">₱{cartTotal.toFixed(2)}</span>
               </div>
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Taxes included</p>
             </div>
@@ -251,6 +288,7 @@ export default function Checkout() {
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );
