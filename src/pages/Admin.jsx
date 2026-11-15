@@ -14,9 +14,6 @@ export default function Admin() {
   const [customers, setCustomers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
 
-  // Selected Order Modal State
-  const [selectedOrder, setSelectedOrder] = useState(null);
-
   // Product States
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', category: '3k Ala-Carte', price: '' });
@@ -52,24 +49,21 @@ export default function Admin() {
       navigate('/login');
       return;
     }
-
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}` };
-
-        const [ordersRes, menuRes, branchRes, riderRes, staffRes, logRes, customersRes] = await Promise.all([
+        
+        const [ordersRes, branchRes, riderRes, staffRes, logRes, customersRes] = await Promise.all([
           fetch(`${API_URL}/api/admin/orders`, { headers }),
-          fetch(`${API_URL}/api/menu`),
           fetch(`${API_URL}/api/branches`),
           fetch(`${API_URL}/api/admin/riders`, { headers }),
           fetch(`${API_URL}/api/admin/users`, { headers }),
           fetch(`${API_URL}/api/admin/activity-logs`, { headers }),
           fetch(`${API_URL}/api/admin/customers`, { headers })
         ]);
-
+        
         if (ordersRes.ok) setOrders(await ordersRes.json());
-        if (menuRes.ok) setMenuItems(await menuRes.json());
         if (branchRes.ok) setBranches(await branchRes.json());
         if (riderRes.ok) setRiders(await riderRes.json());
         if (staffRes.ok) setStaff(await staffRes.json());
@@ -79,9 +73,24 @@ export default function Admin() {
         console.error('Failed to fetch admin data', error);
       }
     };
-
     fetchData();
   }, [user, navigate, API_URL]);
+
+  // Fetch branch-specific menu whenever selectedBranch changes
+  useEffect(() => {
+    const fetchBranchMenu = async () => {
+      try {
+        const query = selectedBranch !== 'All branches'
+          ? `?branch=${encodeURIComponent(selectedBranch)}`
+          : '';
+        const menuRes = await fetch(`${API_URL}/api/menu${query}`);
+        if (menuRes.ok) setMenuItems(await menuRes.json());
+      } catch (error) {
+        console.error('Failed to fetch branch menu', error);
+      }
+    };
+    fetchBranchMenu();
+  }, [selectedBranch, API_URL]);
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
@@ -93,27 +102,26 @@ export default function Admin() {
       });
       if (response.ok) {
         setOrders(orders.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
-        if (selectedOrder?.id === orderId) {
-          setSelectedOrder(prev => ({ ...prev, status: newStatus }));
-        }
       }
-    } catch (error) {
-      console.error('Failed to update status', error);
-    }
+    } catch (error) { console.error('Failed to update status', error); }
   };
 
   const toggleSoldOut = async (id, currentStatus) => {
+    if (selectedBranch === 'All branches') {
+      alert('Please select a specific branch (e.g., Dasma) before marking an item Sold Out or Available.');
+      return;
+    }
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/admin/menu/${id}/stock`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ is_sold_out: !currentStatus })
+        body: JSON.stringify({ is_sold_out: !currentStatus, branch: selectedBranch })
       });
-      if (response.ok) setMenuItems(menuItems.map(item => item.id === id ? { ...item, is_sold_out: !currentStatus } : item));
-    } catch (error) {
-      console.error('Failed to toggle stock', error);
-    }
+      if (response.ok) {
+        setMenuItems(menuItems.map(item => item.id === id ? { ...item, is_sold_out: !currentStatus } : item));
+      }
+    } catch (error) { console.error('Failed to toggle stock', error); }
   };
 
   const deleteProduct = async (id) => {
@@ -125,9 +133,7 @@ export default function Admin() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setMenuItems(menuItems.filter(item => item.id !== id));
-    } catch (error) {
-      console.error('Failed to delete product', error);
-    }
+    } catch (error) { console.error('Failed to delete product', error); }
   };
 
   const handleEditProduct = async (e) => {
@@ -135,16 +141,15 @@ export default function Admin() {
     try {
       const token = localStorage.getItem('token');
       let uploadedImageUrl = '';
-
+      
       if (editImage) {
         const cloudinaryFormData = new FormData();
         cloudinaryFormData.append('file', editImage);
         cloudinaryFormData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
         const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, {
-          method: 'POST',
-          body: cloudinaryFormData
+          method: 'POST', body: cloudinaryFormData
         });
-
+        
         if (cloudRes.ok) {
           const cloudData = await cloudRes.json();
           uploadedImageUrl = cloudData.secure_url;
@@ -152,12 +157,10 @@ export default function Admin() {
           return alert('Failed to upload new image to Cloudinary.');
         }
       }
-
-      const payload = {
-        name: editingProduct.name,
-        category: editingProduct.category,
-        price: editingProduct.price,
-        image_url: uploadedImageUrl
+      
+      const payload = { 
+        name: editingProduct.name, category: editingProduct.category, 
+        price: editingProduct.price, image_url: uploadedImageUrl 
       };
       const response = await fetch(`${API_URL}/api/admin/menu/${editingProduct.id}`, {
         method: 'PUT',
@@ -165,14 +168,12 @@ export default function Admin() {
         body: JSON.stringify(payload)
       });
       if (response.ok) {
-        setEditingProduct(null);
-        setEditImage(null);
-        const menuRes = await fetch(`${API_URL}/api/menu`);
+        setEditingProduct(null); setEditImage(null);
+        const query = selectedBranch !== 'All branches' ? `?branch=${encodeURIComponent(selectedBranch)}` : '';
+        const menuRes = await fetch(`${API_URL}/api/menu${query}`);
         if (menuRes.ok) setMenuItems(await menuRes.json());
       } else alert("Failed to update menu item.");
-    } catch (error) {
-      alert('Error updating product');
-    }
+    } catch (error) { alert('Error updating product'); }
   };
 
   const handleAddProduct = async (e) => {
@@ -180,27 +181,24 @@ export default function Admin() {
     try {
       const token = localStorage.getItem('token');
       let uploadedImageUrl = '';
-
+      
       if (productImage) {
         const cloudinaryFormData = new FormData();
         cloudinaryFormData.append('file', productImage);
         cloudinaryFormData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
         const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, {
-          method: 'POST',
-          body: cloudinaryFormData
+          method: 'POST', body: cloudinaryFormData
         });
-
+        
         if (cloudRes.ok) {
           const cloudData = await cloudRes.json();
           uploadedImageUrl = cloudData.secure_url;
         } else return alert('Failed to upload image to Cloudinary.');
       }
-
-      const payload = {
-        name: newProduct.name,
-        category: newProduct.category,
-        price: newProduct.price,
-        image_url: uploadedImageUrl
+      
+      const payload = { 
+        name: newProduct.name, category: newProduct.category, 
+        price: newProduct.price, image_url: uploadedImageUrl 
       };
       const response = await fetch(`${API_URL}/api/admin/menu`, {
         method: 'POST',
@@ -208,15 +206,13 @@ export default function Admin() {
         body: JSON.stringify(payload)
       });
       if (response.ok) {
-        setShowAddProduct(false);
-        setProductImage(null);
+        setShowAddProduct(false); setProductImage(null);
         setNewProduct({ name: '', category: '3k Ala-Carte', price: '' });
-        const menuRes = await fetch(`${API_URL}/api/menu`);
+        const query = selectedBranch !== 'All branches' ? `?branch=${encodeURIComponent(selectedBranch)}` : '';
+        const menuRes = await fetch(`${API_URL}/api/menu${query}`);
         if (menuRes.ok) setMenuItems(await menuRes.json());
       } else alert("Failed to save menu item.");
-    } catch (error) {
-      alert('Error adding product');
-    }
+    } catch (error) { alert('Error adding product'); }
   };
 
   const handleAddBranch = async (e) => {
@@ -224,8 +220,7 @@ export default function Admin() {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/admin/branches`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(newBranch)
       });
       if (response.ok) {
@@ -233,17 +228,14 @@ export default function Admin() {
         const res = await fetch(`${API_URL}/api/branches`);
         if (res.ok) setBranches(await res.json());
       }
-    } catch (error) {
-      alert('Failed to add branch');
-    }
+    } catch (error) { alert('Failed to add branch'); }
   };
 
   const handleAddRider = async (e) => {
     e.preventDefault();
     try {
       const response = await fetch(`${API_URL}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newRider, role: 'rider' })
       });
       if (response.ok) {
@@ -252,9 +244,7 @@ export default function Admin() {
         const res = await fetch(`${API_URL}/api/admin/riders`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setRiders(await res.json());
       }
-    } catch (error) {
-      alert('Failed to add rider');
-    }
+    } catch (error) { alert('Failed to add rider'); }
   };
 
   const handleEditRider = async (e) => {
@@ -268,14 +258,11 @@ export default function Admin() {
         body: JSON.stringify(payload)
       });
       if (response.ok) {
-        setEditingRider(null);
-        setEditRiderPass('');
+        setEditingRider(null); setEditRiderPass('');
         const res = await fetch(`${API_URL}/api/admin/riders`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setRiders(await res.json());
       } else alert('Failed to update rider.');
-    } catch (error) {
-      alert('Failed to update rider');
-    }
+    } catch (error) { alert('Failed to update rider'); }
   };
 
   const handleAddStaff = async (e) => {
@@ -292,9 +279,7 @@ export default function Admin() {
         const res = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setStaff(await res.json());
       } else alert('Failed to add account. Email may already exist.');
-    } catch (error) {
-      alert('Failed to add account');
-    }
+    } catch (error) { alert('Failed to add account'); }
   };
 
   const handleEditStaff = async (e) => {
@@ -308,14 +293,11 @@ export default function Admin() {
         body: JSON.stringify(payload)
       });
       if (response.ok) {
-        setEditingStaff(null);
-        setEditStaffPass('');
+        setEditingStaff(null); setEditStaffPass('');
         const res = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setStaff(await res.json());
       } else alert('Failed to update account.');
-    } catch (error) {
-      alert('Failed to update account');
-    }
+    } catch (error) { alert('Failed to update account'); }
   };
 
   const deleteStaff = async (id) => {
@@ -323,39 +305,13 @@ export default function Admin() {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         setStaff(staff.filter(s => s.id !== id));
         setRiders(riders.filter(s => s.id !== id));
       }
-    } catch (error) {
-      console.error('Failed to delete account', error);
-    }
-  };
-
-  // Helper to format order dates consistently
-  const formatOrderDate = (order) => {
-    if (order.created_at) {
-      return new Date(order.created_at).toLocaleString('en-PH', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-    return order.date || 'N/A';
-  };
-
-  // Helper to extract display customer name (including Kiosk orders)
-  const getOrderCustomerName = (order) => {
-    const isKiosk = ['Dine-in', 'Take-out'].includes(order.order_type);
-    if (isKiosk && order.delivery_address?.startsWith('Kiosk Customer: ')) {
-      return order.delivery_address.replace('Kiosk Customer: ', '');
-    }
-    return order.customerName;
+    } catch (error) { console.error('Failed to delete account', error); }
   };
 
   const filteredOrders = selectedBranch === 'All branches' ? orders : orders.filter(o => o.branch === selectedBranch);
@@ -382,14 +338,14 @@ export default function Admin() {
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/40 z-20 md:hidden transition-opacity" onClick={() => setIsSidebarOpen(false)} />
       )}
-
+      
       <aside className={`fixed md:static inset-y-0 left-0 z-30 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} w-64 bg-white flex flex-col shadow-lg border-r border-[#FFB5AB]/30 shrink-0`}>
         <div className="p-6 border-b border-gray-100">
           <button className="md:hidden absolute top-4 right-4 text-gray-400" onClick={() => setIsSidebarOpen(false)}>✕</button>
           <h2 className="text-xl font-black text-gray-900">Super admin</h2>
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3K Kitchen System</span>
         </div>
-
+        
         <div className="flex-1 overflow-y-auto py-4 hide-scrollbar">
           <ul className="space-y-1">
             {modules.map((module) => (
@@ -402,7 +358,7 @@ export default function Admin() {
                 </button>
               </li>
             ))}
-
+            
             <li className="mt-4 border-t border-gray-100 pt-4">
               <Link to="/cashier" className="w-full block text-left px-6 py-3 text-sm font-bold text-gray-600 hover:text-[#4a3b32] hover:bg-gray-50">
                 Open Cashier System
@@ -420,25 +376,25 @@ export default function Admin() {
       <main className="flex-1 flex flex-col overflow-hidden z-10 relative">
         <header className="flex justify-between items-center p-4 md:px-6 lg:px-8 border-b border-gray-200 bg-white shadow-sm shrink-0">
           <div className="flex items-center gap-3">
-            <button className="md:hidden p-2 -ml-2 text-gray-600 font-bold" onClick={() => setIsSidebarOpen(true)}>☰</button>
+            <button className="md:hidden p-2 -ml-2 text-gray-600" onClick={() => setIsSidebarOpen(true)}>☰</button>
             <h1 className="text-2xl font-black text-gray-900 truncate">{activeModule}</h1>
           </div>
           <div className="flex items-center gap-4">
-            <select
+            <select 
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none hidden sm:block cursor-pointer"
+              className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 outline-none cursor-pointer"
             >
               <option>All branches</option>
               {branches.map(b => <option key={b.id}>{b.name}</option>)}
             </select>
-            <span className="text-sm font-bold text-gray-600 hidden md:block">{user?.email}</span>
+            <span className="text-sm font-bold text-gray-600 hidden md:block">{user.email}</span>
             <button onClick={() => { logout(); navigate('/login'); }} className="text-sm font-bold text-red-500 hover:underline cursor-pointer">Sign out</button>
           </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-
+          
           {/* SALES MODULE */}
           {activeModule === 'Sales' && (
             <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
@@ -512,7 +468,7 @@ export default function Admin() {
                   <option>Any channel</option><option>Online</option><option>Kiosk</option>
                 </select>
               </div>
-
+              
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm min-w-[900px]">
                   <thead className="bg-[#FFD3AC]/20">
@@ -522,23 +478,17 @@ export default function Admin() {
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Type</th>
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Status</th>
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Payment</th>
-                      <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase text-right">Details</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {activeOrdersList.map((order, i) => (
-                      <tr
-                        key={order.id || i}
-                        onClick={() => setSelectedOrder(order)}
-                        className="hover:bg-[#FFD3AC]/10 cursor-pointer transition-colors"
-                      >
+                      <tr key={i} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <p className="font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</p>
                           <p className="text-[10px] text-gray-500 font-bold">{order.branch}</p>
-                          <p className="text-[10px] text-gray-400 font-medium mt-0.5">{formatOrderDate(order)}</p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="font-bold text-gray-900">{getOrderCustomerName(order)}</p>
+                          <p className="font-bold text-gray-900">{order.customerName}</p>
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-bold text-gray-700">{order.order_type}</p>
@@ -550,23 +500,14 @@ export default function Admin() {
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-black text-gray-900">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</p>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${['GCash', 'Cash'].includes(order.payment_method) ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
-                            {['GCash', 'Cash'].includes(order.payment_method) ? 'Paid' : 'Unpaid'}
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${order.payment_method === 'GCash' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
+                            {order.payment_method === 'GCash' ? 'Paid' : 'Unpaid'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
-                            className="text-xs font-bold text-[#E39A7B] hover:text-[#4a3b32] bg-[#fffaf7] border border-[#FFB5AB]/50 px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            View Items
-                          </button>
                         </td>
                       </tr>
                     ))}
                     {activeOrdersList.length === 0 && (
-                      <tr><td colSpan="6" className="text-center py-8 text-gray-400 font-bold">No active orders right now.</td></tr>
+                      <tr><td colSpan="5" className="text-center py-8 text-gray-400 font-bold">No active orders right now.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -577,41 +518,29 @@ export default function Admin() {
           {/* ORDER HISTORY MODULE */}
           {activeModule === 'Order History' && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in flex flex-col">
-              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <div>
-                  <h2 className="font-bold text-gray-800">Completed & Cancelled Orders</h2>
-                  <p className="text-xs text-gray-500 font-medium">Click any order to view full item details and timestamps.</p>
-                </div>
-                <span className="text-xs font-bold text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200">
-                  {historyOrdersList.length} orders
-                </span>
+              <div className="p-4 border-b border-gray-100 flex gap-4 bg-gray-50">
+                <h2 className="font-bold text-gray-700">Completed & Cancelled Orders</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm min-w-[900px]">
                   <thead className="bg-[#FFD3AC]/20">
                     <tr>
-                      <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Order & Date</th>
+                      <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Order</th>
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Customer</th>
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Type</th>
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Status</th>
                       <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase">Payment</th>
-                      <th className="px-6 py-4 font-bold text-gray-600 text-[10px] uppercase text-right">Details</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {historyOrdersList.map((order, i) => (
-                      <tr
-                        key={order.id || i}
-                        onClick={() => setSelectedOrder(order)}
-                        className="hover:bg-[#FFD3AC]/10 cursor-pointer transition-colors"
-                      >
+                      <tr key={i} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <p className="font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</p>
                           <p className="text-[10px] text-gray-500 font-bold">{order.branch}</p>
-                          <p className="text-[11px] text-[#E39A7B] font-bold mt-0.5">{formatOrderDate(order)}</p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="font-bold text-gray-900">{getOrderCustomerName(order)}</p>
+                          <p className="font-bold text-gray-900">{order.customerName}</p>
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-bold text-gray-700">{order.order_type}</p>
@@ -623,23 +552,14 @@ export default function Admin() {
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-black text-gray-900">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</p>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${['GCash', 'Cash'].includes(order.payment_method) ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
-                            {['GCash', 'Cash'].includes(order.payment_method) ? 'Paid' : 'Unpaid'}
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase mt-1 inline-block ${order.payment_method === 'GCash' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-yellow-50 text-yellow-600 border border-yellow-200'}`}>
+                            {order.payment_method === 'GCash' ? 'Paid' : 'Unpaid'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
-                            className="text-xs font-bold text-[#E39A7B] hover:text-[#4a3b32] bg-[#fffaf7] border border-[#FFB5AB]/50 px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            View Details
-                          </button>
                         </td>
                       </tr>
                     ))}
                     {historyOrdersList.length === 0 && (
-                      <tr><td colSpan="6" className="text-center py-8 text-gray-400 font-bold">No historical orders found.</td></tr>
+                      <tr><td colSpan="5" className="text-center py-8 text-gray-400 font-bold">No historical orders found.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -666,15 +586,12 @@ export default function Admin() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {completedOrders.map(order => (
-                      <tr key={order.id} onClick={() => setSelectedOrder(order)} className="hover:bg-gray-50 cursor-pointer">
-                        <td className="px-6 py-4 font-black text-gray-900">
-                          O-{String(order.id).padStart(4, '0')}
-                          <span className="block text-[10px] font-medium text-gray-400">{formatOrderDate(order)}</span>
-                        </td>
-                        <td className="px-6 py-4 font-bold text-gray-900">{getOrderCustomerName(order)}</td>
+                      <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 font-black text-gray-900">O-{String(order.id).padStart(4, '0')}</td>
+                        <td className="px-6 py-4 font-bold text-gray-900">{order.customerName}</td>
                         <td className="px-6 py-4 font-bold text-gray-700">{order.payment_method}</td>
                         <td className="px-6 py-4 font-black text-[#E39A7B]">₱{parseFloat(order.total_amount || order.total || 0).toFixed(2)}</td>
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-6 py-4">
                           {order.gcash_receipt_url ? (
                             <a href={order.gcash_receipt_url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline font-bold text-xs">View Receipt</a>
                           ) : (
@@ -737,7 +654,7 @@ export default function Admin() {
                   <p className="text-sm font-bold text-gray-500">Total Customer Accounts: {customers.length}</p>
                 </div>
               </div>
-
+              
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm min-w-[900px]">
@@ -775,45 +692,61 @@ export default function Admin() {
           {/* MENU MODULE */}
           {activeModule === 'Menu' && (
             <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
-              <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                <p className="text-sm font-bold text-gray-600">Every branch shares one menu and price list.</p>
-                <button onClick={() => setShowAddProduct(true)} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700">+ Product</button>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-sm font-bold text-gray-600">Managing stock for:</span>
+                  <select
+                    value={selectedBranch}
+                    onChange={(e) => setSelectedBranch(e.target.value)}
+                    className="text-sm font-bold text-gray-800 bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 outline-none cursor-pointer"
+                  >
+                    <option>All branches</option>
+                    {branches.map(b => <option key={b.id}>{b.name}</option>)}
+                  </select>
+                  {selectedBranch === 'All branches' && (
+                    <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
+                      Select a branch to toggle Sold Out
+                    </span>
+                  )}
+                </div>
+                <button onClick={() => setShowAddProduct(true)} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-700 shrink-0">+ Product</button>
               </div>
+
               {showAddProduct && (
                 <form onSubmit={handleAddProduct} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div><label className="block text-sm font-bold mb-2">Product Name</label><input type="text" required value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" /></div>
+                  <div><label className="block text-sm font-bold mb-2">Product Name</label><input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" /></div>
                   <div><label className="block text-sm font-bold mb-2">Category</label>
-                    <select value={newProduct.category} onChange={e => setNewProduct({ ...newProduct, category: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400">
+                    <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400">
                       {['3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'].map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
-                  <div><label className="block text-sm font-bold mb-2">Price (₱)</label><input type="number" required value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" /></div>
+                  <div><label className="block text-sm font-bold mb-2">Price (₱)</label><input type="number" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" /></div>
                   <div><label className="block text-sm font-bold mb-2">Image</label><input type="file" accept="image/*" onChange={e => setProductImage(e.target.files[0])} className="text-sm w-full pt-2" /></div>
                   <div className="sm:col-span-2 flex justify-end gap-4"><button type="button" onClick={() => setShowAddProduct(false)} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button><button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save</button></div>
                 </form>
               )}
-
+              
               {editingProduct && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                   <form onSubmit={handleEditProduct} className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200 w-full max-w-md space-y-4 relative">
                     <button type="button" onClick={() => { setEditingProduct(null); setEditImage(null); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
                     <h2 className="text-xl font-black text-gray-900 mb-4">Edit Product</h2>
-
+                    
                     <div><label className="block text-sm font-bold mb-2">Product Name</label>
-                      <input type="text" required value={editingProduct.name} onChange={e => setEditingProduct({ ...editingProduct, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" />
+                      <input type="text" required value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" />
                     </div>
                     <div><label className="block text-sm font-bold mb-2">Category</label>
-                      <select value={editingProduct.category} onChange={e => setEditingProduct({ ...editingProduct, category: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400">
+                      <select value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400">
                         {['3k Ala-Carte', '3k Originals', '3k Specials', '3k Budget Meals', 'Rice and Extras', '3k Sets/Extras'].map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
                     <div><label className="block text-sm font-bold mb-2">Price (₱)</label>
-                      <input type="number" required value={editingProduct.price} onChange={e => setEditingProduct({ ...editingProduct, price: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" />
+                      <input type="number" required value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none focus:border-red-400" />
                     </div>
                     <div><label className="block text-sm font-bold mb-2">Change Image (Leave empty to keep current)</label>
                       <input type="file" accept="image/*" onChange={e => setEditImage(e.target.files[0])} className="text-sm w-full pt-2" />
                     </div>
-
+                    
                     <div className="flex justify-end gap-4 mt-6">
                       <button type="button" onClick={() => { setEditingProduct(null); setEditImage(null); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
                       <button type="submit" className="px-6 py-2 bg-[#E39A7B] text-white font-bold rounded-lg shadow-sm hover:bg-[#DBB06B]">Update</button>
@@ -839,10 +772,16 @@ export default function Admin() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-green-600 mr-2 bg-green-50 px-2 py-1 rounded hidden md:block">On the menu</span>
-                            <button onClick={() => toggleSoldOut(item.id, item.is_sold_out)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${item.is_sold_out ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>
-                              {item.is_sold_out ? 'Available' : 'Sold Out'}
-                            </button>
+                            {selectedBranch !== 'All branches' && (
+                              <>
+                                <span className={`text-xs font-bold mr-2 px-2 py-1 rounded hidden md:block ${item.is_sold_out ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'}`}>
+                                  {item.is_sold_out ? `Sold Out (${selectedBranch})` : `Available (${selectedBranch})`}
+                                </span>
+                                <button onClick={() => toggleSoldOut(item.id, item.is_sold_out)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${item.is_sold_out ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>
+                                  {item.is_sold_out ? 'Mark Available' : 'Sold Out'}
+                                </button>
+                              </>
+                            )}
                             <button onClick={() => setEditingProduct(item)} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50">Edit</button>
                             <button onClick={() => deleteProduct(item.id)} className="text-red-500 bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-100">Delete</button>
                           </div>
@@ -864,8 +803,8 @@ export default function Admin() {
               </div>
               {showAddBranch && (
                 <form onSubmit={handleAddBranch} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div><label className="block text-sm font-bold mb-2">Branch Name</label><input type="text" required value={newBranch.name} onChange={e => setNewBranch({ ...newBranch, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Code</label><input type="text" required value={newBranch.code} onChange={e => setNewBranch({ ...newBranch, code: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div><label className="block text-sm font-bold mb-2">Branch Name</label><input type="text" required value={newBranch.name} onChange={e => setNewBranch({...newBranch, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div><label className="block text-sm font-bold mb-2">Code</label><input type="text" required value={newBranch.code} onChange={e => setNewBranch({...newBranch, code: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
                   <div className="sm:col-span-2 flex justify-end gap-4"><button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Branch</button></div>
                 </form>
               )}
@@ -896,22 +835,22 @@ export default function Admin() {
 
               {showAddStaff && (
                 <form onSubmit={handleAddStaff} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={newStaff.firstname} onChange={e => setNewStaff({ ...newStaff, firstname: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={newStaff.lastname} onChange={e => setNewStaff({ ...newStaff, lastname: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={newStaff.email} onChange={e => setNewStaff({ ...newStaff, email: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Password</label><input type="password" required value={newStaff.password} onChange={e => setNewStaff({ ...newStaff, password: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={newStaff.firstname} onChange={e => setNewStaff({...newStaff, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={newStaff.lastname} onChange={e => setNewStaff({...newStaff, lastname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div><label className="block text-sm font-bold mb-2">Password</label><input type="password" required value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
                   <div>
                     <label className="block text-sm font-bold mb-2">Role</label>
-                    <select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer">
+                    <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer">
                       <option value="cashier">Cashier</option>
                       <option value="admin">Super Admin</option>
                     </select>
                   </div>
-
+                  
                   {newStaff.role === 'cashier' && (
                     <div>
                       <label className="block text-sm font-bold mb-2">Assign Branch</label>
-                      <select value={newStaff.branch} onChange={e => setNewStaff({ ...newStaff, branch: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer" required>
+                      <select value={newStaff.branch} onChange={e => setNewStaff({...newStaff, branch: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer" required>
                         <option value="">Select a branch...</option>
                         {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                       </select>
@@ -930,32 +869,32 @@ export default function Admin() {
                   <form onSubmit={handleEditStaff} className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-6 relative">
                     <button type="button" onClick={() => { setEditingStaff(null); setEditStaffPass(''); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
                     <h2 className="text-xl font-black text-gray-900 mb-2 sm:col-span-2">Edit Staff Account</h2>
-
-                    <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={editingStaff.firstname} onChange={e => setEditingStaff({ ...editingStaff, firstname: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                    <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={editingStaff.lastname} onChange={e => setEditingStaff({ ...editingStaff, lastname: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                    <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={editingStaff.email} onChange={e => setEditingStaff({ ...editingStaff, email: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    
+                    <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={editingStaff.firstname} onChange={e => setEditingStaff({...editingStaff, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={editingStaff.lastname} onChange={e => setEditingStaff({...editingStaff, lastname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={editingStaff.email} onChange={e => setEditingStaff({...editingStaff, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
                     <div>
                       <label className="block text-sm font-bold mb-2">Password</label>
                       <input type="password" value={editStaffPass} onChange={e => setEditStaffPass(e.target.value)} placeholder="Leave blank to keep current" className="w-full px-4 py-2 border rounded-lg outline-none" />
                     </div>
                     <div>
                       <label className="block text-sm font-bold mb-2">Role</label>
-                      <select value={editingStaff.role} onChange={e => setEditingStaff({ ...editingStaff, role: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer">
+                      <select value={editingStaff.role} onChange={e => setEditingStaff({...editingStaff, role: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer">
                         <option value="cashier">Cashier</option>
                         <option value="admin">Super Admin</option>
                       </select>
                     </div>
-
+                    
                     {editingStaff.role === 'cashier' && (
                       <div>
                         <label className="block text-sm font-bold mb-2">Assign Branch</label>
-                        <select value={editingStaff.branch || ''} onChange={e => setEditingStaff({ ...editingStaff, branch: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer" required>
+                        <select value={editingStaff.branch || ''} onChange={e => setEditingStaff({...editingStaff, branch: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none cursor-pointer" required>
                           <option value="">Select a branch...</option>
                           {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                         </select>
                       </div>
                     )}
-
+                    
                     <div className="sm:col-span-2 flex justify-end gap-4 mt-4">
                       <button type="button" onClick={() => { setEditingStaff(null); setEditStaffPass(''); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
                       <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Changes</button>
@@ -974,7 +913,7 @@ export default function Admin() {
                         </div>
                         <div>
                           <p className="font-bold text-gray-900">
-                            {member.firstname} {member.lastname}
+                            {member.firstname} {member.lastname} 
                             {member.branch && <span className="text-xs text-gray-500 font-medium ml-2">({member.branch})</span>}
                           </p>
                           <p className="text-sm text-gray-500 font-medium">{member.email}</p>
@@ -984,9 +923,8 @@ export default function Admin() {
                         <span className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${member.role === 'admin' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-orange-50 text-orange-700 border border-orange-200'} mr-4`}>
                           {member.role}
                         </span>
-
                         <button onClick={() => setEditingStaff(member)} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50">Edit</button>
-                        {user?.email !== member.email && (
+                        {user.email !== member.email && (
                           <button onClick={() => deleteStaff(member.id)} className="text-red-400 bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-100">Delete</button>
                         )}
                       </div>
@@ -1008,10 +946,10 @@ export default function Admin() {
 
               {showAddRider && (
                 <form onSubmit={handleAddRider} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={newRider.firstname} onChange={e => setNewRider({ ...newRider, firstname: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={newRider.lastname} onChange={e => setNewRider({ ...newRider, lastname: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={newRider.email} onChange={e => setNewRider({ ...newRider, email: e.target.value })} placeholder="rider@3k.local" className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                  <div><label className="block text-sm font-bold mb-2">Password</label><input type="password" required value={newRider.password} onChange={e => setNewRider({ ...newRider, password: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={newRider.firstname} onChange={e => setNewRider({...newRider, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={newRider.lastname} onChange={e => setNewRider({...newRider, lastname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={newRider.email} onChange={e => setNewRider({...newRider, email: e.target.value})} placeholder="rider@3k.local" className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                  <div><label className="block text-sm font-bold mb-2">Password</label><input type="password" required value={newRider.password} onChange={e => setNewRider({...newRider, password: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
                   <div className="sm:col-span-2 flex justify-end gap-4 mt-2">
                     <button type="button" onClick={() => setShowAddRider(false)} className="px-6 py-2 border rounded-lg font-bold text-gray-500 hover:bg-gray-50">Cancel</button>
                     <button type="submit" className="px-6 py-2 bg-red-600 text-white rounded-lg font-bold shadow-sm">Register Rider</button>
@@ -1024,15 +962,15 @@ export default function Admin() {
                   <form onSubmit={handleEditRider} className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-6 relative">
                     <button type="button" onClick={() => { setEditingRider(null); setEditRiderPass(''); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
                     <h2 className="text-xl font-black text-gray-900 mb-2 sm:col-span-2">Edit Rider Account</h2>
-
-                    <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={editingRider.firstname} onChange={e => setEditingRider({ ...editingRider, firstname: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                    <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={editingRider.lastname} onChange={e => setEditingRider({ ...editingRider, lastname: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
-                    <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={editingRider.email} onChange={e => setEditingRider({ ...editingRider, email: e.target.value })} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    
+                    <div><label className="block text-sm font-bold mb-2">First Name</label><input type="text" required value={editingRider.firstname} onChange={e => setEditingRider({...editingRider, firstname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    <div><label className="block text-sm font-bold mb-2">Last Name</label><input type="text" required value={editingRider.lastname} onChange={e => setEditingRider({...editingRider, lastname: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
+                    <div><label className="block text-sm font-bold mb-2">Email Username</label><input type="email" required value={editingRider.email} onChange={e => setEditingRider({...editingRider, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg outline-none" /></div>
                     <div>
                       <label className="block text-sm font-bold mb-2">Password</label>
                       <input type="password" value={editRiderPass} onChange={e => setEditRiderPass(e.target.value)} placeholder="Leave blank to keep current" className="w-full px-4 py-2 border rounded-lg outline-none" />
                     </div>
-
+                    
                     <div className="sm:col-span-2 flex justify-end gap-4 mt-4">
                       <button type="button" onClick={() => { setEditingRider(null); setEditRiderPass(''); }} className="px-6 py-2 font-bold text-gray-500 hover:bg-gray-50 rounded-lg border">Cancel</button>
                       <button type="submit" className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm">Save Changes</button>
@@ -1054,10 +992,10 @@ export default function Admin() {
                           <p className="text-sm text-gray-500 font-medium">{rider.email}</p>
                         </div>
                       </div>
-
+                      
                       <div className="flex items-center gap-2">
                         <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-[10px] font-bold uppercase tracking-wider mr-4">Active</span>
-
+                        
                         <button onClick={() => setEditingRider(rider)} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50">Edit</button>
                         <button onClick={() => deleteStaff(rider.id)} className="text-red-400 bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-100">Delete</button>
                       </div>
@@ -1070,170 +1008,7 @@ export default function Admin() {
           )}
         </div>
       </main>
-
-      {/* ORDER DETAILS MODAL */}
-      {selectedOrder && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
-          onClick={() => setSelectedOrder(null)}
-        >
-          <div
-            className="bg-white rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-start">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h3 className="font-black text-gray-900 text-2xl">
-                    O-{String(selectedOrder.id).padStart(4, '0')}
-                  </h3>
-                  <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider ${
-                    selectedOrder.status === 'Completed'
-                      ? 'bg-green-100 text-green-700'
-                      : selectedOrder.status === 'Cancelled'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {selectedOrder.status}
-                  </span>
-                </div>
-                <p className="text-xs font-bold text-[#E39A7B] mt-1">
-                  Order Date: {formatOrderDate(selectedOrder)}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 font-bold flex items-center justify-center cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto space-y-6 bg-[#fffaf7]">
-              {/* Customer & Order Meta */}
-              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Customer</span>
-                  <p className="font-bold text-gray-900">{getOrderCustomerName(selectedOrder)}</p>
-                  {selectedOrder.email && (
-                    <p className="text-xs text-gray-500 font-medium">{selectedOrder.email}</p>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Branch</span>
-                  <p className="font-bold text-gray-900">{selectedOrder.branch || 'N/A'}</p>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Order Type</span>
-                  <p className="font-bold text-gray-900">{selectedOrder.order_type}</p>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Payment Method</span>
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-gray-900">{selectedOrder.payment_method}</p>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                      ['GCash', 'Cash'].includes(selectedOrder.payment_method)
-                        ? 'bg-green-50 text-green-600 border border-green-200'
-                        : 'bg-yellow-50 text-yellow-600 border border-yellow-200'
-                    }`}>
-                      {['GCash', 'Cash'].includes(selectedOrder.payment_method) ? 'Paid' : 'Unpaid'}
-                    </span>
-                  </div>
-                </div>
-
-                {selectedOrder.contact_number && (
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Contact Number</span>
-                    <p className="font-bold text-gray-800">{selectedOrder.contact_number}</p>
-                  </div>
-                )}
-
-                {selectedOrder.delivery_address && !selectedOrder.delivery_address.startsWith('Kiosk Customer: ') && (
-                  <div className="col-span-2">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Delivery Address</span>
-                    <p className="font-medium text-gray-800">{selectedOrder.delivery_address}</p>
-                  </div>
-                )}
-
-                {selectedOrder.notes && (
-                  <div className="col-span-2 bg-yellow-50/70 border border-yellow-200/70 p-3 rounded-lg">
-                    <span className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider block mb-0.5">Customer Notes</span>
-                    <p className="text-xs font-medium text-gray-800 italic">"{selectedOrder.notes}"</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Ordered Items List */}
-              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-                  <h4 className="text-xs font-black text-gray-500 uppercase tracking-wider">Order Items</h4>
-                  <span className="text-xs font-bold text-gray-400">
-                    {selectedOrder.itemsData?.reduce((sum, item) => sum + Number(item.qty || 0), 0) || 0} item(s)
-                  </span>
-                </div>
-
-                {selectedOrder.itemsData && selectedOrder.itemsData.length > 0 ? (
-                  <div className="divide-y divide-gray-100">
-                    {selectedOrder.itemsData.map((item, idx) => {
-                      const lineTotal = parseFloat(item.price || 0) * Number(item.qty || 1);
-                      return (
-                        <div key={idx} className="py-3 first:pt-0 last:pb-0 flex justify-between items-center text-sm">
-                          <div>
-                            <p className="font-bold text-gray-900">
-                              <span className="text-[#E39A7B] font-black mr-2">{item.qty}×</span>
-                              {item.name}
-                            </p>
-                            <p className="text-xs text-gray-400 font-medium pl-6">
-                              ₱{parseFloat(item.price || 0).toFixed(2)} each
-                            </p>
-                          </div>
-                          <span className="font-black text-gray-900">₱{lineTotal.toFixed(2)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm font-medium text-gray-700">
-                    {selectedOrder.items || 'No item details available.'}
-                  </p>
-                )}
-
-                <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
-                  <span className="text-sm font-black text-gray-900 uppercase tracking-wider">Total Amount</span>
-                  <span className="text-2xl font-black text-[#E39A7B]">
-                    ₱{parseFloat(selectedOrder.total_amount || selectedOrder.total || 0).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 bg-white border-t border-gray-100 flex justify-between items-center gap-3">
-              {selectedOrder.gcash_receipt_url ? (
-                <a
-                  href={selectedOrder.gcash_receipt_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-bold text-blue-600 hover:underline"
-                >
-                  View GCash Receipt ↗
-                </a>
-              ) : (
-                <span />
-              )}
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="px-6 py-2.5 bg-[#4a3b32] text-white rounded-xl text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      
       {/* CUSTOMER PROFILE MODAL */}
       {viewCustomer && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -1252,7 +1027,7 @@ export default function Admin() {
                   <p className="text-sm font-medium text-gray-700"><strong className="text-gray-900 block mb-1">Member Since</strong> {new Date(viewCustomer.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
-
+              
               <div>
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Activity Logs & Orders</h4>
                 <div className="space-y-2">
