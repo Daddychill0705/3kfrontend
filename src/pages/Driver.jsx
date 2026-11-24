@@ -13,6 +13,8 @@ export default function Driver() {
   const [chatOrder, setChatOrder] = useState(null);
   const [deliveryModalOrder, setDeliveryModalOrder] = useState(null);
   const [deliveryProofPhoto, setDeliveryProofPhoto] = useState(null);
+  const [deliveryProofPreview, setDeliveryProofPreview] = useState('');
+  const [isDeliveryCameraOpen, setIsDeliveryCameraOpen] = useState(false);
   const [isSubmittingDelivery, setIsSubmittingDelivery] = useState(false);
   const [assistanceModalOrder, setAssistanceModalOrder] = useState(null);
   const [assistanceMessage, setAssistanceMessage] = useState('');
@@ -27,11 +29,87 @@ export default function Driver() {
   const [socket, setSocket] = useState(null);
   const chatOrderRef = useRef(null);
   const orderFetchSequence = useRef(0);
+  const deliveryCameraRef = useRef(null);
+  const deliveryVideoRef = useRef(null);
   const { user, logout } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  useEffect(() => {
+    if (isDeliveryCameraOpen && deliveryVideoRef.current && deliveryCameraRef.current) {
+      deliveryVideoRef.current.srcObject = deliveryCameraRef.current;
+    }
+  }, [isDeliveryCameraOpen]);
+
+  useEffect(() => {
+    if (!deliveryProofPhoto) {
+      setDeliveryProofPreview('');
+      return undefined;
+    }
+    const previewUrl = URL.createObjectURL(deliveryProofPhoto);
+    setDeliveryProofPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [deliveryProofPhoto]);
+
+  useEffect(() => {
+    if (deliveryModalOrder || !deliveryCameraRef.current) return;
+    deliveryCameraRef.current.getTracks().forEach(track => track.stop());
+    deliveryCameraRef.current = null;
+    setIsDeliveryCameraOpen(false);
+  }, [deliveryModalOrder]);
+
+  useEffect(() => () => {
+    deliveryCameraRef.current?.getTracks().forEach(track => track.stop());
+  }, []);
+
+  const stopDeliveryCamera = () => {
+    deliveryCameraRef.current?.getTracks().forEach(track => track.stop());
+    deliveryCameraRef.current = null;
+    setIsDeliveryCameraOpen(false);
+  };
+
+  const openDeliveryCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showToast('Camera access is not available in this browser. Choose a photo from your device instead.', 'error');
+      return;
+    }
+    try {
+      deliveryCameraRef.current = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+      setIsDeliveryCameraOpen(true);
+    } catch (error) {
+      showToast('Could not open the camera. Check camera permission or choose a photo from your device.', 'error');
+    }
+  };
+
+  const captureDeliveryPhoto = () => {
+    const video = deliveryVideoRef.current;
+    if (!video?.videoWidth || !video.videoHeight) {
+      showToast('Camera is still starting. Please try again in a moment.', 'error');
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => {
+      if (!blob) {
+        showToast('Could not capture the photo. Please try again.', 'error');
+        return;
+      }
+      const photo = new File([blob], `delivery-proof-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      if (photo.size > 10 * 1024 * 1024) {
+        showToast('The proof photo must be 10 MB or smaller.', 'error');
+        return;
+      }
+      setDeliveryProofPhoto(photo);
+      stopDeliveryCamera();
+    }, 'image/jpeg', 0.9);
+  };
 
   useEffect(() => {
     if (!user || (user.role !== 'rider' && user.role !== 'admin')) {
@@ -457,14 +535,29 @@ export default function Driver() {
             </p>
             <label className="mb-5 block text-sm font-bold text-gray-700">
               Proof of delivery photo <span className="text-red-600">*</span>
+              <button type="button" onClick={openDeliveryCamera} disabled={isSubmittingDelivery || isDeliveryCameraOpen} className="mt-2 w-full rounded-lg bg-[#815633] px-4 py-3 font-bold text-white hover:bg-[#62432B] disabled:opacity-60">
+                {isDeliveryCameraOpen ? 'Camera is open' : 'Open Camera'}
+              </button>
+              {isDeliveryCameraOpen && (
+                <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-black">
+                  <video ref={deliveryVideoRef} autoPlay playsInline className="max-h-72 w-full object-contain" aria-label="Camera preview for delivery proof" />
+                  <div className="flex gap-2 bg-white p-3">
+                    <button type="button" onClick={captureDeliveryPhoto} className="flex-1 rounded-lg bg-green-700 px-3 py-2.5 font-bold text-white hover:bg-green-800">Take Photo</button>
+                    <button type="button" onClick={stopDeliveryCamera} className="rounded-lg border border-gray-300 px-3 py-2.5 font-bold text-gray-700 hover:bg-gray-50">Close Camera</button>
+                  </div>
+                </div>
+              )}
+              <span className="mt-3 block text-center text-xs font-bold text-gray-500">or choose a photo from your device</span>
               <input type="file" accept="image/*" capture="environment" required onChange={event => {
                 const file = event.target.files?.[0];
                 if (!file) { setDeliveryProofPhoto(null); return; }
                 if (!file.type.startsWith('image/')) { setDeliveryProofPhoto(null); showToast('Choose an image file for delivery proof.', 'error'); return; }
                 if (file.size > 10 * 1024 * 1024) { setDeliveryProofPhoto(null); showToast('The proof photo must be 10 MB or smaller.', 'error'); return; }
+                stopDeliveryCamera();
                 setDeliveryProofPhoto(file);
               }} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[#815633] file:px-3 file:py-2 file:font-bold file:text-white" />
-              <span className="mt-1 block text-xs font-medium text-gray-500">Take or choose a clear photo. Maximum size: 10 MB.</span>
+              {deliveryProofPreview && <img src={deliveryProofPreview} alt="Preview of delivery proof photo showing the delivered item" className="mt-3 max-h-64 w-full rounded-lg border border-gray-200 object-contain" />}
+              <span className="mt-1 block text-xs font-medium text-gray-500">Take a photo of the delivered item or choose one. Maximum size: 10 MB.</span>
             </label>
             <button onClick={submitDeliveryProof} disabled={!deliveryProofPhoto || isSubmittingDelivery} className="w-full bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] disabled:cursor-wait disabled:opacity-60">
               {isSubmittingDelivery ? 'Uploading proof...' : 'Submit proof and mark delivered'}
