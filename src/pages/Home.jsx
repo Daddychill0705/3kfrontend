@@ -7,11 +7,11 @@ import { useBranch } from '../context/BranchContext';
 const currentBranchKey = (branchName) => {
   const name = String(branchName || '').toLowerCase();
   if (name.includes('langkaan')) return 'langkaan';
-  if (name.includes('gentry') || name.includes('general trias')) return 'gentry';
+  if (name.includes('gentry') || name.includes('gentri') || name.includes('general trias')) return 'gentry';
   if (name.includes('trece')) return 'trece';
   if (name.includes('imus')) return 'imus';
   if (name.includes('dasma') || name.includes('dasmarinas')) return 'dasma';
-  if (name.includes('gma') && name.includes('terminal')) return 'gma';
+  if (name.includes('gma')) return 'gma';
   if (name.includes('silang')) return 'silang';
   return '';
 };
@@ -26,6 +26,15 @@ const branchPositions = {
   silang: { top: '60%', left: '69%', labelLeft: '18px', labelTop: '0', labelTransform: 'translate(0, -50%)' }
 };
 const branchOrder = ['trece', 'gentry', 'imus', 'dasma', 'langkaan', 'gma', 'silang'];
+const branchMapUrls = {
+  gma: 'https://maps.app.goo.gl/ze9gFhjcZUTn1tJV8',
+  langkaan: 'https://maps.app.goo.gl/vmPZZJem9CC96u1x7',
+  silang: 'https://maps.app.goo.gl/1SnpwG2aKL4LfouX9',
+  gentry: 'https://maps.app.goo.gl/t7vfZsAebrToyjZf6',
+  trece: 'https://maps.app.goo.gl/KUprPCP86yhGAD6C7',
+  dasma: 'https://maps.app.goo.gl/TCabZrM8zpQUvQQ8A',
+  imus: 'https://maps.app.goo.gl/24ukxjvzrSZfxGin7'
+};
 
 const currentBranchPosition = (branchName) => branchPositions[currentBranchKey(branchName)] || null;
 const formatBranchTime = (time, fallback) => {
@@ -123,7 +132,7 @@ export default function Home() {
                   </button>
                 </Link>
                 <a 
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedBranch.address || selectedBranch.name)}`} 
+                  href={selectedBranch.maps_url || branchMapUrls[currentBranchKey(selectedBranch.name)] || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedBranch.address || selectedBranch.name)}`}
                   target="_blank" 
                   rel="noreferrer"
                   className="flex-none bg-white border border-gray-200 text-gray-700 px-6 py-3.5 rounded-xl font-bold shadow-sm hover:bg-gray-50 transition-all flex items-center justify-center"
