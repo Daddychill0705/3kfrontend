@@ -152,7 +152,7 @@ export default function ForgotPassword() {
           </form>}
 
           {!isVerifyPage && !isNewPasswordPage && <div className="mb-6 border-t border-[#C9A77C]/25 pt-5 text-center">
-            <Link to="/account-recovery" className="text-sm font-bold text-[#815633] underline decoration-[#C9A77C] underline-offset-4 hover:text-[#62432B]">I don&apos;t have access to this account</Link>
+            <Link to="/account-recovery" className="text-sm font-bold text-[#815633] underline decoration-[#C9A77C] underline-offset-4 hover:text-[#62432B]">Can&apos;t access this email?</Link>
           </div>}
           <p className="text-center text-sm font-medium text-gray-600">Remember your password? <Link to="/login" className="font-black text-3k-red transition-colors hover:text-3k-red-hover">Back to Sign In</Link></p>
         </div>
