@@ -96,10 +96,10 @@ export default function Driver() {
           : request)
         : [{ id: requestId, order_id: orderId, order_number: orderNumber, status: 'Accepted', accepted_firstname: riderName, accepted_by_rider_id: riderId }, ...current]);
       setOrders(current => current.map(order => Number(order.id) === Number(orderId)
-        ? { ...order, assigned_rider_id: riderId }
+        ? { ...order, assistance_helper_name: riderName }
         : order));
-      setActiveTab('Available');
-      showToast(`${riderName} accepted your request and took over ${orderNumber || 'the delivery'}.`);
+      setActiveTab('My deliveries');
+      showToast(`${riderName} accepted your request and is assisting with ${orderNumber || 'the delivery'}.`);
     });
     
     newSocket.on('receive_message', (data) => {
@@ -244,10 +244,10 @@ export default function Driver() {
       if (!response.ok) throw new Error(result.error || 'Could not accept this assistance request.');
       setIncomingAssistanceRequests(current => current.filter(item => Number(item.id) !== Number(request.id)));
       setOrders(current => current.map(order => Number(order.id) === Number(result.orderId)
-        ? { ...order, assigned_rider_id: user.id }
+        ? { ...order, is_assisting: true, assisting_for_name: request.requester_name, assistance_message: request.message }
         : order));
       setActiveTab('My deliveries');
-      showToast('You accepted the request and took over the delivery.');
+      showToast('You accepted the request and are assisting with the delivery.');
     } catch (error) {
       showToast(error.message || 'Could not accept this assistance request.', 'error');
     } finally {
@@ -286,10 +286,11 @@ export default function Driver() {
   };
 
   const availableDeliveries = orders.filter(o => o.status === 'Ready' && o.order_type === 'Delivery' && !o.assigned_rider_id);
-  const activeDeliveries = orders.filter(o => o.status === 'Out for Delivery' && o.order_type === 'Delivery' && Number(o.assigned_rider_id) === Number(user?.id));
-  const historyDeliveries = orders.filter(o => o.status === 'Completed' && o.order_type === 'Delivery' && Number(o.assigned_rider_id) === Number(user?.id));
+  const activeDeliveries = orders.filter(o => o.status === 'Out for Delivery' && o.order_type === 'Delivery' && (Number(o.assigned_rider_id) === Number(user?.id) || o.is_assisting));
+  const historyDeliveries = orders.filter(o => o.status === 'Completed' && o.order_type === 'Delivery' && (Number(o.assigned_rider_id) === Number(user?.id) || o.is_assisting));
   const hasActiveDelivery = activeDeliveries.length > 0;
   const pendingAssistanceByOrder = new Map(myAssistanceRequests.filter(request => request.status === 'Pending').map(request => [Number(request.order_id), request]));
+  const acceptedAssistanceByOrder = new Map(myAssistanceRequests.filter(request => request.status === 'Accepted').map(request => [Number(request.order_id), request]));
   const latestAcceptedAssistance = myAssistanceRequests.find(request => request.status === 'Accepted');
 
   const displayList = activeTab === 'Available' ? availableDeliveries : activeTab === 'My deliveries' ? activeDeliveries : historyDeliveries;
@@ -325,7 +326,7 @@ export default function Driver() {
       {latestAcceptedAssistance && (
         <div className="mx-auto mb-5 max-w-[800px] px-4">
           <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
-            <strong>{latestAcceptedAssistance.accepted_firstname} {latestAcceptedAssistance.accepted_lastname}</strong> accepted your assistance request for {latestAcceptedAssistance.order_number || 'a delivery'} and took over the order.
+            <strong>{latestAcceptedAssistance.accepted_firstname} {latestAcceptedAssistance.accepted_lastname}</strong> accepted your assistance request for {latestAcceptedAssistance.order_number || 'a delivery'}. Both riders remain assigned to the delivery.
           </div>
         </div>
       )}
@@ -344,7 +345,7 @@ export default function Driver() {
               </div>
               <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-gray-700"><strong>Message for assistance:</strong> {request.message}</p>
               <button type="button" onClick={() => acceptAssistance(request)} disabled={hasActiveDelivery || acceptingAssistanceId !== null} className="mt-4 w-full rounded-xl bg-[#815633] py-3 font-bold text-white shadow-sm hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-50">
-                {hasActiveDelivery ? 'Finish your current delivery before accepting' : acceptingAssistanceId === request.id ? 'Taking over delivery...' : 'Accept and take over delivery'}
+                {hasActiveDelivery ? 'Finish your current delivery before accepting' : acceptingAssistanceId === request.id ? 'Accepting request...' : 'Accept and assist'}
               </button>
             </article>
           ))}
@@ -373,6 +374,11 @@ export default function Driver() {
                   </span>
                 </div>
               </div>
+              {order.is_assisting && (
+                <p className="-mt-3 mb-5 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm font-semibold text-blue-900">
+                  You are assisting {order.assisting_for_name || 'the assigned rider'}. Both riders remain on this delivery.
+                </p>
+              )}
               
               <div className="space-y-4 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <div className="flex gap-3 text-sm font-bold text-gray-700">
@@ -402,14 +408,14 @@ export default function Driver() {
                       💬 Chat
                       {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
                     </button>
-                    {user.role === 'rider' && (
+                    {user.role === 'rider' && !order.is_assisting && (
                       <button
                         type="button"
                         onClick={() => { setAssistanceMessage(''); setAssistanceModalOrder(order); }}
-                        disabled={pendingAssistanceByOrder.has(Number(order.id))}
+                        disabled={pendingAssistanceByOrder.has(Number(order.id)) || acceptedAssistanceByOrder.has(Number(order.id))}
                         className="flex-1 rounded-xl border border-amber-300 bg-amber-50 py-3.5 text-sm font-bold text-amber-900 shadow-sm hover:bg-amber-100 disabled:cursor-default disabled:opacity-70"
                       >
-                        {pendingAssistanceByOrder.has(Number(order.id)) ? 'Assistance requested' : 'Need Help?'}
+                        {pendingAssistanceByOrder.has(Number(order.id)) ? 'Assistance requested' : acceptedAssistanceByOrder.has(Number(order.id)) ? 'Rider assisting' : 'Need Help?'}
                       </button>
                     )}
                     <button onClick={() => { setDeliveryProofPhoto(null); setDeliveryModalOrder(order); }} className="flex-[2] bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] transition-colors">Mark delivered</button>
@@ -431,7 +437,7 @@ export default function Driver() {
                   <button type="button" onClick={() => cancelAssistance(pendingAssistanceByOrder.get(Number(order.id)).id)} className="ml-2 font-black underline">Cancel request</button>
                 </div>
               )}
-              {user.role === 'rider' && order.status === 'Out for Delivery' && availableRiderCount === 0 && !pendingAssistanceByOrder.has(Number(order.id)) && (
+              {user.role === 'rider' && order.status === 'Out for Delivery' && availableRiderCount === 0 && !order.is_assisting && !pendingAssistanceByOrder.has(Number(order.id)) && !acceptedAssistanceByOrder.has(Number(order.id)) && (
                 <p className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs font-semibold text-gray-600">No other riders are currently online and available.</p>
               )}
             </div>
@@ -472,7 +478,7 @@ export default function Driver() {
           <form onSubmit={event => { event.preventDefault(); requestAssistance(); }} className="relative w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
             <button type="button" disabled={isSubmittingAssistance} onClick={() => setAssistanceModalOrder(null)} aria-label="Close assistance request" className="absolute right-4 top-3 text-xl font-bold text-gray-400 hover:text-gray-900 disabled:opacity-50">×</button>
             <h3 className="pr-8 text-xl font-black text-gray-900">Request rider assistance</h3>
-            <p className="text-sm font-medium text-gray-600">Delivery {formatOrderNumber(assistanceModalOrder)} will be offered to online riders who are available. A rider who accepts will take over the delivery.</p>
+            <p className="text-sm font-medium text-gray-600">Delivery {formatOrderNumber(assistanceModalOrder)} will be offered to online riders who are available. If a rider accepts, both of you will remain assigned and work on this delivery together.</p>
             {availableRiderCount === 0 ? (
               <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">No other riders are currently online and available.</p>
             ) : (
