@@ -14,6 +14,13 @@ export default function Driver() {
   const [deliveryModalOrder, setDeliveryModalOrder] = useState(null);
   const [deliveryProofPhoto, setDeliveryProofPhoto] = useState(null);
   const [isSubmittingDelivery, setIsSubmittingDelivery] = useState(false);
+  const [assistanceModalOrder, setAssistanceModalOrder] = useState(null);
+  const [assistanceMessage, setAssistanceMessage] = useState('');
+  const [isSubmittingAssistance, setIsSubmittingAssistance] = useState(false);
+  const [acceptingAssistanceId, setAcceptingAssistanceId] = useState(null);
+  const [incomingAssistanceRequests, setIncomingAssistanceRequests] = useState([]);
+  const [myAssistanceRequests, setMyAssistanceRequests] = useState([]);
+  const [availableRiderCount, setAvailableRiderCount] = useState(null);
   const [message, setMessage] = useState('');
   const [chatLog, setChatLog] = useState([]);
   const [unreadChatOrders, setUnreadChatOrders] = useState({});
@@ -31,8 +38,23 @@ export default function Driver() {
       navigate('/login');
       return;
     }
-    const newSocket = io(API_URL);
+    const newSocket = io(API_URL, { auth: { token: localStorage.getItem('token') } });
     setSocket(newSocket);
+
+    const fetchAssistance = async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_URL}/api/rider/assistance`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIncomingAssistanceRequests(data.incomingRequests || []);
+          setMyAssistanceRequests(data.myRequests || []);
+          setAvailableRiderCount(data.availableRiderCount ?? 0);
+        }
+      } catch (error) { console.error('Failed to fetch rider assistance requests', error); }
+    };
     
     const fetchOrders = async () => {
       const requestSequence = ++orderFetchSequence.current;
@@ -55,7 +77,30 @@ export default function Driver() {
     };
     
     fetchOrders();
+    fetchAssistance();
     newSocket.on('dashboard_refresh', fetchOrders);
+    newSocket.on('connect', fetchAssistance);
+    newSocket.on('rider_assistance_refresh', fetchAssistance);
+    newSocket.on('rider_availability_update', ({ availableRiderCount: count }) => setAvailableRiderCount(count));
+    newSocket.on('rider_assistance_request', request => {
+      setIncomingAssistanceRequests(current => current.some(item => Number(item.id) === Number(request.id)) ? current : [request, ...current]);
+      showToast(`${request.requester_name} needs help with ${request.order_number || 'a delivery'}.`);
+    });
+    newSocket.on('rider_assistance_resolved', ({ requestId }) => {
+      setIncomingAssistanceRequests(current => current.filter(request => Number(request.id) !== Number(requestId)));
+    });
+    newSocket.on('rider_assistance_accepted', ({ requestId, orderId, orderNumber, riderName, riderId }) => {
+      setMyAssistanceRequests(current => current.some(request => Number(request.id) === Number(requestId))
+        ? current.map(request => Number(request.id) === Number(requestId)
+          ? { ...request, status: 'Accepted', order_number: orderNumber, accepted_firstname: riderName, accepted_by_rider_id: riderId }
+          : request)
+        : [{ id: requestId, order_id: orderId, order_number: orderNumber, status: 'Accepted', accepted_firstname: riderName, accepted_by_rider_id: riderId }, ...current]);
+      setOrders(current => current.map(order => Number(order.id) === Number(orderId)
+        ? { ...order, assigned_rider_id: riderId }
+        : order));
+      setActiveTab('Available');
+      showToast(`${riderName} accepted your request and took over ${orderNumber || 'the delivery'}.`);
+    });
     
     newSocket.on('receive_message', (data) => {
       if (String(chatOrderRef.current) === String(data.orderId)) {
@@ -71,7 +116,7 @@ export default function Driver() {
       }
     });
     return () => newSocket.close();
-  }, [user, navigate, API_URL]);
+  }, [user, navigate, API_URL, showToast]);
 
   useEffect(() => {
     if (chatOrder === null) return;
@@ -143,6 +188,73 @@ export default function Driver() {
     }
   };
 
+  const requestAssistance = async () => {
+    if (!assistanceModalOrder || !assistanceMessage.trim() || isSubmittingAssistance) return;
+    setIsSubmittingAssistance(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/rider/assistance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ orderId: assistanceModalOrder.id, message: assistanceMessage.trim() })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 409 && result.availableRiderCount === 0) setAvailableRiderCount(0);
+        throw new Error(result.error || 'Could not send your assistance request.');
+      }
+      setMyAssistanceRequests(current => [result.request, ...current.filter(request => Number(request.id) !== Number(result.request.id))]);
+      setAvailableRiderCount(result.availableRiderCount ?? availableRiderCount);
+      setAssistanceModalOrder(null);
+      setAssistanceMessage('');
+      showToast(`Assistance request sent to ${result.availableRiderCount} available rider${result.availableRiderCount === 1 ? '' : 's'}.`);
+    } catch (error) {
+      showToast(error.message || 'Could not send your assistance request.', 'error');
+    } finally {
+      setIsSubmittingAssistance(false);
+    }
+  };
+
+  const cancelAssistance = async (requestId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/rider/assistance/${requestId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not cancel the assistance request.');
+      setMyAssistanceRequests(current => current.filter(request => Number(request.id) !== Number(requestId)));
+      showToast('Assistance request cancelled.');
+    } catch (error) {
+      showToast(error.message || 'Could not cancel the assistance request.', 'error');
+    }
+  };
+
+  const acceptAssistance = async (request) => {
+    if (hasActiveDelivery || acceptingAssistanceId) return;
+    setAcceptingAssistanceId(request.id);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/rider/assistance/${request.id}/accept`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not accept this assistance request.');
+      setIncomingAssistanceRequests(current => current.filter(item => Number(item.id) !== Number(request.id)));
+      setOrders(current => current.map(order => Number(order.id) === Number(result.orderId)
+        ? { ...order, assigned_rider_id: user.id }
+        : order));
+      setActiveTab('My deliveries');
+      showToast('You accepted the request and took over the delivery.');
+    } catch (error) {
+      showToast(error.message || 'Could not accept this assistance request.', 'error');
+    } finally {
+      setAcceptingAssistanceId(null);
+    }
+  };
+
   const openChat = async (orderId) => {
     setChatOrder(orderId);
     chatOrderRef.current = orderId;
@@ -177,6 +289,8 @@ export default function Driver() {
   const activeDeliveries = orders.filter(o => o.status === 'Out for Delivery' && o.order_type === 'Delivery' && Number(o.assigned_rider_id) === Number(user?.id));
   const historyDeliveries = orders.filter(o => o.status === 'Completed' && o.order_type === 'Delivery' && Number(o.assigned_rider_id) === Number(user?.id));
   const hasActiveDelivery = activeDeliveries.length > 0;
+  const pendingAssistanceByOrder = new Map(myAssistanceRequests.filter(request => request.status === 'Pending').map(request => [Number(request.order_id), request]));
+  const latestAcceptedAssistance = myAssistanceRequests.find(request => request.status === 'Accepted');
 
   const displayList = activeTab === 'Available' ? availableDeliveries : activeTab === 'My deliveries' ? activeDeliveries : historyDeliveries;
 
@@ -206,6 +320,35 @@ export default function Driver() {
         <p className="mx-auto -mt-3 mb-5 max-w-[800px] px-4 text-center text-sm font-bold text-[#815633]">
           Complete your current delivery and submit its proof photo before claiming another order.
         </p>
+      )}
+
+      {latestAcceptedAssistance && (
+        <div className="mx-auto mb-5 max-w-[800px] px-4">
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+            <strong>{latestAcceptedAssistance.accepted_firstname} {latestAcceptedAssistance.accepted_lastname}</strong> accepted your assistance request for {latestAcceptedAssistance.order_number || 'a delivery'} and took over the order.
+          </div>
+        </div>
+      )}
+
+      {incomingAssistanceRequests.length > 0 && (
+        <section className="mx-auto mb-6 max-w-[800px] space-y-3 px-4" aria-label="Rider assistance requests">
+          <h2 className="text-lg font-black text-gray-900">Riders requesting assistance</h2>
+          {incomingAssistanceRequests.map(request => (
+            <article key={request.id} className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-black text-gray-900">{request.requester_name} needs help with {request.order_number || 'a delivery'}</p>
+                  <p className="mt-1 text-xs font-bold text-gray-500">{request.customer_name} · {request.branch}</p>
+                </div>
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase text-amber-800">Needs help</span>
+              </div>
+              <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-gray-700"><strong>Message for assistance:</strong> {request.message}</p>
+              <button type="button" onClick={() => acceptAssistance(request)} disabled={hasActiveDelivery || acceptingAssistanceId !== null} className="mt-4 w-full rounded-xl bg-[#815633] py-3 font-bold text-white shadow-sm hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-50">
+                {hasActiveDelivery ? 'Finish your current delivery before accepting' : acceptingAssistanceId === request.id ? 'Taking over delivery...' : 'Accept and take over delivery'}
+              </button>
+            </article>
+          ))}
+        </section>
       )}
 
       <div className="max-w-[800px] mx-auto px-4 space-y-6">
@@ -259,6 +402,16 @@ export default function Driver() {
                       💬 Chat
                       {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
                     </button>
+                    {user.role === 'rider' && (
+                      <button
+                        type="button"
+                        onClick={() => { setAssistanceMessage(''); setAssistanceModalOrder(order); }}
+                        disabled={pendingAssistanceByOrder.has(Number(order.id))}
+                        className="flex-1 rounded-xl border border-amber-300 bg-amber-50 py-3.5 text-sm font-bold text-amber-900 shadow-sm hover:bg-amber-100 disabled:cursor-default disabled:opacity-70"
+                      >
+                        {pendingAssistanceByOrder.has(Number(order.id)) ? 'Assistance requested' : 'Need Help?'}
+                      </button>
+                    )}
                     <button onClick={() => { setDeliveryProofPhoto(null); setDeliveryModalOrder(order); }} className="flex-[2] bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] transition-colors">Mark delivered</button>
                   </>
                 )}
@@ -272,6 +425,15 @@ export default function Driver() {
                   </button>
                 )}
               </div>
+              {user.role === 'rider' && order.status === 'Out for Delivery' && pendingAssistanceByOrder.has(Number(order.id)) && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  Waiting for an available rider to accept your request.
+                  <button type="button" onClick={() => cancelAssistance(pendingAssistanceByOrder.get(Number(order.id)).id)} className="ml-2 font-black underline">Cancel request</button>
+                </div>
+              )}
+              {user.role === 'rider' && order.status === 'Out for Delivery' && availableRiderCount === 0 && !pendingAssistanceByOrder.has(Number(order.id)) && (
+                <p className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs font-semibold text-gray-600">No other riders are currently online and available.</p>
+              )}
             </div>
           ))
         )}
@@ -302,6 +464,29 @@ export default function Driver() {
               {isSubmittingDelivery ? 'Uploading proof...' : 'Submit proof and mark delivered'}
             </button>
           </div>
+        </div>
+      )}
+
+      {assistanceModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <form onSubmit={event => { event.preventDefault(); requestAssistance(); }} className="relative w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
+            <button type="button" disabled={isSubmittingAssistance} onClick={() => setAssistanceModalOrder(null)} aria-label="Close assistance request" className="absolute right-4 top-3 text-xl font-bold text-gray-400 hover:text-gray-900 disabled:opacity-50">×</button>
+            <h3 className="pr-8 text-xl font-black text-gray-900">Request rider assistance</h3>
+            <p className="text-sm font-medium text-gray-600">Delivery {formatOrderNumber(assistanceModalOrder)} will be offered to online riders who are available. A rider who accepts will take over the delivery.</p>
+            {availableRiderCount === 0 ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">No other riders are currently online and available.</p>
+            ) : (
+              <p className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-900">{availableRiderCount ?? 'Checking'} other rider{availableRiderCount === 1 ? '' : 's'} available now.</p>
+            )}
+            <label className="block text-sm font-bold text-gray-700">
+              Message for assistance <span className="text-red-600">*</span>
+              <textarea required maxLength={1000} rows={4} value={assistanceMessage} onChange={event => setAssistanceMessage(event.target.value)} placeholder="Tell the other rider what help you need..." className="mt-2 w-full resize-y rounded-lg border border-gray-300 px-3 py-2.5 font-medium outline-none focus:border-[#815633]" />
+            </label>
+            <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+              <button type="button" disabled={isSubmittingAssistance} onClick={() => setAssistanceModalOrder(null)} className="rounded-lg border border-gray-200 px-4 py-2.5 font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50">Cancel</button>
+              <button type="submit" disabled={isSubmittingAssistance || availableRiderCount === 0 || !assistanceMessage.trim()} className="rounded-lg bg-[#815633] px-4 py-2.5 font-bold text-white hover:bg-[#62432B] disabled:cursor-not-allowed disabled:opacity-50">{isSubmittingAssistance ? 'Sending...' : 'Send request'}</button>
+            </div>
+          </form>
         </div>
       )}
 
