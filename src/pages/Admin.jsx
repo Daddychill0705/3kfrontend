@@ -1792,6 +1792,16 @@ export default function Admin() {
                 </div>
               </div>
 
+              {selectedHistoryOrder.delivery_proof_url && (
+                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Delivery Proof</h4>
+                  <a href={selectedHistoryOrder.delivery_proof_url} target="_blank" rel="noreferrer" className="inline-block">
+                    <img src={selectedHistoryOrder.delivery_proof_url} alt={`Delivery proof for order ${formatOrderNumber(selectedHistoryOrder)}`} className="max-h-72 rounded-lg border border-gray-200 object-contain" />
+                    <span className="mt-2 block text-sm font-bold text-[#815633] underline">Open full-size proof photo</span>
+                  </a>
+                </div>
+              )}
+
               <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Items Ordered</h4>
                 {selectedHistoryOrder.itemsData && selectedHistoryOrder.itemsData.length > 0 ? (

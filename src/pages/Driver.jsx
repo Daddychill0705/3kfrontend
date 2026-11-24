@@ -12,6 +12,8 @@ export default function Driver() {
   const [activeTab, setActiveTab] = useState('Available');
   const [chatOrder, setChatOrder] = useState(null);
   const [deliveryModalOrder, setDeliveryModalOrder] = useState(null);
+  const [deliveryProofPhoto, setDeliveryProofPhoto] = useState(null);
+  const [isSubmittingDelivery, setIsSubmittingDelivery] = useState(false);
   const [message, setMessage] = useState('');
   const [chatLog, setChatLog] = useState([]);
   const [unreadChatOrders, setUnreadChatOrders] = useState({});
@@ -44,7 +46,7 @@ export default function Driver() {
           if (requestSequence !== orderFetchSequence.current) return;
           setOrders(allOrders);
           allOrders.forEach(order => {
-            if (order.order_type === 'Delivery' && (order.status === 'Out for Delivery' || (order.status === 'Completed' && isOrderChatOpen(order)))) {
+            if (order.order_type === 'Delivery' && Number(order.assigned_rider_id) === Number(user.id) && (order.status === 'Out for Delivery' || (order.status === 'Completed' && isOrderChatOpen(order)))) {
               newSocket.emit('join_order', order.id);
             }
           });
@@ -80,16 +82,16 @@ export default function Driver() {
     }
   }, [chatOrder, orders, chatNow]);
 
-  const updateStatus = async (id, status) => {
+  const claimDelivery = async (id) => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`${API_URL}/api/admin/orders/${id}/status`, {
-        method: 'PUT',
+      const res = await fetch(`${API_URL}/api/rider/orders/${id}/claim`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ status })
       });
       if (res.ok) {
-        setOrders(currentOrders => currentOrders.map(order => order.id === id ? { ...order, status } : order));
+        setOrders(currentOrders => currentOrders.map(order => order.id === id ? { ...order, status: 'Out for Delivery', assigned_rider_id: user.id } : order));
+        setActiveTab('My deliveries');
         return true;
       }
       const result = await res.json().catch(() => ({}));
@@ -99,6 +101,46 @@ export default function Driver() {
       showToast(error.message || 'Could not update this delivery status.', 'error');
     }
     return false;
+  };
+
+  const submitDeliveryProof = async () => {
+    if (!deliveryModalOrder || !deliveryProofPhoto || isSubmittingDelivery) return;
+    setIsSubmittingDelivery(true);
+    try {
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+      if (!cloudName || !uploadPreset) throw new Error('Photo upload is not configured. Please contact an administrator.');
+
+      const uploadData = new FormData();
+      uploadData.append('file', deliveryProofPhoto);
+      uploadData.append('upload_preset', uploadPreset);
+      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: uploadData });
+      const uploadResult = await uploadResponse.json().catch(() => ({}));
+      if (!uploadResponse.ok || !uploadResult.secure_url) throw new Error(uploadResult.error?.message || 'Could not upload the proof photo. Please try again.');
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/rider/orders/${deliveryModalOrder.id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ proofUrl: uploadResult.secure_url })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not complete this delivery.');
+
+      setOrders(currentOrders => currentOrders.map(order => order.id === deliveryModalOrder.id
+        ? { ...order, status: 'Completed', delivery_proof_url: uploadResult.secure_url }
+        : order));
+      setDeliveryModalOrder(null);
+      setDeliveryProofPhoto(null);
+      setActiveTab('History');
+      showToast('Delivery marked as delivered. You can claim another order now.');
+      return true;
+    } catch (error) {
+      showToast(error.message || 'Could not submit delivery proof.', 'error');
+      return false;
+    } finally {
+      setIsSubmittingDelivery(false);
+    }
   };
 
   const openChat = async (orderId) => {
@@ -131,9 +173,10 @@ export default function Driver() {
     }
   };
 
-  const availableDeliveries = orders.filter(o => o.status === 'Ready' && o.order_type === 'Delivery');
-  const activeDeliveries = orders.filter(o => o.status === 'Out for Delivery' && o.order_type === 'Delivery');
-  const historyDeliveries = orders.filter(o => o.status === 'Completed' && o.order_type === 'Delivery');
+  const availableDeliveries = orders.filter(o => o.status === 'Ready' && o.order_type === 'Delivery' && !o.assigned_rider_id);
+  const activeDeliveries = orders.filter(o => o.status === 'Out for Delivery' && o.order_type === 'Delivery' && Number(o.assigned_rider_id) === Number(user?.id));
+  const historyDeliveries = orders.filter(o => o.status === 'Completed' && o.order_type === 'Delivery' && Number(o.assigned_rider_id) === Number(user?.id));
+  const hasActiveDelivery = activeDeliveries.length > 0;
 
   const displayList = activeTab === 'Available' ? availableDeliveries : activeTab === 'My deliveries' ? activeDeliveries : historyDeliveries;
 
@@ -158,6 +201,12 @@ export default function Driver() {
         <button onClick={() => setActiveTab('My deliveries')} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'My deliveries' ? 'bg-white shadow-sm border border-gray-200 text-gray-900' : 'text-gray-500 hover:bg-gray-100'}`}>My deliveries</button>
         <button onClick={() => setActiveTab('History')} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'History' ? 'bg-white shadow-sm border border-gray-200 text-gray-900' : 'text-gray-500 hover:bg-gray-100'}`}>History</button>
       </div>
+
+      {hasActiveDelivery && activeTab !== 'My deliveries' && (
+        <p className="mx-auto -mt-3 mb-5 max-w-[800px] px-4 text-center text-sm font-bold text-[#815633]">
+          Complete your current delivery and submit its proof photo before claiming another order.
+        </p>
+      )}
 
       <div className="max-w-[800px] mx-auto px-4 space-y-6">
         {displayList.length === 0 ? (
@@ -202,7 +251,7 @@ export default function Driver() {
 
               <div className="flex gap-3">
                 {order.status === 'Ready' && (
-                  <button onClick={() => { updateStatus(order.id, 'Out for Delivery'); setActiveTab('My deliveries'); }} className="w-full bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] transition-colors">Claim this delivery</button>
+                  <button onClick={() => claimDelivery(order.id)} disabled={hasActiveDelivery} className="w-full bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] transition-colors disabled:cursor-not-allowed disabled:opacity-50">{hasActiveDelivery ? 'Finish your current delivery first' : 'Claim this delivery'}</button>
                 )}
                 {order.status === 'Out for Delivery' && (
                   <>
@@ -210,9 +259,11 @@ export default function Driver() {
                       💬 Chat
                       {unreadChatOrders[order.id] && <span className="w-2.5 h-2.5 rounded-full bg-red-600" aria-label="Unread messages" />}
                     </button>
-                    <button onClick={async () => { if (await updateStatus(order.id, 'Ready')) setActiveTab('Available'); }} className="flex-1 bg-white border border-gray-300 text-gray-700 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">Release</button>
-                    <button onClick={() => setDeliveryModalOrder(order)} className="flex-[2] bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] transition-colors">Mark delivered</button>
+                    <button onClick={() => { setDeliveryProofPhoto(null); setDeliveryModalOrder(order); }} className="flex-[2] bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] transition-colors">Mark delivered</button>
                   </>
+                )}
+                {order.status === 'Completed' && order.delivery_proof_url && (
+                  <a href={order.delivery_proof_url} target="_blank" rel="noreferrer" className="w-full rounded-xl border border-gray-300 bg-white py-3 text-center text-sm font-bold text-[#815633] hover:bg-gray-50">View delivery proof photo</a>
                 )}
                 {order.status === 'Completed' && isOrderChatOpen(order, chatNow) && (
                   <button onClick={() => openChat(order.id)} className="flex-1 bg-white border border-gray-300 text-gray-700 py-3.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-2">
@@ -236,14 +287,19 @@ export default function Driver() {
                  ? 'This order is already paid. Confirm that it was handed over.' 
                  : `This order is unpaid. Collect ₱${parseFloat(deliveryModalOrder.total_amount).toFixed(2)} from the customer before handing it over.`}
             </p>
-            <button 
-               onClick={() => {
-                updateStatus(deliveryModalOrder.id, 'Completed');
-                setDeliveryModalOrder(null);
-              }} 
-               className="w-full bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B]"
-            >
-              Confirm delivered
+            <label className="mb-5 block text-sm font-bold text-gray-700">
+              Proof of delivery photo <span className="text-red-600">*</span>
+              <input type="file" accept="image/*" capture="environment" required onChange={event => {
+                const file = event.target.files?.[0];
+                if (!file) { setDeliveryProofPhoto(null); return; }
+                if (!file.type.startsWith('image/')) { setDeliveryProofPhoto(null); showToast('Choose an image file for delivery proof.', 'error'); return; }
+                if (file.size > 10 * 1024 * 1024) { setDeliveryProofPhoto(null); showToast('The proof photo must be 10 MB or smaller.', 'error'); return; }
+                setDeliveryProofPhoto(file);
+              }} className="mt-2 block w-full rounded-lg border border-gray-300 p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[#815633] file:px-3 file:py-2 file:font-bold file:text-white" />
+              <span className="mt-1 block text-xs font-medium text-gray-500">Take or choose a clear photo. Maximum size: 10 MB.</span>
+            </label>
+            <button onClick={submitDeliveryProof} disabled={!deliveryProofPhoto || isSubmittingDelivery} className="w-full bg-[#815633] text-white py-3.5 rounded-xl font-bold shadow-sm hover:bg-[#62432B] disabled:cursor-wait disabled:opacity-60">
+              {isSubmittingDelivery ? 'Uploading proof...' : 'Submit proof and mark delivered'}
             </button>
           </div>
         </div>

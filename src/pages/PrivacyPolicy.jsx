@@ -26,7 +26,7 @@ const sections = [
   {
     title: '4. Who may receive information',
     paragraphs: [
-      'Order details are made available to authorized 3K Kitchen staff who need them to prepare, confirm, or deliver the order. Account recovery details are available only to administrators reviewing the request. Delivery details may be shared with the assigned rider. We also use service providers to host the website and database, Brevo to send account and order emails, and an IP geolocation provider to estimate sign-in location from an IP address; uploaded GCash receipt images are handled by Cloudinary. These providers process information to support the service and under their own service terms.'
+      'Order details are made available to authorized 3K Kitchen staff who need them to prepare, confirm, or deliver the order. Account recovery details are available only to administrators reviewing the request. Delivery details may be shared with the assigned rider. We also use service providers to host the website and database, Brevo to send account and order emails, and an IP geolocation provider to estimate sign-in location from an IP address; uploaded GCash receipt and delivery proof images are handled by Cloudinary. These providers process information to support the service and under their own service terms.'
     ]
   },
   {
