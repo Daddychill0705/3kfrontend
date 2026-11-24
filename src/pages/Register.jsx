@@ -116,7 +116,8 @@ export default function Register() {
 
             <div className="mb-4">
               <label htmlFor="phone" className="block text-sm font-bold text-gray-800 mb-2">Phone Number</label>
-              <input type="tel" id="phone" value={formData.phone} onChange={handleChange} required maxLength={50} autoComplete="tel" placeholder="e.g. 09XX XXX XXXX" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633]" />
+              <input type="tel" id="phone" value={formData.phone} onChange={event => setFormData({ ...formData, phone: event.target.value.replace(/\D/g, '').slice(0, 11) })} required maxLength={11} minLength={11} pattern="09[0-9]{9}" inputMode="numeric" autoComplete="tel-national" placeholder="09171234567" aria-describedby="phone-format-help" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633]" />
+              <p id="phone-format-help" className="mt-1 text-xs text-gray-500">Enter an 11-digit Philippine mobile number starting with 09.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
