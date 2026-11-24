@@ -43,6 +43,7 @@ export default function Register() {
           firstname: formData.firstname,
           lastname: formData.lastname,
           email: formData.email,
+          phone: formData.phone,
           password: formData.password,
           termsAccepted
         })
@@ -111,6 +112,11 @@ export default function Register() {
             <div className="mb-4">
               <label htmlFor="email" className="block text-sm font-bold text-gray-800 mb-2">Email Address</label>
               <input type="email" id="email" value={formData.email} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633]" />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="phone" className="block text-sm font-bold text-gray-800 mb-2">Phone Number</label>
+              <input type="tel" id="phone" value={formData.phone} onChange={handleChange} required maxLength={50} autoComplete="tel" placeholder="e.g. 09XX XXX XXXX" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#815633]" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
