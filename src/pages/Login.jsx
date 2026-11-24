@@ -11,6 +11,7 @@ export default function Login() {
   const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -21,6 +22,8 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (isLoggingIn) return;
+    setIsLoggingIn(true);
     try {
       const loggedInUser = await login(email, password);
       showToast(`Welcome${loggedInUser.firstname ? `, ${loggedInUser.firstname}` : ' back'}!`);
@@ -32,6 +35,8 @@ export default function Login() {
       else navigate('/home');
     } catch (err) {
       showToast(err.message || 'Invalid email or password', 'error');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -74,8 +79,13 @@ export default function Login() {
               </label>
               <Link to="/forgot-password" className="text-3k-red font-bold hover:text-3k-red-hover transition-colors">Forgot password?</Link>
             </div>
-            <button type="submit" className="w-full bg-3k-red text-white font-bold py-3 rounded-lg shadow-md hover:bg-3k-red-hover hover:-translate-y-1 transition-all duration-300 mb-4">
-              Sign In
+            <button type="submit" disabled={isLoggingIn} aria-busy={isLoggingIn} className="w-full bg-3k-red text-white font-bold py-3 rounded-lg shadow-md hover:bg-3k-red-hover hover:-translate-y-1 transition-all duration-300 mb-4 disabled:cursor-wait disabled:opacity-80">
+              {isLoggingIn ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  Signing in...
+                </span>
+              ) : 'Sign In'}
             </button>
           </form>
           

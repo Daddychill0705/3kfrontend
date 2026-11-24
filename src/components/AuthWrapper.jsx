@@ -7,7 +7,13 @@ export default function AuthWrapper({ children, allowedRoles, guestRedirectTo })
   const location = useLocation();
 
   if (!user) {
-    return <Navigate to={guestRedirectTo || '/login'} state={{ from: location }} replace />;
+    const sessionExpired = localStorage.getItem('3k-session-expired') === 'true';
+    if (sessionExpired) localStorage.removeItem('3k-session-expired');
+    return <Navigate
+      to={guestRedirectTo || '/login'}
+      state={{ from: location, ...(sessionExpired ? { message: 'Your session expired after 30 minutes of inactivity. Please sign in again.' } : {}) }}
+      replace
+    />;
   }
 
   const isGuestMode = user.role === 'guest' || user.email === 'guest@3kkitchen.local';
